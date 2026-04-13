@@ -13,7 +13,7 @@ class EduCoreApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       onGenerateRoute: AppRouter.onGenerateRoute,
-      initialRoute: AppRoutes.startup,
+      initialRoute: AppRoutes.splash,
     );
   }
 }

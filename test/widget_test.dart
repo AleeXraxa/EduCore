@@ -10,11 +10,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:educore/src/app/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('App shows splash then login', (WidgetTester tester) async {
     await tester.pumpWidget(const EduCoreApp());
 
-    // Basic smoke: startup screen renders.
+    // Splash renders first.
     expect(find.text('EduCore'), findsOneWidget);
+
+    // After splash delay, it should navigate to login.
+    await tester.pump(const Duration(milliseconds: 5200));
+    await tester.pumpAndSettle();
+    expect(find.text('Sign in'), findsWidgets);
   });
 }
