@@ -100,9 +100,13 @@ class _LoginViewState extends State<LoginView>
       await _controller.signIn(
         email: _email.text.trim(),
         password: _password.text,
+        rememberMe: _rememberMe,
       );
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.dashboard,
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

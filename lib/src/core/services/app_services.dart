@@ -3,6 +3,9 @@ import 'package:educore/src/core/services/local_db_service.dart';
 import 'package:educore/src/core/services/noop_local_db_service.dart';
 import 'package:educore/src/core/services/sqlite_local_db_service.dart';
 import 'package:educore/src/core/services/auth_service.dart';
+import 'package:educore/src/core/services/noop_prefs_service.dart';
+import 'package:educore/src/core/services/prefs_service.dart';
+import 'package:educore/src/core/services/shared_prefs_service.dart';
 import 'package:educore/src/core/services/seed_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,6 +18,7 @@ class AppServices {
   static final AppServices instance = AppServices._();
 
   late final LocalDbService localDb;
+  late final PrefsService prefs;
   FirebaseApp? firebaseApp;
   FirebaseAuth? auth;
   FirebaseFirestore? firestore;
@@ -31,6 +35,17 @@ class AppServices {
         const bool.fromEnvironment('EDUCORE_USE_SQLITE', defaultValue: false);
     localDb = useSqlite ? SqliteLocalDbService() : NoopLocalDbService();
     await localDb.init();
+
+    try {
+      prefs = SharedPrefsService();
+      await prefs.init();
+    } catch (e) {
+      prefs = NoopPrefsService();
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('Prefs init skipped: $e');
+      }
+    }
 
     try {
       firebaseApp = await Firebase.initializeApp(

@@ -3,8 +3,8 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 
-class DashboardView extends StatelessWidget {
-  const DashboardView({super.key});
+class SuperAdminDashboardView extends StatelessWidget {
+  const SuperAdminDashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -89,16 +89,16 @@ class _HeaderRow extends StatelessWidget {
               Text(
                 'Super Admin Dashboard',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.4,
-                ),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                    ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Manage institutes, subscriptions, payments, and system health.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
               ),
             ],
           ),
@@ -112,9 +112,9 @@ class _HeaderRow extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 'Create Institute',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
             ],
           ),
@@ -152,7 +152,7 @@ class _KpiGrid extends StatelessWidget {
               SizedBox(
                 width: cardWidth,
                 child: AppCard(child: _KpiCard(data: item)),
-              ),
+              )
           ],
         );
       },
@@ -194,17 +194,17 @@ class _KpiCard extends StatelessWidget {
               Text(
                 data.label,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 data.value,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
               ),
             ],
           ),
@@ -225,16 +225,17 @@ class _RevenueChart extends StatelessWidget {
           children: [
             Text(
               'Revenue Over Time',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
             const Spacer(),
             Text(
               'Last 30 days',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: cs.onSurfaceVariant),
             ),
           ],
         ),
@@ -248,9 +249,10 @@ class _RevenueChart extends StatelessWidget {
           child: Center(
             child: Text(
               'Line chart',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
         ),
@@ -268,9 +270,10 @@ class _GrowthChart extends StatelessWidget {
       children: [
         Text(
           'Institute Growth',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 14),
         Container(
@@ -282,9 +285,10 @@ class _GrowthChart extends StatelessWidget {
           child: Center(
             child: Text(
               'Bar chart',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
         ),
@@ -310,16 +314,16 @@ class _SectionTitle extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
               ),
             ],
           ),
@@ -338,15 +342,16 @@ class _ActivityList extends StatelessWidget {
       children: [
         Text(
           'Recent Activity',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
         _ActivityRow(
           icon: Icons.verified_rounded,
           title: 'Subscription approved',
-          subtitle: 'Green Valley Academy � Standard Plan',
+          subtitle: 'Green Valley Academy • Standard Plan',
           time: '2m ago',
           tint: cs.primary,
         ),
@@ -354,7 +359,7 @@ class _ActivityList extends StatelessWidget {
         _ActivityRow(
           icon: Icons.payments_rounded,
           title: 'Payment verified',
-          subtitle: 'Sunrise School � PKR 18,000',
+          subtitle: 'Sunrise School • PKR 18,000',
           time: '18m ago',
           tint: cs.secondary,
         ),
@@ -362,7 +367,7 @@ class _ActivityList extends StatelessWidget {
         _ActivityRow(
           icon: Icons.block_rounded,
           title: 'Institute blocked',
-          subtitle: 'Apex Institute � Policy violation',
+          subtitle: 'Apex Institute • Policy violation',
           time: '1h ago',
           tint: cs.tertiary,
         ),
@@ -407,16 +412,16 @@ class _ActivityRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
               ),
             ],
           ),
@@ -424,9 +429,9 @@ class _ActivityRow extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           time,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
         ),
       ],
     );
@@ -444,43 +449,38 @@ class _PendingPaymentsTable extends StatelessWidget {
           children: [
             Text(
               'Pending Payments',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const Spacer(),
             Text(
               'View all',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: cs.primary),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: cs.primary),
             ),
           ],
         ),
         const SizedBox(height: 12),
         _TableHeader(),
         const SizedBox(height: 6),
-        _TableRow(
-          name: 'Green Valley',
-          amount: 'PKR 18,000',
-          status: 'Pending',
-        ),
+        _TableRow(name: 'Green Valley', amount: 'PKR 18,000', status: 'Pending'),
         const SizedBox(height: 6),
         _TableRow(name: 'City School', amount: 'PKR 12,500', status: 'Review'),
         const SizedBox(height: 6),
-        _TableRow(
-          name: 'Apex Institute',
-          amount: 'PKR 21,000',
-          status: 'Pending',
-        ),
+        _TableRow(name: 'Apex Institute', amount: 'PKR 21,000', status: 'Pending'),
         const SizedBox(height: 12),
         Row(
           children: [
             Text(
-              '1�3 of 12',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              '1–3 of 12',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: cs.onSurfaceVariant),
             ),
             const Spacer(),
             Icon(Icons.chevron_left, color: cs.onSurfaceVariant),
@@ -509,25 +509,25 @@ class _TableHeader extends StatelessWidget {
             child: Text(
               'Institute',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ),
           Text(
             'Amount',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           const SizedBox(width: 12),
           Text(
             'Status',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
@@ -567,16 +567,16 @@ class _TableRow extends StatelessWidget {
           Expanded(
             child: Text(
               name,
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
           ),
           Text(
             amount,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
           ),
           const SizedBox(width: 12),
           Container(
@@ -588,9 +588,9 @@ class _TableRow extends StatelessWidget {
             child: Text(
               status,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: cs.primary,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: cs.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ),
         ],

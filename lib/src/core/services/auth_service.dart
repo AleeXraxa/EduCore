@@ -5,6 +5,10 @@ class AuthService {
 
   final FirebaseAuth _auth;
 
+  User? get currentUser => _auth.currentUser;
+
+  Stream<User?> authStateChanges() => _auth.authStateChanges();
+
   Future<UserCredential> signInWithEmailPassword({
     required String email,
     required String password,
@@ -18,5 +22,6 @@ class AuthService {
   }) {
     return _auth.createUserWithEmailAndPassword(email: email, password: password);
   }
-}
 
+  Future<void> signOut() => _auth.signOut();
+}

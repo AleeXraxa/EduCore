@@ -14,7 +14,7 @@ class Topbar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Row(
@@ -52,8 +52,60 @@ class Topbar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
+          _TopbarIcon(
+            icon: Icons.notifications_none_rounded,
+            tooltip: 'Notifications',
+            onTap: () {},
+          ),
+          const SizedBox(width: 10),
           _ProfileChip(),
         ],
+      ),
+    );
+  }
+}
+
+class _TopbarIcon extends StatefulWidget {
+  const _TopbarIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  State<_TopbarIcon> createState() => _TopbarIconState();
+}
+
+class _TopbarIconState extends State<_TopbarIcon> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bg = _hovered ? cs.surfaceContainerHighest : cs.surface;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        child: IconButton(
+          tooltip: widget.tooltip,
+          onPressed: widget.onTap,
+          icon: Icon(widget.icon, size: 20),
+          splashRadius: 20,
+        ),
       ),
     );
   }
@@ -99,4 +151,3 @@ class _ProfileChip extends StatelessWidget {
     );
   }
 }
-

@@ -1,4 +1,10 @@
+import 'dart:async';
+
+import 'package:educore/src/app/navigation/app_routes.dart';
+import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/constants/prefs_keys.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
@@ -6,14 +12,21 @@ class Sidebar extends StatelessWidget {
     super.key,
     required this.collapsed,
     required this.onToggle,
+    this.items = const [],
+    this.selectedId,
+    this.onSelect,
+    this.bottomItems = const [],
   });
 
   final bool collapsed;
   final VoidCallback onToggle;
+  final List<SidebarItemData> items;
+  final String? selectedId;
+  final ValueChanged<String>? onSelect;
+  final List<SidebarItemData> bottomItems;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final width = collapsed ? 76.0 : 248.0;
 
     return AnimatedContainer(
@@ -41,64 +54,101 @@ class Sidebar extends StatelessWidget {
                         ? CrossAxisAlignment.center
                         : CrossAxisAlignment.stretch,
                     children: [
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.dashboard_rounded,
-                        label: 'Dashboard',
-                        selected: true,
-                        onTap: () {},
-                      ),
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.apartment_rounded,
-                        label: 'Institutes',
-                        selected: false,
-                        onTap: () {},
-                      ),
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.verified_rounded,
-                        label: 'Subscriptions',
-                        selected: false,
-                        onTap: () {},
-                      ),
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.payments_rounded,
-                        label: 'Payments',
-                        selected: false,
-                        onTap: () {},
-                      ),
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.trending_up_rounded,
-                        label: 'Analytics',
-                        selected: false,
-                        onTap: () {},
-                      ),
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: Icons.notifications_active_rounded,
-                        label: 'Notifications',
-                        selected: false,
-                        onTap: () {},
-                      ),
+                      for (final item in items)
+                        _NavItem(
+                          collapsed: collapsed,
+                          icon: item.icon,
+                          label: item.label,
+                          selected: selectedId == item.id,
+                          onTap: () => onSelect?.call(item.id),
+                        ),
                     ],
                   ),
                 ),
               ),
+              if (bottomItems.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Divider(height: 1, color: AppColors.border),
+                ),
+              for (final item in bottomItems)
+                _NavItem(
+                  collapsed: collapsed,
+                  icon: item.icon,
+                  label: item.label,
+                  selected: selectedId == item.id,
+                  onTap: () => onSelect?.call(item.id),
+                ),
               _NavItem(
                 collapsed: collapsed,
-                icon: Icons.settings_rounded,
-                label: 'Settings',
+                icon: Icons.logout_rounded,
+                label: 'Log out',
                 selected: false,
-                onTap: () {},
+                danger: true,
+                onTap: () => unawaited(_onLogout(context)),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _onLogout(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Sign out'),
+          content: Text(
+            'You will be returned to the login screen.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: cs.primary),
+              child: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    final authService = AppServices.instance.authService;
+    if (authService == null) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Auth is not available yet.')),
+      );
+      return;
+    }
+
+    try {
+      await authService.signOut();
+      await AppServices.instance.prefs.setBool(PrefsKeys.rememberMe, false);
+      if (!context.mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logout failed: $e')),
+      );
+    }
   }
 }
 
@@ -112,50 +162,54 @@ class _BrandRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final logo = Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            cs.primary,
-            cs.secondary,
-          ],
+    final logo = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        color: cs.surface,
+        padding: const EdgeInsets.all(6),
+        child: Image.asset(
+          'assets/images/logo_v4.png',
+          fit: BoxFit.contain,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: cs.primary.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
     );
 
-    return Row(
-      mainAxisAlignment:
-          collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-      children: [
-        logo,
-        if (!collapsed) ...[
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'EduCore',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-            ),
+    if (collapsed) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          logo,
+          const SizedBox(height: 8),
+          IconButton(
+            tooltip: 'Expand',
+            onPressed: onToggle,
+            icon: const Icon(Icons.chevron_right),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
           ),
         ],
+      );
+    }
+
+    return Row(
+      children: [
+        logo,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'EduCore',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+          ),
+        ),
         IconButton(
-          tooltip: collapsed ? 'Expand' : 'Collapse',
+          tooltip: 'Collapse',
           onPressed: onToggle,
-          icon: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left),
+          icon: const Icon(Icons.chevron_left),
         ),
       ],
     );
@@ -169,6 +223,7 @@ class _NavItem extends StatefulWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.danger = false,
   });
 
   final bool collapsed;
@@ -176,6 +231,7 @@ class _NavItem extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final bool danger;
 
   @override
   State<_NavItem> createState() => _NavItemState();
@@ -191,7 +247,9 @@ class _NavItemState extends State<_NavItem> {
         ? cs.primary.withValues(alpha: 0.10)
         : (_hovered ? cs.surfaceContainerHighest : Colors.transparent);
 
-    final fg = widget.selected ? cs.primary : cs.onSurfaceVariant;
+    final fg = widget.danger
+        ? (widget.selected ? const Color(0xFFDC2626) : const Color(0xFFB91C1C))
+        : (widget.selected ? cs.primary : cs.onSurfaceVariant);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
@@ -205,8 +263,9 @@ class _NavItemState extends State<_NavItem> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          hoverColor: cs.primary.withValues(alpha: 0.06),
-          splashColor: cs.primary.withValues(alpha: 0.10),
+          hoverColor: (widget.danger ? fg : cs.primary).withValues(alpha: 0.06),
+          splashColor:
+              (widget.danger ? fg : cs.primary).withValues(alpha: 0.10),
           onHover: (value) => setState(() => _hovered = value),
           onTap: widget.onTap,
           child: Padding(
@@ -222,8 +281,15 @@ class _NavItemState extends State<_NavItem> {
                     height: 20,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: cs.primary,
                       borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          widget.danger ? fg : cs.primary,
+                          widget.danger ? fg : cs.secondary,
+                        ],
+                      ),
                     ),
                   ),
                 ],

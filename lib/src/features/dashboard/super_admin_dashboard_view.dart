@@ -1,77 +1,228 @@
 import 'package:educore/src/app/shell/app_shell.dart';
+import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 
-class SuperAdminDashboardView extends StatelessWidget {
+class SuperAdminDashboardView extends StatefulWidget {
   const SuperAdminDashboardView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return AppShell(
-      title: 'Super Admin',
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final size = screenSizeForWidth(constraints.maxWidth);
-          final columns = switch (size) {
-            ScreenSize.compact => 1,
-            ScreenSize.medium => 2,
-            ScreenSize.expanded => 4,
-          };
+  State<SuperAdminDashboardView> createState() =>
+      _SuperAdminDashboardViewState();
+}
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _HeaderRow(),
-                const SizedBox(height: 16),
-                _KpiGrid(columns: columns),
-                const SizedBox(height: 24),
-                _SectionTitle(
-                  title: 'Analytics',
-                  subtitle: 'Revenue and institute growth at a glance.',
-                ),
-                const SizedBox(height: 12),
-                Flex(
-                  direction: size == ScreenSize.compact
-                      ? Axis.vertical
-                      : Axis.horizontal,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: AppCard(child: _RevenueChart())),
-                    SizedBox(
-                      width: size == ScreenSize.compact ? 0 : 16,
-                      height: size == ScreenSize.compact ? 16 : 0,
-                    ),
-                    Expanded(child: AppCard(child: _GrowthChart())),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(
-                  title: 'Operations',
-                  subtitle: 'Recent activity and pending approvals.',
-                ),
-                const SizedBox(height: 12),
-                Flex(
-                  direction: size == ScreenSize.compact
-                      ? Axis.vertical
-                      : Axis.horizontal,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: AppCard(child: _ActivityList())),
-                    SizedBox(
-                      width: size == ScreenSize.compact ? 0 : 16,
-                      height: size == ScreenSize.compact ? 16 : 0,
-                    ),
-                    Expanded(child: AppCard(child: _PendingPaymentsTable())),
-                  ],
-                ),
-              ],
-            ),
+class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
+  String _selected = _SuperAdminNav.dashboard.id;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _SuperAdminNav.byId(_selected);
+
+    return AppShell(
+      title: current.title,
+      sidebarItems: _SuperAdminNav.items,
+      selectedSidebarId: _selected,
+      onSelectSidebar: (id) => setState(() => _selected = id),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final fade = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          final slide = Tween<Offset>(
+            begin: const Offset(0.01, 0),
+            end: Offset.zero,
+          ).animate(fade);
+          return FadeTransition(
+            opacity: fade,
+            child: SlideTransition(position: slide, child: child),
           );
         },
+        child: KeyedSubtree(
+          key: ValueKey<String>(_selected),
+          child: switch (current) {
+            _SuperAdminNav.dashboard => const _DashboardHomeBody(),
+            _ => _PlaceholderPage(title: current.title),
+          },
+        ),
       ),
+    );
+  }
+}
+
+enum _SuperAdminNav {
+  dashboard('dashboard', 'Dashboard', 'Super Admin', Icons.dashboard_rounded),
+  institutes('institutes', 'Institutes', 'Institutes', Icons.apartment_rounded),
+  subscriptions(
+    'subscriptions',
+    'Subscriptions',
+    'Subscriptions',
+    Icons.verified_rounded,
+  ),
+  payments('payments', 'Payments', 'Payments', Icons.payments_rounded),
+  analytics('analytics', 'Analytics', 'Analytics', Icons.trending_up_rounded),
+  notifications(
+    'notifications',
+    'Notifications',
+    'Notifications',
+    Icons.notifications_active_rounded,
+  ),
+  settings('settings', 'Settings', 'Settings', Icons.settings_rounded);
+
+  const _SuperAdminNav(this.id, this.label, this.title, this.icon);
+  final String id;
+  final String label;
+  final String title;
+  final IconData icon;
+
+  static List<SidebarItemData> get items => _SuperAdminNav.values
+      .map((e) => SidebarItemData(id: e.id, label: e.label, icon: e.icon))
+      .toList(growable: false);
+
+  static _SuperAdminNav byId(String id) =>
+      _SuperAdminNav.values.firstWhere((e) => e.id == id);
+}
+
+class _PlaceholderPage extends StatelessWidget {
+  const _PlaceholderPage({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'This section is ready for the next build step.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      color: cs.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Coming next',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'We’ll build this screen with tables, filters, and actions.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardHomeBody extends StatelessWidget {
+  const _DashboardHomeBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = screenSizeForWidth(constraints.maxWidth);
+        final columns = switch (size) {
+          ScreenSize.compact => 1,
+          ScreenSize.medium => 2,
+          ScreenSize.expanded => 4,
+        };
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _HeaderRow(),
+              const SizedBox(height: 16),
+              _KpiGrid(columns: columns),
+              const SizedBox(height: 24),
+              _SectionTitle(
+                title: 'Analytics',
+                subtitle: 'Revenue and institute growth at a glance.',
+              ),
+              const SizedBox(height: 12),
+              Flex(
+                direction:
+                    size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: AppCard(child: _RevenueChart())),
+                  SizedBox(
+                    width: size == ScreenSize.compact ? 0 : 16,
+                    height: size == ScreenSize.compact ? 16 : 0,
+                  ),
+                  Expanded(child: AppCard(child: _GrowthChart())),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle(
+                title: 'Operations',
+                subtitle: 'Recent activity and pending approvals.',
+              ),
+              const SizedBox(height: 12),
+              Flex(
+                direction:
+                    size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: AppCard(child: _ActivityList())),
+                  SizedBox(
+                    width: size == ScreenSize.compact ? 0 : 16,
+                    height: size == ScreenSize.compact ? 16 : 0,
+                  ),
+                  Expanded(child: AppCard(child: _PendingPaymentsTable())),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -132,10 +283,30 @@ class _KpiGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = const [
-      _KpiData('Total Institutes', '68', Icons.apartment_rounded),
-      _KpiData('Active Subscriptions', '52', Icons.verified_rounded),
-      _KpiData('Monthly Revenue', 'PKR 420k', Icons.payments_rounded),
-      _KpiData('Pending Payments', '14', Icons.pending_actions_rounded),
+      _KpiData(
+        'Total Institutes',
+        '68',
+        Icons.apartment_rounded,
+        [Color(0xFF2563EB), Color(0xFF6366F1)],
+      ),
+      _KpiData(
+        'Active Subscriptions',
+        '52',
+        Icons.verified_rounded,
+        [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+      ),
+      _KpiData(
+        'Monthly Revenue',
+        'PKR 420k',
+        Icons.payments_rounded,
+        [Color(0xFF2563EB), Color(0xFF8B5CF6)],
+      ),
+      _KpiData(
+        'Pending Payments',
+        '14',
+        Icons.pending_actions_rounded,
+        [Color(0xFF1D4ED8), Color(0xFF6366F1)],
+      ),
     ];
 
     return LayoutBuilder(
@@ -161,10 +332,11 @@ class _KpiGrid extends StatelessWidget {
 }
 
 class _KpiData {
-  const _KpiData(this.label, this.value, this.icon);
+  const _KpiData(this.label, this.value, this.icon, this.gradient);
   final String label;
   final String value;
   final IconData icon;
+  final List<Color> gradient;
 }
 
 class _KpiCard extends StatelessWidget {
@@ -178,13 +350,24 @@ class _KpiCard extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(14),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: data.gradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: data.gradient.first.withValues(alpha: 0.22),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          child: Icon(data.icon, color: cs.primary),
+          child: Icon(data.icon, color: Colors.white, size: 22),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -195,7 +378,7 @@ class _KpiCard extends StatelessWidget {
                 data.label,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
               ),
               const SizedBox(height: 4),
@@ -245,15 +428,12 @@ class _RevenueChart extends StatelessWidget {
           decoration: BoxDecoration(
             color: cs.primary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cs.outlineVariant),
           ),
-          child: Center(
-            child: Text(
-              'Line chart',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: cs.onSurfaceVariant),
-            ),
+          clipBehavior: Clip.antiAlias,
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: _MockLineChart(),
           ),
         ),
       ],
@@ -281,19 +461,223 @@ class _GrowthChart extends StatelessWidget {
           decoration: BoxDecoration(
             color: cs.secondary.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cs.outlineVariant),
           ),
-          child: Center(
-            child: Text(
-              'Bar chart',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: cs.onSurfaceVariant),
-            ),
+          clipBehavior: Clip.antiAlias,
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: _MockBarChart(),
           ),
         ),
       ],
     );
+  }
+}
+
+class _MockLineChart extends StatelessWidget {
+  const _MockLineChart();
+
+  static const _values = <double>[12, 18, 15, 22, 20, 28, 26, 34, 30, 38, 44];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return CustomPaint(
+      painter: _LineChartPainter(
+        values: _values,
+        lineGradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [cs.primary, cs.secondary, cs.tertiary],
+        ),
+        gridColor: cs.outlineVariant.withValues(alpha: 0.8),
+      ),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _MockBarChart extends StatelessWidget {
+  const _MockBarChart();
+
+  static const _values = <double>[8, 12, 10, 16, 14, 18, 20, 22];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return CustomPaint(
+      painter: _BarChartPainter(
+        values: _values,
+        barGradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [cs.secondary, cs.tertiary],
+        ),
+        gridColor: cs.outlineVariant.withValues(alpha: 0.8),
+      ),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _LineChartPainter extends CustomPainter {
+  const _LineChartPainter({
+    required this.values,
+    required this.lineGradient,
+    required this.gridColor,
+  });
+
+  final List<double> values;
+  final Gradient lineGradient;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+
+    for (var i = 1; i <= 4; i++) {
+      final y = size.height * (i / 5);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    final minV = values.reduce((a, b) => a < b ? a : b);
+    final maxV = values.reduce((a, b) => a > b ? a : b);
+    final span = (maxV - minV).abs() < 0.001 ? 1.0 : (maxV - minV);
+
+    final dx = size.width / (values.length - 1);
+    final points = <Offset>[
+      for (var i = 0; i < values.length; i++)
+        Offset(
+          i * dx,
+          size.height - ((values[i] - minV) / span) * size.height,
+        ),
+    ];
+
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length; i++) {
+      final prev = points[i - 1];
+      final cur = points[i];
+      final cp1 = Offset(prev.dx + dx * 0.55, prev.dy);
+      final cp2 = Offset(cur.dx - dx * 0.55, cur.dy);
+      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, cur.dx, cur.dy);
+    }
+
+    final fill = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withValues(alpha: 0.0),
+          Colors.white.withValues(alpha: 0.0),
+        ],
+      ).createShader(bounds);
+
+    canvas.saveLayer(bounds, Paint());
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF2563EB).withValues(alpha: 0.18),
+            const Color(0xFF2563EB).withValues(alpha: 0.02),
+          ],
+        ).createShader(bounds),
+    );
+    canvas.drawPath(fill, fillPaint);
+    canvas.restore();
+
+    final linePaint = Paint()
+      ..shader = lineGradient.createShader(bounds)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, linePaint);
+
+    final dotPaint = Paint()..color = Colors.white;
+    final dotStroke = Paint()
+      ..shader = lineGradient.createShader(bounds)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    for (final p in points) {
+      canvas.drawCircle(p, 4.4, dotPaint);
+      canvas.drawCircle(p, 4.4, dotStroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
+    return oldDelegate.values != values ||
+        oldDelegate.lineGradient != lineGradient ||
+        oldDelegate.gridColor != gridColor;
+  }
+}
+
+class _BarChartPainter extends CustomPainter {
+  const _BarChartPainter({
+    required this.values,
+    required this.barGradient,
+    required this.gridColor,
+  });
+
+  final List<double> values;
+  final Gradient barGradient;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var i = 1; i <= 4; i++) {
+      final y = size.height * (i / 5);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    final maxV = values.reduce((a, b) => a > b ? a : b);
+    final span = maxV <= 0 ? 1.0 : maxV;
+
+    final gap = 10.0;
+    final barW = (size.width - gap * (values.length - 1)) / values.length;
+
+    for (var i = 0; i < values.length; i++) {
+      final h = (values[i] / span) * size.height;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          i * (barW + gap),
+          size.height - h,
+          barW,
+          h,
+        ),
+        const Radius.circular(999),
+      );
+
+      canvas.drawRRect(
+        rect,
+        Paint()..shader = barGradient.createShader(bounds),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
+    return oldDelegate.values != values ||
+        oldDelegate.barGradient != barGradient ||
+        oldDelegate.gridColor != gridColor;
   }
 }
 
@@ -598,4 +982,3 @@ class _TableRow extends StatelessWidget {
     );
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
-import 'package:educore/src/features/dashboard/dashboard_view.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/features/dashboard/super_admin_dashboard_view.dart';
 import 'package:educore/src/features/login/login_view.dart';
 import 'package:educore/src/features/splash/splash_view.dart';
 import 'package:flutter/material.dart';
@@ -18,9 +19,17 @@ abstract final class AppRouter {
           builder: (_) => const LoginView(),
         );
       case AppRoutes.dashboard:
+        final isSignedIn =
+            AppServices.instance.authService?.currentUser != null;
+        if (!isSignedIn) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const LoginView(),
+          );
+        }
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const DashboardView(),
+          builder: (_) => const SuperAdminDashboardView(),
         );
     }
 

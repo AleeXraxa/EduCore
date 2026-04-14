@@ -1,5 +1,7 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
+import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_page_background.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/core/ui/widgets/powered_by_footer.dart';
@@ -65,7 +67,20 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       _progress.forward(from: 0),
     ]);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+    final services = AppServices.instance;
+    final isSignedIn = services.authService?.currentUser != null;
+    final rememberMe =
+        await services.prefs.getBool(PrefsKeys.rememberMe, defaultValue: true);
+
+    if (!rememberMe && isSignedIn) {
+      await services.authService?.signOut();
+    }
+
+    if (!mounted) return;
+    final stillSignedIn = services.authService?.currentUser != null;
+    Navigator.of(context).pushReplacementNamed(
+      stillSignedIn ? AppRoutes.dashboard : AppRoutes.login,
+    );
   }
 
   @override

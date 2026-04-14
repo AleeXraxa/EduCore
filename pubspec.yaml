@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.3.0
   flutter_spinkit: ^5.2.2
+  shared_preferences: ^2.3.2
   # Keep FlutterFire versions aligned with your working Windows project to
   # reduce Windows build size (Firebase C++ SDK extraction).
   firebase_core: 3.15.2
