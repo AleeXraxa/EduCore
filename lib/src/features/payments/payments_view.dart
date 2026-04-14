@@ -3,7 +3,6 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
-import 'package:educore/src/features/payments/models/payment.dart';
 import 'package:educore/src/features/payments/payments_controller.dart';
 import 'package:educore/src/features/payments/widgets/payment_proof_dialog.dart';
 import 'package:educore/src/features/payments/widgets/payments_table.dart';
@@ -59,7 +58,8 @@ class _PaymentsViewState extends State<PaymentsView> {
                       children: [
                         Text(
                           'Payments',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.4,
                               ),
@@ -67,10 +67,8 @@ class _PaymentsViewState extends State<PaymentsView> {
                         const SizedBox(height: 6),
                         Text(
                           'Review and manage all payment transactions.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -203,15 +201,17 @@ class _PaymentsViewState extends State<PaymentsView> {
 
                   const gap = 12.0;
                   final totalGap = gap * (columns - 1);
-                  final cardWidth =
-                      (constraints.maxWidth - totalGap) / columns;
+                  final cardWidth = (constraints.maxWidth - totalGap) / columns;
 
                   return Wrap(
                     spacing: gap,
                     runSpacing: gap,
                     children: [
                       for (final kpi in items)
-                        SizedBox(width: cardWidth, child: KpiCard(data: kpi)),
+                        SizedBox(
+                          width: cardWidth,
+                          child: KpiCard(data: kpi),
+                        ),
                     ],
                   );
                 },
@@ -219,13 +219,12 @@ class _PaymentsViewState extends State<PaymentsView> {
               const SizedBox(height: 20),
               PaymentsTable(
                 items: controller.paged,
-                onViewProof: (payment) => PaymentProofDialog.show(
-                  context,
-                  payment: payment,
-                ),
+                onViewProof: (payment) =>
+                    PaymentProofDialog.show(context, payment: payment),
                 onAction: (action) async {
-                  final p = controller.paged
-                      .firstWhere((e) => e.id == action.paymentId);
+                  final p = controller.paged.firstWhere(
+                    (e) => e.id == action.paymentId,
+                  );
 
                   switch (action.action) {
                     case PaymentMenuAction.viewDetails:
@@ -269,9 +268,9 @@ class _PaymentsViewState extends State<PaymentsView> {
               Text(
                 'Tip: Pending payments are softly highlighted for faster review.',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -297,10 +296,9 @@ Future<bool> _confirm(
         title: Text(title),
         content: Text(
           message,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: cs.onSurfaceVariant),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
         ),
         actions: [
           TextButton(
@@ -346,9 +344,9 @@ class _PaginationBar extends StatelessWidget {
         Text(
           '$start–$end of $total',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const Spacer(),
         _PagerIcon(
@@ -429,4 +427,3 @@ String _fmtInt(int v) {
   }
   return b.toString().split('').reversed.join();
 }
-

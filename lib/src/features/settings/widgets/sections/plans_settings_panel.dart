@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -30,16 +29,16 @@ class PlansSettingsPanel extends StatelessWidget {
                   Text(
                     'Subscription plans',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4,
-                        ),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Pricing and feature tiers for institutes.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -118,10 +117,9 @@ Future<void> _confirmDelete(
         title: const Text('Delete plan?'),
         content: Text(
           'This removes "${plan.name}" from the plan list.',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: cs.onSurfaceVariant),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
         ),
         actions: [
           TextButton(
@@ -189,16 +187,16 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       plan.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${plan.durationDays} days • PKR ${_fmtInt(plan.pricePkr)}',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -209,9 +207,9 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             'Features',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           for (final f in plan.features.take(6))
@@ -225,9 +223,9 @@ class _PlanCard extends StatelessWidget {
                     child: Text(
                       f,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -237,9 +235,9 @@ class _PlanCard extends StatelessWidget {
             Text(
               '+${plan.features.length - 6} more',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
         ],
       ),
@@ -276,7 +274,11 @@ class _Menu extends StatelessWidget {
         ),
         PopupMenuItem(
           value: 'delete',
-          child: _MenuRow(icon: Icons.delete_outline_rounded, label: 'Delete', danger: true),
+          child: _MenuRow(
+            icon: Icons.delete_outline_rounded,
+            label: 'Delete',
+            danger: true,
+          ),
         ),
       ],
       child: Container(
@@ -287,14 +289,22 @@ class _Menu extends StatelessWidget {
           border: Border.all(color: cs.outlineVariant),
           color: cs.surface,
         ),
-        child: Icon(Icons.more_horiz_rounded, size: 18, color: cs.onSurfaceVariant),
+        child: Icon(
+          Icons.more_horiz_rounded,
+          size: 18,
+          color: cs.onSurfaceVariant,
+        ),
       ),
     );
   }
 }
 
 class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label, this.danger = false});
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
   final IconData icon;
   final String label;
   final bool danger;
@@ -310,9 +320,9 @@ class _MenuRow extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -329,4 +339,3 @@ String _fmtInt(int v) {
   }
   return b.toString().split('').reversed.join();
 }
-

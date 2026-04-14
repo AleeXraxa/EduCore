@@ -1,0 +1,128 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/features/plans/models/plan.dart';
+
+class PlanService {
+  PlanService({required FirebaseFirestore firestore}) : _firestore = firestore;
+
+  final FirebaseFirestore _firestore;
+
+  CollectionReference<Map<String, dynamic>> get _col =>
+      _firestore.collection('plans');
+
+  Stream<List<Plan>> watchPlans() {
+    return _col
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs.map(Plan.fromDoc).toList(growable: false));
+  }
+
+  Future<String> createPlan({
+    required String name,
+    required num price,
+    required String description,
+    required bool isActive,
+    required List<String> features,
+    Map<String, num>? limits,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Name is required');
+    }
+
+    final nameLower = trimmed.toLowerCase();
+    final existing = await _col.where('nameLower', isEqualTo: nameLower).limit(1).get();
+    if (existing.docs.isNotEmpty) {
+      throw StateError('A plan with this name already exists.');
+    }
+
+    final doc = _col.doc();
+    await doc.set({
+      'name': trimmed,
+      'nameLower': nameLower,
+      'price': price,
+      'description': description.trim(),
+      'isActive': isActive,
+      'features': _cleanFeatureKeys(features),
+      if (limits != null) 'limits': limits,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    return doc.id;
+  }
+
+  Future<void> updatePlan({
+    required String planId,
+    required String name,
+    required num price,
+    required String description,
+    required bool isActive,
+    required List<String> features,
+    Map<String, num>? limits,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Name is required');
+    }
+
+    final nameLower = trimmed.toLowerCase();
+    final existing = await _col.where('nameLower', isEqualTo: nameLower).limit(1).get();
+    if (existing.docs.isNotEmpty && existing.docs.first.id != planId) {
+      throw StateError('A plan with this name already exists.');
+    }
+
+    await _col.doc(planId).update({
+      'name': trimmed,
+      'nameLower': nameLower,
+      'price': price,
+      'description': description.trim(),
+      'isActive': isActive,
+      'features': _cleanFeatureKeys(features),
+      'limits': limits ?? <String, num>{},
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> softDeletePlan(String planId) async {
+    await _col.doc(planId).update({
+      'isActive': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> setActive(String planId, bool value) async {
+    await _col.doc(planId).update({
+      'isActive': value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> toggleFeature({
+    required String planId,
+    required String featureKey,
+    required bool enabled,
+  }) async {
+    final key = featureKey.trim();
+    if (key.isEmpty) return;
+    await _col.doc(planId).update({
+      'features': enabled
+          ? FieldValue.arrayUnion([key])
+          : FieldValue.arrayRemove([key]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<Plan> watchPlan(String planId) {
+    return _col.doc(planId).snapshots().map(Plan.fromDoc);
+  }
+}
+
+List<String> _cleanFeatureKeys(List<String> input) {
+  final set = <String>{};
+  for (final raw in input) {
+    final key = raw.trim();
+    if (key.isEmpty) continue;
+    set.add(key);
+  }
+  return set.toList(growable: false);
+}

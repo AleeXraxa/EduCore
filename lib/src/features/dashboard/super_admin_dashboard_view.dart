@@ -3,9 +3,11 @@ import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
+import 'package:educore/src/features/features/features_view.dart';
 import 'package:educore/src/features/institutes/institutes_view.dart';
 import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/payments/payments_view.dart';
+import 'package:educore/src/features/plans/plans_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:educore/src/features/users/users_view.dart';
@@ -69,6 +71,8 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.analytics => const AnalyticsView(),
             _SuperAdminNav.users => const UsersView(),
             _SuperAdminNav.notifications => const NotificationsView(),
+            _SuperAdminNav.features => const FeaturesView(),
+            _SuperAdminNav.plans => const PlansView(),
             _SuperAdminNav.settings => const SettingsView(),
             _ => _PlaceholderPage(title: current.title),
           },
@@ -96,6 +100,8 @@ enum _SuperAdminNav {
     'Notifications',
     Icons.notifications_active_rounded,
   ),
+  features('features', 'Features', 'Feature Management', Icons.tune_rounded),
+  plans('plans', 'Plans', 'Plans', Icons.layers_rounded),
   settings('settings', 'Settings', 'Settings', Icons.settings_rounded);
 
   const _SuperAdminNav(this.id, this.label, this.title, this.icon);

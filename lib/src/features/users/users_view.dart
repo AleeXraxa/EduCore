@@ -3,7 +3,6 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
-import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/features/users/users_controller.dart';
 import 'package:educore/src/features/users/widgets/create_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/user_details_panel.dart';
@@ -213,7 +212,9 @@ class _UsersViewState extends State<UsersView> {
                         controller.addUser(created);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('User created: ${created.name}')),
+                          SnackBar(
+                            content: Text('User created: ${created.name}'),
+                          ),
                         );
                       },
                       icon: const Icon(Icons.add_rounded),
@@ -249,9 +250,7 @@ class _UsersViewState extends State<UsersView> {
                             children: [
                               Text(
                                 'Users',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
+                                style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: -0.4,
@@ -262,9 +261,7 @@ class _UsersViewState extends State<UsersView> {
                                 'Global directory for system-wide monitoring and access control.',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(color: cs.onSurfaceVariant),
                               ),
                             ],
@@ -281,16 +278,16 @@ class _UsersViewState extends State<UsersView> {
                     Text(
                       'Users',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.4,
-                          ),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Global directory for system-wide monitoring and access control.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     filters(),
@@ -308,8 +305,9 @@ class _UsersViewState extends State<UsersView> {
                     onAction: (action) {
                       switch (action.action) {
                         case UserMenuAction.viewProfile:
-                          final user = controller.filtered
-                              .firstWhere((e) => e.id == action.userId);
+                          final user = controller.filtered.firstWhere(
+                            (e) => e.id == action.userId,
+                          );
                           UserDetailsPanel.show(
                             context,
                             user: user,
@@ -320,7 +318,9 @@ class _UsersViewState extends State<UsersView> {
                         case UserMenuAction.viewInstitute:
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Institute details page (next step).'),
+                              content: Text(
+                                'Institute details page (next step).',
+                              ),
                             ),
                           );
                           break;
@@ -349,9 +349,9 @@ class _UsersViewState extends State<UsersView> {
                   Text(
                     'Tip: Use role + institute filters to quickly audit access.',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -381,7 +381,10 @@ class _KpiGrid extends StatelessWidget {
           runSpacing: gap,
           children: [
             for (final item in items)
-              SizedBox(width: cardWidth, child: KpiCard(data: item)),
+              SizedBox(
+                width: cardWidth,
+                child: KpiCard(data: item),
+              ),
           ],
         );
       },
@@ -416,9 +419,9 @@ class _PaginationBar extends StatelessWidget {
         Text(
           '$start–$end of $total',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const Spacer(),
         _PagerIcon(

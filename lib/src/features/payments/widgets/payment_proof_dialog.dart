@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/payments/models/payment.dart';
 import 'package:educore/src/features/payments/widgets/payment_status_badge.dart';
@@ -9,10 +8,7 @@ class PaymentProofDialog extends StatelessWidget {
 
   final Payment payment;
 
-  static Future<void> show(
-    BuildContext context, {
-    required Payment payment,
-  }) {
+  static Future<void> show(BuildContext context, {required Payment payment}) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -43,19 +39,17 @@ class PaymentProofDialog extends StatelessWidget {
                       children: [
                         Text(
                           'Payment proof',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Verify details and approve or reject confidently.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -81,8 +75,9 @@ class PaymentProofDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color:
-                                  cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                              color: cs.surfaceContainerHighest.withValues(
+                                alpha: 0.6,
+                              ),
                               border: Border.all(color: cs.outlineVariant),
                             ),
                             child: Center(
@@ -100,9 +95,7 @@ class PaymentProofDialog extends StatelessWidget {
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                        ),
+                                        ?.copyWith(fontWeight: FontWeight.w900),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
@@ -133,9 +126,8 @@ class PaymentProofDialog extends StatelessWidget {
                         children: [
                           Text(
                             payment.instituteName,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(height: 10),
                           Row(
@@ -144,9 +136,7 @@ class PaymentProofDialog extends StatelessWidget {
                               const Spacer(),
                               Text(
                                 _fmtMoney(payment.amountPkr),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
+                                style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: -0.2,
@@ -155,17 +145,25 @@ class PaymentProofDialog extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _KV(label: 'Method', value: _methodLabel(payment.method)),
+                          _KV(
+                            label: 'Method',
+                            value: _methodLabel(payment.method),
+                          ),
                           const SizedBox(height: 10),
-                          _KV(label: 'Date', value: _fmtDateTime(payment.submittedAt)),
+                          _KV(
+                            label: 'Date',
+                            value: _fmtDateTime(payment.submittedAt),
+                          ),
                           const SizedBox(height: 10),
-                          _KV(label: 'Institute ID', value: payment.instituteId),
+                          _KV(
+                            label: 'Institute ID',
+                            value: payment.instituteId,
+                          ),
                           const SizedBox(height: 18),
                           Text(
                             'Use this panel to confirm amount, date, and method match the submitted proof.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
                           ),
                           const SizedBox(height: 14),
                           Row(
@@ -174,7 +172,9 @@ class PaymentProofDialog extends StatelessWidget {
                                 child: OutlinedButton.icon(
                                   onPressed: () => Navigator.of(context).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -215,9 +215,9 @@ class _KV extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         Expanded(
@@ -225,9 +225,9 @@ class _KV extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -236,10 +236,10 @@ class _KV extends StatelessWidget {
 }
 
 String _methodLabel(PaymentMethod m) => switch (m) {
-      PaymentMethod.jazzCash => 'JazzCash',
-      PaymentMethod.easyPaisa => 'EasyPaisa',
-      PaymentMethod.bankTransfer => 'Bank Transfer',
-    };
+  PaymentMethod.jazzCash => 'JazzCash',
+  PaymentMethod.easyPaisa => 'EasyPaisa',
+  PaymentMethod.bankTransfer => 'Bank Transfer',
+};
 
 String _fmtMoney(int pkr) => 'PKR ${_fmtInt(pkr)}';
 
@@ -261,4 +261,3 @@ String _fmtDateTime(DateTime d) {
   final mi = d.minute.toString().padLeft(2, '0');
   return '${d.year}-$mm-$dd • $hh:$mi';
 }
-

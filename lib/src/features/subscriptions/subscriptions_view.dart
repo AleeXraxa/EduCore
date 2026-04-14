@@ -4,7 +4,6 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
-import 'package:educore/src/features/subscriptions/models/subscription.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_controller.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +58,8 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                       children: [
                         Text(
                           'Subscriptions',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.4,
                               ),
@@ -67,10 +67,8 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                         const SizedBox(height: 6),
                         Text(
                           'Manage plans, approvals, and subscription lifecycle.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -204,15 +202,17 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
 
                   const gap = 12.0;
                   final totalGap = gap * (columns - 1);
-                  final cardWidth =
-                      (constraints.maxWidth - totalGap) / columns;
+                  final cardWidth = (constraints.maxWidth - totalGap) / columns;
 
                   return Wrap(
                     spacing: gap,
                     runSpacing: gap,
                     children: [
                       for (final kpi in items)
-                        SizedBox(width: cardWidth, child: KpiCard(data: kpi)),
+                        SizedBox(
+                          width: cardWidth,
+                          child: KpiCard(data: kpi),
+                        ),
                     ],
                   );
                 },
@@ -221,14 +221,17 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
               SubscriptionsTable(
                 items: controller.paged,
                 onAction: (action) async {
-                  final sub = controller.paged
-                      .firstWhere((e) => e.id == action.subscriptionId);
+                  final sub = controller.paged.firstWhere(
+                    (e) => e.id == action.subscriptionId,
+                  );
 
                   switch (action.action) {
                     case SubscriptionMenuAction.view:
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Open details: ${sub.instituteName}')),
+                        SnackBar(
+                          content: Text('Open details: ${sub.instituteName}'),
+                        ),
                       );
                       break;
                     case SubscriptionMenuAction.approve:
@@ -266,9 +269,9 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
               Text(
                 'Tip: Expiring subscriptions are subtly highlighted for fast review.',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -305,9 +308,9 @@ class _PaginationBar extends StatelessWidget {
         Text(
           '$start–$end of $total',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const Spacer(),
         _PagerIcon(
