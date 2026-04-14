@@ -1,4 +1,10 @@
+import 'dart:async';
+
+import 'package:educore/src/core/models/app_user.dart' as core_models;
 import 'package:educore/src/core/mvc/base_controller.dart';
+import 'package:educore/src/core/services/admin_users_service.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
 
 enum UsersRoleFilter { all, superAdmin, instituteAdmin, staff, teacher }
@@ -6,6 +12,21 @@ enum UsersRoleFilter { all, superAdmin, instituteAdmin, staff, teacher }
 enum UsersStatusFilter { all, active, blocked }
 
 class UsersController extends BaseController {
+  UsersController() {
+    _service = AppServices.instance.adminUsersService;
+    _instituteService = AppServices.instance.instituteService;
+    _attachOrInit();
+  }
+
+  AdminUsersService? _service;
+  InstituteService? _instituteService;
+
+  StreamSubscription<List<core_models.AppUser>>? _usersSub;
+  StreamSubscription<List<Academy>>? _academiesSub;
+
+  List<core_models.AppUser> _rawUsers = const [];
+  Map<String, Academy> _academyById = const <String, Academy>{};
+
   final List<AppUser> _all = <AppUser>[];
 
   String _query = '';
@@ -16,15 +37,24 @@ class UsersController extends BaseController {
   int _page = 0;
   final int pageSize = 20;
 
-  UsersController() {
-    _seedMock();
-  }
+  String? errorMessage;
+
+  bool get ready => _service != null;
 
   String get query => _query;
   UsersRoleFilter get role => _role;
   UsersStatusFilter get status => _status;
   String get instituteId => _instituteId;
   int get page => _page;
+
+  @override
+  void dispose() {
+    _usersSub?.cancel();
+    _academiesSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> retryInit() => _attachOrInit();
 
   List<String> get institutes {
     final ids = <String>{..._all.map((e) => e.instituteId)};
@@ -147,6 +177,9 @@ class UsersController extends BaseController {
     final idx = _all.indexWhere((e) => e.id == userId);
     if (idx < 0) return;
     final current = _all[idx];
+    final nextStatus = current.status == AppUserStatus.blocked
+        ? AppUserStatus.active
+        : AppUserStatus.blocked;
     _all[idx] = AppUser(
       id: current.id,
       name: current.name,
@@ -155,12 +188,19 @@ class UsersController extends BaseController {
       role: current.role,
       instituteId: current.instituteId,
       instituteName: current.instituteName,
-      status: current.status == AppUserStatus.blocked
-          ? AppUserStatus.active
-          : AppUserStatus.blocked,
+      status: nextStatus,
       lastLoginAt: current.lastLoginAt,
     );
     notifyListeners();
+
+    final svc = _service ?? AppServices.instance.adminUsersService;
+    if (svc == null) return;
+    unawaited(
+      svc.setStatus(
+        userId,
+        nextStatus == AppUserStatus.blocked ? 'blocked' : 'active',
+      ),
+    );
   }
 
   void addUser(AppUser user) {
@@ -169,6 +209,132 @@ class UsersController extends BaseController {
     notifyListeners();
   }
 
+  Future<void> _attachOrInit() async {
+    if (_service != null) {
+      _attach(_service!);
+      _attachAcademies();
+      return;
+    }
+
+    await runBusy<void>(() async {
+      await AppServices.instance.init();
+    });
+
+    _service = AppServices.instance.adminUsersService;
+    _instituteService = AppServices.instance.instituteService;
+    if (_service != null) {
+      _attach(_service!);
+      _attachAcademies();
+    } else {
+      errorMessage = AppServices.instance.firebaseInitError?.toString();
+      notifyListeners();
+    }
+  }
+
+  void _attach(AdminUsersService svc) {
+    if (_service == svc && _usersSub != null) return;
+    _service = svc;
+    _usersSub?.cancel();
+    _usersSub = svc.watchUsers().listen(
+      (value) {
+        _rawUsers = value;
+        errorMessage = null;
+        _rebuild();
+      },
+      onError: (e) {
+        errorMessage = e.toString();
+        notifyListeners();
+      },
+    );
+    notifyListeners();
+  }
+
+  void _attachAcademies() {
+    final svc = _instituteService ?? AppServices.instance.instituteService;
+    if (svc == null) return;
+    if (_academiesSub != null) return;
+
+    _academiesSub = svc.watchAcademies().listen(
+      (items) {
+        final map = <String, Academy>{};
+        for (final a in items) {
+          map[a.id] = a;
+        }
+        _academyById = map;
+        _rebuild();
+      },
+      onError: (e) {
+        // Not fatal; fall back to academyId label.
+        // ignore: avoid_print
+        print('Academies stream error: $e');
+      },
+    );
+  }
+
+  void _rebuild() {
+    _all
+      ..clear()
+      ..addAll(_rawUsers.map(_mapToUi));
+
+    if (_instituteId != 'all' && !institutes.contains(_instituteId)) {
+      _instituteId = 'all';
+    }
+
+    if (_page > 0) {
+      final maxPage = ((totalCount - 1) / pageSize).floor();
+      if (_page > maxPage) _page = maxPage.clamp(0, maxPage);
+    }
+
+    notifyListeners();
+  }
+
+  AppUser _mapToUi(core_models.AppUser u) {
+    final academyId = u.academyId.trim().isEmpty ? 'all' : u.academyId.trim();
+    final instituteName = academyId == 'all'
+        ? 'EduCore Platform'
+        : (_academyById[academyId]?.name ?? academyId);
+
+    final role = switch (u.role) {
+      core_models.AppUserRole.superAdmin => AppUserRole.superAdmin,
+      core_models.AppUserRole.instituteAdmin => AppUserRole.instituteAdmin,
+      core_models.AppUserRole.staff => AppUserRole.staff,
+      core_models.AppUserRole.teacher => AppUserRole.teacher,
+    };
+
+    final status = u.status.toLowerCase().trim() == 'blocked'
+        ? AppUserStatus.blocked
+        : AppUserStatus.active;
+
+    final name = u.name.trim().isNotEmpty ? u.name.trim() : _nameFromEmail(u.email);
+    final phone = u.phone.trim().isNotEmpty ? u.phone.trim() : 'â€”';
+
+    return AppUser(
+      id: u.uid,
+      name: name,
+      email: u.email,
+      phone: phone,
+      role: role,
+      instituteId: academyId,
+      instituteName: instituteName,
+      status: status,
+      lastLoginAt: u.lastLoginAt,
+    );
+  }
+
+  String _nameFromEmail(String email) {
+    final clean = email.trim();
+    if (clean.isEmpty) return 'Unknown';
+    final local = clean.split('@').first;
+    if (local.isEmpty) return 'Unknown';
+    final parts = local.split(RegExp(r'[._-]+')).where((e) => e.isNotEmpty);
+    final titled = parts
+        .map((p) => p.substring(0, 1).toUpperCase() + p.substring(1))
+        .join(' ');
+    return titled.isEmpty ? local : titled;
+  }
+
+  // Mock dataset kept for quick UX testing without Firestore.
+  // ignore: unused_element
   void _seedMock() {
     // Replace with Firestore later. This dataset exists to validate UX at scale.
     final now = DateTime.now();

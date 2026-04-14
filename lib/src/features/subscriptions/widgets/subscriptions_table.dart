@@ -1,5 +1,4 @@
 import 'package:educore/src/core/ui/widgets/app_card.dart';
-import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/subscriptions/models/subscription.dart';
 import 'package:educore/src/features/subscriptions/widgets/payment_status_badge.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscription_status_badge.dart';
@@ -156,7 +155,7 @@ class _RowState extends State<_Row> {
                 subtitle: 'ID: ${item.instituteId}',
               ),
             ),
-            Expanded(flex: 10, child: _PlanPill(plan: item.plan)),
+            Expanded(flex: 10, child: _PlanPill(name: item.planName)),
             Expanded(
               flex: 10,
               child: Align(
@@ -325,29 +324,33 @@ class _ExpiryCell extends StatelessWidget {
 }
 
 class _PlanPill extends StatelessWidget {
-  const _PlanPill({required this.plan});
+  const _PlanPill({required this.name});
 
-  final InstitutePlan plan;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final (label, fg, bg) = switch (plan) {
-      InstitutePlan.basic => (
-          'Basic',
-          cs.onSurfaceVariant,
-          cs.surfaceContainerHighest.withValues(alpha: 0.65),
+    final clean = name.trim().isEmpty ? '—' : name.trim();
+    final key = clean.toLowerCase();
+
+    final (fg, bg) = switch (key) {
+      'premium' || 'pro' => (
+          const Color(0xFF7C3AED),
+          const Color(0xFF7C3AED).withValues(alpha: 0.12),
         ),
-      InstitutePlan.standard => (
-          'Standard',
+      'standard' => (
           cs.primary,
           cs.primary.withValues(alpha: 0.10),
         ),
-      InstitutePlan.premium => (
-          'Premium',
-          cs.secondary,
-          cs.secondary.withValues(alpha: 0.10),
+      'basic' || 'demo' => (
+          cs.onSurfaceVariant,
+          cs.surfaceContainerHighest.withValues(alpha: 0.65),
+        ),
+      _ => (
+          cs.onSurfaceVariant,
+          cs.surfaceContainerHighest.withValues(alpha: 0.55),
         ),
     };
 
@@ -359,7 +362,7 @@ class _PlanPill extends StatelessWidget {
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
       ),
       child: Text(
-        label,
+        clean,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: fg,
               fontWeight: FontWeight.w800,
@@ -536,4 +539,3 @@ class SubscriptionRowAction {
   final SubscriptionMenuAction action;
   final String subscriptionId;
 }
-

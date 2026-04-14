@@ -30,7 +30,8 @@ class SubscriptionAccess {
       planId: (data['planId'] as String?) ?? '',
       status: _statusFrom(data['status'] as String?),
       assignedFeatures: _listString(data['assignedFeatures']),
-      overriddenFeatures: _mapBool(data['overriddenFeatures']),
+      overriddenFeatures:
+          _mapBool(data['overriddenFeatures'] ?? data['overrides']),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -61,4 +62,3 @@ Map<String, bool> _mapBool(Object? value) {
   }
   return const <String, bool>{};
 }
-

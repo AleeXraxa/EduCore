@@ -1,5 +1,3 @@
-import 'package:educore/src/features/institutes/models/institute.dart';
-
 enum SubscriptionStatus { active, pendingApproval, expired, canceled }
 
 enum PaymentStatus { paid, proofSubmitted, unpaid, rejected }
@@ -9,7 +7,8 @@ class Subscription {
     required this.id,
     required this.instituteId,
     required this.instituteName,
-    required this.plan,
+    required this.planId,
+    required this.planName,
     required this.status,
     required this.startDate,
     required this.expiryDate,
@@ -20,7 +19,8 @@ class Subscription {
   final String id;
   final String instituteId;
   final String instituteName;
-  final InstitutePlan plan;
+  final String planId;
+  final String planName;
   final SubscriptionStatus status;
   final DateTime startDate;
   final DateTime expiryDate;
@@ -32,4 +32,3 @@ class Subscription {
     return diff;
   }
 }
-

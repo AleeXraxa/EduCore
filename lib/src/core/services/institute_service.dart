@@ -173,10 +173,13 @@ class InstituteService {
 
       batch.set(userRef, {
         'uid': adminUid,
+        'name': ownerName.trim(),
         'email': adminEmail.trim(),
         'emailLower': adminEmail.trim().toLowerCase(),
+        'phone': phone.trim(),
         'role': AppUserRole.instituteAdmin.value,
         'academyId': academyId,
+        'status': 'active',
         'createdAt': now,
         'createdBy': superUid,
       });

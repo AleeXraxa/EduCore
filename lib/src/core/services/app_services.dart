@@ -10,6 +10,8 @@ import 'package:educore/src/core/services/seed_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
+import 'package:educore/src/core/services/admin_users_service.dart';
+import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +36,8 @@ class AppServices {
   SubscriptionService? subscriptionService;
   FeatureAccessService? featureAccessService;
   InstituteService? instituteService;
+  AdminUsersService? adminUsersService;
+  AdminSubscriptionsService? adminSubscriptionsService;
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
@@ -91,6 +95,8 @@ class AppServices {
         primaryApp: firebaseApp!,
         primaryAuth: auth!,
       );
+      adminUsersService = AdminUsersService(firestore: firestore!);
+      adminSubscriptionsService = AdminSubscriptionsService(firestore: firestore!);
       firebaseReady = true;
       firebaseInitError = null;
     } catch (e) {

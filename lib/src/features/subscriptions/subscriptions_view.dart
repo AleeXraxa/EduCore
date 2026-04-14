@@ -3,7 +3,6 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
-import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_controller.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +18,7 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
   late final SubscriptionsController _controller;
   final _search = TextEditingController();
   SubscriptionsFilter _filter = SubscriptionsFilter.all;
-  InstitutePlan? _plan;
+  String _planId = 'all';
 
   @override
   void initState() {
@@ -42,6 +41,14 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
     return ControllerBuilder<SubscriptionsController>(
       controller: _controller,
       builder: (context, controller, _) {
+        if (!controller.ready) {
+          return _NotReadyPanel(
+            busy: controller.busy,
+            message: controller.errorMessage,
+            onRetry: controller.retryInit,
+          );
+        }
+
         final kpis = controller.kpis;
 
         return SingleChildScrollView(
@@ -136,28 +143,19 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                   SizedBox(
                     width: 180,
                     height: toolbarHeight,
-                    child: AppDropdown<InstitutePlan?>(
+                    child: AppDropdown<String>(
                       label: 'Plan',
                       showLabel: false,
                       compact: true,
                       prefixIcon: Icons.workspace_premium_rounded,
-                      items: const [
-                        null,
-                        InstitutePlan.basic,
-                        InstitutePlan.standard,
-                        InstitutePlan.premium,
-                      ],
-                      value: _plan,
+                      items: controller.planIds,
+                      value: _planId,
                       hintText: 'Plan',
-                      itemLabel: (p) => switch (p) {
-                        null => 'All plans',
-                        InstitutePlan.basic => 'Basic',
-                        InstitutePlan.standard => 'Standard',
-                        InstitutePlan.premium => 'Premium',
-                      },
+                      itemLabel: controller.planNameForId,
                       onChanged: (value) {
-                        setState(() => _plan = value);
-                        controller.setPlanFilter(value);
+                        if (value == null) return;
+                        setState(() => _planId = value);
+                        controller.setPlanIdFilter(value);
                       },
                     ),
                   ),
@@ -235,24 +233,25 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                       );
                       break;
                     case SubscriptionMenuAction.approve:
-                      controller.approve(action.subscriptionId);
+                      await controller.approve(action.subscriptionId);
                       break;
                     case SubscriptionMenuAction.reject:
-                      controller.reject(action.subscriptionId);
+                      await controller.reject(action.subscriptionId);
                       break;
                     case SubscriptionMenuAction.extend:
-                      controller.extend30Days(action.subscriptionId);
+                      await controller.extend30Days(action.subscriptionId);
                       break;
                     case SubscriptionMenuAction.cancel:
-                      controller.cancel(action.subscriptionId);
+                      await controller.cancel(action.subscriptionId);
                       break;
                     case SubscriptionMenuAction.changePlan:
-                      final next = switch (sub.plan) {
-                        InstitutePlan.basic => InstitutePlan.standard,
-                        InstitutePlan.standard => InstitutePlan.premium,
-                        InstitutePlan.premium => InstitutePlan.basic,
-                      };
-                      controller.changePlan(action.subscriptionId, next);
+                      final ids =
+                          controller.planIds.where((e) => e != 'all').toList();
+                      if (ids.isEmpty) break;
+                      final curIndex = ids.indexOf(sub.planId);
+                      final next = ids[
+                          (curIndex < 0 ? 0 : (curIndex + 1) % ids.length)];
+                      await controller.changePlan(action.subscriptionId, next);
                       break;
                   }
                 },
@@ -277,6 +276,93 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NotReadyPanel extends StatelessWidget {
+  const _NotReadyPanel({
+    this.busy = false,
+    this.message,
+    required this.onRetry,
+  });
+
+  final bool busy;
+  final String? message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: AppRadii.r16,
+          border: Border.all(color: cs.outlineVariant),
+          boxShadow: AppShadows.soft(Colors.black),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.cloud_off_rounded, color: cs.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    busy ? 'Initializing Firebase…' : 'Firestore not ready',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message?.trim().isNotEmpty == true
+                        ? message!.trim()
+                        : 'Subscriptions require Firebase Firestore. Initialize Firebase to enable this module.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: busy ? null : () async => onRetry(),
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
