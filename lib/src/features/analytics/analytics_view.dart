@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/analytics/analytics_controller.dart';
@@ -43,6 +42,16 @@ class _AnalyticsViewState extends State<AnalyticsView> {
           duration: const Duration(milliseconds: 220),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              alignment: Alignment.topLeft,
+              fit: StackFit.expand,
+              children: <Widget>[
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
           child: SingleChildScrollView(
             key: ValueKey('${controller.range}_${controller.plan}'),
             padding: const EdgeInsets.all(24),
@@ -58,7 +67,8 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                         children: [
                           Text(
                             'Analytics',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.4,
                                 ),
@@ -66,9 +76,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                           const SizedBox(height: 6),
                           Text(
                             'Executive overview of revenue, growth, and platform health.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: cs.onSurfaceVariant),
                           ),
                         ],
@@ -145,9 +153,9 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                   Text(
                     'Refreshing…',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ],
@@ -158,4 +166,3 @@ class _AnalyticsViewState extends State<AnalyticsView> {
     );
   }
 }
-

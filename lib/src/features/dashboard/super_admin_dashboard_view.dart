@@ -4,8 +4,11 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
 import 'package:educore/src/features/institutes/institutes_view.dart';
+import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/payments/payments_view.dart';
+import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
+import 'package:educore/src/features/users/users_view.dart';
 import 'package:flutter/material.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
@@ -32,6 +35,16 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         duration: const Duration(milliseconds: 220),
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            alignment: Alignment.topLeft,
+            fit: StackFit.expand,
+            children: <Widget>[
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
         transitionBuilder: (child, animation) {
           final fade = CurvedAnimation(
             parent: animation,
@@ -54,6 +67,9 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.subscriptions => const SubscriptionsView(),
             _SuperAdminNav.payments => const PaymentsView(),
             _SuperAdminNav.analytics => const AnalyticsView(),
+            _SuperAdminNav.users => const UsersView(),
+            _SuperAdminNav.notifications => const NotificationsView(),
+            _SuperAdminNav.settings => const SettingsView(),
             _ => _PlaceholderPage(title: current.title),
           },
         ),
@@ -73,6 +89,7 @@ enum _SuperAdminNav {
   ),
   payments('payments', 'Payments', 'Payments', Icons.payments_rounded),
   analytics('analytics', 'Analytics', 'Analytics', Icons.trending_up_rounded),
+  users('users', 'Users', 'Users', Icons.people_alt_rounded),
   notifications(
     'notifications',
     'Notifications',
