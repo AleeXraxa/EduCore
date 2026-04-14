@@ -4,6 +4,7 @@ import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
+import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 
 class PlansController extends BaseController {
@@ -19,6 +20,7 @@ class PlansController extends BaseController {
   StreamSubscription? _featureSub;
 
   List<Plan> plans = const [];
+  List<FeatureFlag> registryFeatures = const [];
   List<String> registryKeys = const [];
   String? errorMessage;
 
@@ -108,6 +110,10 @@ class PlansController extends BaseController {
   Future<void> _attachOrInit() async {
     if (_service != null) {
       _attach(_service!);
+      final featureSvc = _featureService ?? AppServices.instance.featureService;
+      if (featureSvc != null) {
+        _attachFeatures(featureSvc);
+      }
       return;
     }
 
@@ -150,6 +156,7 @@ class PlansController extends BaseController {
     _featureService = svc;
     _featureSub?.cancel();
     _featureSub = svc.watchFeatures().listen((value) {
+      registryFeatures = value;
       registryKeys = value
           .map((f) => f.key)
           .where((k) => k.trim().isNotEmpty)

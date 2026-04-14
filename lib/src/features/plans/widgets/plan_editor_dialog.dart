@@ -2,29 +2,30 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
+import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:flutter/material.dart';
 
 class PlanEditorDialog extends StatefulWidget {
   const PlanEditorDialog({
     super.key,
     this.initial,
-    required this.availableFeatureKeys,
+    required this.availableFeatures,
   });
 
   final Plan? initial;
-  final List<String> availableFeatureKeys;
+  final List<FeatureFlag> availableFeatures;
 
   static Future<Plan?> show(
     BuildContext context, {
     Plan? initial,
-    required List<String> availableFeatureKeys,
+    required List<FeatureFlag> availableFeatures,
   }) {
     return showDialog<Plan?>(
       context: context,
       barrierDismissible: true,
       builder: (_) => PlanEditorDialog(
         initial: initial,
-        availableFeatureKeys: availableFeatureKeys,
+        availableFeatures: availableFeatures,
       ),
     );
   }
@@ -75,7 +76,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final keys = widget.availableFeatureKeys.toList(growable: false)..sort();
+    final grouped = _groupFeatures(widget.availableFeatures);
     final limitKeys = _limits.keys.toList(growable: false)..sort();
 
     return Dialog(
@@ -178,30 +179,46 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                       Expanded(
                         child: _GroupCard(
                           title: 'Features',
-                          child: keys.isEmpty
+                          child: grouped.isEmpty
                               ? _EmptyFeatures()
                               : ConstrainedBox(
                                   constraints:
                                       const BoxConstraints(maxHeight: 280),
                                   child: ListView.separated(
                                     shrinkWrap: true,
-                                    itemCount: keys.length,
+                                    itemCount: grouped.length,
                                     separatorBuilder: (_, __) =>
                                         const SizedBox(height: 8),
                                     itemBuilder: (context, index) {
-                                      final k = keys[index];
-                                      final enabled = _features.contains(k);
-                                      return _ToggleTile(
-                                        label: _prettyKey(k),
-                                        value: enabled,
-                                        onChanged: (v) => setState(() {
-                                          if (v) {
-                                            _features.add(k);
-                                          } else {
-                                            _features.remove(k);
-                                          }
-                                        }),
-                                        onRemove: null,
+                                      final entry = grouped[index];
+                                      final group = entry.$1;
+                                      final items = entry.$2;
+                                      return _FeatureGroupTile(
+                                        group: group,
+                                        items: items,
+                                        selected: _features,
+                                        onSelectAll: (enabled) {
+                                          setState(() {
+                                            if (enabled) {
+                                              for (final f in items) {
+                                                _features.add(f.key);
+                                              }
+                                            } else {
+                                              for (final f in items) {
+                                                _features.remove(f.key);
+                                              }
+                                            }
+                                          });
+                                        },
+                                        onToggle: (key, enabled) {
+                                          setState(() {
+                                            if (enabled) {
+                                              _features.add(key);
+                                            } else {
+                                              _features.remove(key);
+                                            }
+                                          });
+                                        },
                                       );
                                     },
                                   ),
@@ -488,15 +505,136 @@ class _ActiveToggle extends StatelessWidget {
   }
 }
 
+class _FeatureGroupTile extends StatefulWidget {
+  const _FeatureGroupTile({
+    required this.group,
+    required this.items,
+    required this.selected,
+    required this.onSelectAll,
+    required this.onToggle,
+  });
+
+  final String group;
+  final List<FeatureFlag> items;
+  final Set<String> selected;
+  final ValueChanged<bool> onSelectAll;
+  final void Function(String key, bool enabled) onToggle;
+
+  @override
+  State<_FeatureGroupTile> createState() => _FeatureGroupTileState();
+}
+
+class _FeatureGroupTileState extends State<_FeatureGroupTile> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final total = widget.items.length;
+    final selectedCount = widget.items
+        .where((f) => widget.selected.contains(f.key))
+        .length;
+    final bool? triState = selectedCount == 0
+        ? false
+        : (selectedCount == total ? true : null);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.layers_rounded, color: cs.primary, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.group,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$selectedCount of $total selected',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Select all',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(width: 6),
+              Checkbox(
+                value: triState,
+                tristate: true,
+                onChanged: (v) {
+                  widget.onSelectAll(v ?? true);
+                  setState(() {});
+                },
+              ),
+              IconButton(
+                tooltip: _expanded ? 'Collapse group' : 'Expand group',
+                onPressed: () => setState(() => _expanded = !_expanded),
+                icon: Icon(
+                  _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 10),
+            Column(
+              children: [
+                for (final f in widget.items) ...[
+                  _ToggleTile(
+                    label: f.label.trim().isEmpty ? _prettyKey(f.key) : f.label,
+                    subtitle: f.key,
+                    value: widget.selected.contains(f.key),
+                    onChanged: (enabled) {
+                      widget.onToggle(f.key, enabled);
+                      setState(() {});
+                    },
+                    onRemove: null,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _ToggleTile extends StatefulWidget {
   const _ToggleTile({
     required this.label,
+    required this.subtitle,
     required this.value,
     required this.onChanged,
     required this.onRemove,
   });
 
   final String label;
+  final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
   final VoidCallback? onRemove;
@@ -530,12 +668,25 @@ class _ToggleTileState extends State<_ToggleTile> {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                widget.label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.1,
-                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.label,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.1,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
               ),
             ),
             if (widget.onRemove != null)
@@ -662,6 +813,27 @@ class _LimitTileState extends State<_LimitTile> {
       ),
     );
   }
+}
+
+List<(String, List<FeatureFlag>)> _groupFeatures(List<FeatureFlag> items) {
+  final Map<String, List<FeatureFlag>> grouped = {};
+  for (final feature in items) {
+    final group = feature.group.trim().isEmpty ? 'Ungrouped' : feature.group.trim();
+    grouped.putIfAbsent(group, () => []).add(feature);
+  }
+  final entries = grouped.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return [
+    for (final entry in entries)
+      (
+        entry.key,
+        (entry.value..sort((a, b) {
+          final labelA = a.label.trim().isEmpty ? a.key : a.label;
+          final labelB = b.label.trim().isEmpty ? b.key : b.label;
+          return labelA.compareTo(labelB);
+        }))
+      )
+  ];
 }
 
 class _EmptyFeatures extends StatelessWidget {

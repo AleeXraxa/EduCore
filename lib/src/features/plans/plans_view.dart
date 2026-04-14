@@ -120,11 +120,9 @@ class _PlansViewState extends State<PlansView> {
                         onPressed: controller.busy
                             ? null
                             : () async {
-                                final keys = controller.allFeatureKeys.toList()
-                                  ..sort();
                                 final created = await PlanEditorDialog.show(
                                   context,
-                                  availableFeatureKeys: keys,
+                                  availableFeatures: controller.registryFeatures,
                                 );
                                 if (created == null) return;
                                 try {
@@ -182,11 +180,10 @@ class _PlansViewState extends State<PlansView> {
                     items: controller.plans,
                     busy: controller.busy,
                     onEdit: (plan) async {
-                      final keys = controller.allFeatureKeys.toList()..sort();
                       final updated = await PlanEditorDialog.show(
                         context,
                         initial: plan,
-                        availableFeatureKeys: keys,
+                        availableFeatures: controller.registryFeatures,
                       );
                       if (updated == null) return;
                       try {
