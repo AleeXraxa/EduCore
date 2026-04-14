@@ -36,8 +36,6 @@ class _UnknownRouteView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Page not found')),
-    );
+    return const Scaffold(body: Center(child: Text('Page not found')));
   }
 }

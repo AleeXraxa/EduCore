@@ -21,10 +21,7 @@ class Sidebar extends StatelessWidget {
       curve: Curves.easeOutCubic,
       width: width,
       decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(
-          right: BorderSide(color: AppColors.border),
-        ),
+        color: AppColors.surfaceAlt,
       ),
       child: SafeArea(
         child: Padding(
@@ -35,36 +32,61 @@ class Sidebar extends StatelessWidget {
                 : CrossAxisAlignment.stretch,
             children: [
               _BrandRow(collapsed: collapsed, onToggle: onToggle),
-              const SizedBox(height: 18),
-              _NavItem(
-                collapsed: collapsed,
-                icon: Icons.dashboard_rounded,
-                label: 'Dashboard',
-                selected: true,
-                onTap: () {},
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: collapsed
+                        ? CrossAxisAlignment.center
+                        : CrossAxisAlignment.stretch,
+                    children: [
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.dashboard_rounded,
+                        label: 'Dashboard',
+                        selected: true,
+                        onTap: () {},
+                      ),
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.apartment_rounded,
+                        label: 'Institutes',
+                        selected: false,
+                        onTap: () {},
+                      ),
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.verified_rounded,
+                        label: 'Subscriptions',
+                        selected: false,
+                        onTap: () {},
+                      ),
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.payments_rounded,
+                        label: 'Payments',
+                        selected: false,
+                        onTap: () {},
+                      ),
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.trending_up_rounded,
+                        label: 'Analytics',
+                        selected: false,
+                        onTap: () {},
+                      ),
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: Icons.notifications_active_rounded,
+                        label: 'Notifications',
+                        selected: false,
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              _NavItem(
-                collapsed: collapsed,
-                icon: Icons.people_alt_rounded,
-                label: 'Students',
-                selected: false,
-                onTap: () {},
-              ),
-              _NavItem(
-                collapsed: collapsed,
-                icon: Icons.payments_rounded,
-                label: 'Fees',
-                selected: false,
-                onTap: () {},
-              ),
-              _NavItem(
-                collapsed: collapsed,
-                icon: Icons.fact_check_rounded,
-                label: 'Attendance',
-                selected: false,
-                onTap: () {},
-              ),
-              const Spacer(),
               _NavItem(
                 collapsed: collapsed,
                 icon: Icons.settings_rounded,
@@ -171,43 +193,57 @@ class _NavItemState extends State<_NavItem> {
 
     final fg = widget.selected ? cs.primary : cs.onSurfaceVariant;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          margin: const EdgeInsets.only(bottom: 6),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            mainAxisAlignment: widget.collapsed
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
-            children: [
-              Icon(widget.icon, color: fg, size: 20),
-              if (!widget.collapsed) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: fg,
-                        ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          hoverColor: cs.primary.withValues(alpha: 0.06),
+          splashColor: cs.primary.withValues(alpha: 0.10),
+          onHover: (value) => setState(() => _hovered = value),
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(
+              mainAxisAlignment: widget.collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
+              children: [
+                if (widget.selected && !widget.collapsed) ...[
+                  Container(
+                    width: 4,
+                    height: 20,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
-                ),
+                ],
+                Icon(widget.icon, color: fg, size: 20),
+                if (!widget.collapsed) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: fg,
+                          ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-

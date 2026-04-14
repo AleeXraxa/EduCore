@@ -5,7 +5,7 @@ abstract final class AppColors {
   static const surface = Color(0xFFFFFFFF);
   static const surfaceAlt = Color(0xFFF1F5F9); // slate-100
 
-  static const primary = Color(0xFF4F46E5); // indigo-600
+  static const primary = Color(0xFF2563EB); // EduCore Blue
   static const accent = Color(0xFF14B8A6); // teal-500 (minimal use)
 
   static const text = Color(0xFF0F172A); // slate-900
@@ -43,4 +43,3 @@ abstract final class AppShadows {
         ),
       ];
 }
-

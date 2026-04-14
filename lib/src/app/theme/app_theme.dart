@@ -10,7 +10,7 @@ abstract final class AppTheme {
       onPrimary: Colors.white,
       secondary: const Color(0xFF6366F1), // indigo-500
       onSecondary: Colors.white,
-      tertiary: AppColors.accent,
+      tertiary: const Color(0xFF8B5CF6), // purple-500
       onTertiary: Colors.white,
       error: const Color(0xFFEF4444),
       onError: Colors.white,

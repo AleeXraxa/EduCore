@@ -3,8 +3,8 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 
-class DashboardView extends StatelessWidget {
-  const DashboardView({super.key});
+class SuperAdminDashboardView extends StatelessWidget {
+  const SuperAdminDashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +351,7 @@ class _ActivityList extends StatelessWidget {
         _ActivityRow(
           icon: Icons.verified_rounded,
           title: 'Subscription approved',
-          subtitle: 'Green Valley Academy • Standard Plan',
+          subtitle: 'Green Valley Academy â€¢ Standard Plan',
           time: '2m ago',
           tint: cs.primary,
         ),
@@ -359,7 +359,7 @@ class _ActivityList extends StatelessWidget {
         _ActivityRow(
           icon: Icons.payments_rounded,
           title: 'Payment verified',
-          subtitle: 'Sunrise School • PKR 18,000',
+          subtitle: 'Sunrise School â€¢ PKR 18,000',
           time: '18m ago',
           tint: cs.secondary,
         ),
@@ -367,7 +367,7 @@ class _ActivityList extends StatelessWidget {
         _ActivityRow(
           icon: Icons.block_rounded,
           title: 'Institute blocked',
-          subtitle: 'Apex Institute • Policy violation',
+          subtitle: 'Apex Institute â€¢ Policy violation',
           time: '1h ago',
           tint: cs.tertiary,
         ),
@@ -476,7 +476,7 @@ class _PendingPaymentsTable extends StatelessWidget {
         Row(
           children: [
             Text(
-              '1–3 of 12',
+              '1â€“3 of 12',
               style: Theme.of(context)
                   .textTheme
                   .labelMedium
@@ -598,3 +598,4 @@ class _TableRow extends StatelessWidget {
     );
   }
 }
+
