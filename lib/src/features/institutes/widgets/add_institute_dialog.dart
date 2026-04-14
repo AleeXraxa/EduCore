@@ -1,17 +1,45 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
+﻿import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
-import 'package:educore/src/features/institutes/models/institute.dart';
+import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:flutter/material.dart';
 
-class AddInstituteDialog extends StatefulWidget {
-  const AddInstituteDialog({super.key});
+class CreateInstituteDraft {
+  const CreateInstituteDraft({
+    required this.name,
+    required this.ownerName,
+    required this.email,
+    required this.phone,
+    required this.address,
+    required this.adminEmail,
+    required this.adminPassword,
+    required this.planId,
+  });
 
-  static Future<Institute?> show(BuildContext context) {
-    return showDialog<Institute?>(
+  final String name;
+  final String ownerName;
+  final String email;
+  final String phone;
+  final String address;
+  final String adminEmail;
+  final String adminPassword;
+  final String planId;
+}
+
+class AddInstituteDialog extends StatefulWidget {
+  const AddInstituteDialog({super.key, required this.plans});
+
+  final List<Plan> plans;
+
+  static Future<CreateInstituteDraft?> show(
+    BuildContext context, {
+    required List<Plan> plans,
+  }) {
+    return showDialog<CreateInstituteDraft?>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => const AddInstituteDialog(),
+      builder: (_) => AddInstituteDialog(plans: plans),
     );
   }
 
@@ -24,8 +52,13 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
   final _owner = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  InstitutePlan _plan = InstitutePlan.standard;
-  InstituteStatus _status = InstituteStatus.active;
+  final _address = TextEditingController();
+
+  final _adminEmail = TextEditingController();
+  final _adminPassword = TextEditingController();
+
+  Plan? _plan;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -33,22 +66,29 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
     _owner.dispose();
     _email.dispose();
     _phone.dispose();
+    _address.dispose();
+    _adminEmail.dispose();
+    _adminPassword.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final activePlans = widget.plans.where((p) => p.isActive).toList(growable: false);
 
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
+        constraints: BoxConstraints(
+          maxWidth: 820,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -59,19 +99,17 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                       children: [
                         Text(
                           'Add Institute',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Create a new tenant on EduCore.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          'Create a new tenant on EduCore and provision the admin account.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -84,104 +122,148 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              _GroupCard(
-                title: 'Institute details',
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        controller: _name,
-                        label: 'Institute Name',
-                        hintText: 'e.g. Green Valley Academy',
-                        prefixIcon: Icons.apartment_rounded,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppTextField(
-                        controller: _owner,
-                        label: 'Owner Name',
-                        hintText: 'e.g. Ahsan Khan',
-                        prefixIcon: Icons.person_rounded,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _GroupCard(
-                title: 'Contact',
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        controller: _email,
-                        label: 'Email',
-                        hintText: 'owner@institute.com',
-                        prefixIcon: Icons.email_rounded,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppTextField(
-                        controller: _phone,
-                        label: 'Phone',
-                        hintText: '+92 300 1234567',
-                        prefixIcon: Icons.phone_rounded,
-                        keyboardType: TextInputType.phone,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _GroupCard(
-                title: 'Plan & status',
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppDropdown<InstitutePlan>(
-                        label: 'Plan',
-                        items: const [
-                          InstitutePlan.basic,
-                          InstitutePlan.standard,
-                          InstitutePlan.premium,
-                        ],
-                        value: _plan,
-                        itemLabel: (p) => switch (p) {
-                          InstitutePlan.basic => 'Basic',
-                          InstitutePlan.standard => 'Standard',
-                          InstitutePlan.premium => 'Premium',
-                        },
-                        onChanged: (v) => setState(
-                          () => _plan = v ?? InstitutePlan.standard,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _GroupCard(
+                        title: 'Institute details',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppTextField(
+                                controller: _name,
+                                label: 'Institute name',
+                                hintText: 'e.g. Green Valley Academy',
+                                prefixIcon: Icons.apartment_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: AppTextField(
+                                controller: _owner,
+                                label: 'Owner name',
+                                hintText: 'e.g. Ahsan Khan',
+                                prefixIcon: Icons.person_rounded,
+                              ),
+                            ),
+                          ],
                         ),
-                        hintText: 'Select plan',
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppDropdown<InstituteStatus>(
-                        label: 'Status',
-                        items: const [
-                          InstituteStatus.active,
-                          InstituteStatus.expired,
-                          InstituteStatus.blocked,
-                        ],
-                        value: _status,
-                        itemLabel: (s) => switch (s) {
-                          InstituteStatus.active => 'Active',
-                          InstituteStatus.expired => 'Expired',
-                          InstituteStatus.blocked => 'Blocked',
-                        },
-                        onChanged: (v) => setState(
-                          () => _status = v ?? InstituteStatus.active,
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Contact',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppTextField(
+                                controller: _email,
+                                label: 'Institute email',
+                                hintText: 'owner@institute.com',
+                                prefixIcon: Icons.email_rounded,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: AppTextField(
+                                controller: _phone,
+                                label: 'Phone',
+                                hintText: '+92 300 1234567',
+                                prefixIcon: Icons.phone_rounded,
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
+                          ],
                         ),
-                        hintText: 'Select status',
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Address',
+                        child: AppTextArea(
+                          controller: _address,
+                          label: 'Address',
+                          hintText: 'Optional (street, city, etc.)',
+                          minLines: 2,
+                          maxLines: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Institute admin account',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppTextField(
+                                controller: _adminEmail,
+                                label: 'Admin email',
+                                hintText: 'admin@institute.com',
+                                prefixIcon: Icons.admin_panel_settings_rounded,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _adminPassword,
+                                obscureText: !_showPassword,
+                                decoration: InputDecoration(
+                                  labelText: 'Admin password',
+                                  hintText: 'Create a secure password',
+                                  prefixIcon: const Icon(Icons.lock_rounded),
+                                  filled: true,
+                                  fillColor: cs.surface,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 14,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: AppRadii.r12,
+                                    borderSide: BorderSide(color: cs.outlineVariant),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: AppRadii.r12,
+                                    borderSide: BorderSide(color: cs.primary, width: 1.2),
+                                  ),
+                                  suffixIcon: IconButton(
+                                    tooltip: _showPassword ? 'Hide' : 'Show',
+                                    onPressed: () => setState(() => _showPassword = !_showPassword),
+                                    icon: Icon(
+                                      _showPassword
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_rounded,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Subscription',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: AppDropdown<Plan>(
+                                label: 'Plan',
+                                items: activePlans,
+                                value: _plan,
+                                itemLabel: (p) => p.name,
+                                onChanged: (v) => setState(() => _plan = v),
+                                hintText: activePlans.isEmpty
+                                    ? 'No active plans'
+                                    : 'Select plan',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
@@ -189,7 +271,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      'You can edit plan and status later from institute details.',
+                      'This creates the academy, an admin user, a global user record, and a subscription record.',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
@@ -229,28 +311,36 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
     final owner = _owner.text.trim();
     final email = _email.text.trim();
     final phone = _phone.text.trim();
+    final address = _address.text.trim();
 
-    if (name.isEmpty || owner.isEmpty || email.isEmpty) {
+    final adminEmail = _adminEmail.text.trim();
+    final adminPassword = _adminPassword.text;
+    final planId = _plan?.id ?? '';
+
+    if (name.isEmpty ||
+        owner.isEmpty ||
+        email.isEmpty ||
+        adminEmail.isEmpty ||
+        adminPassword.trim().isEmpty ||
+        planId.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill required fields.')),
       );
       return;
     }
 
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final institute = Institute(
-      id: id,
-      name: name,
-      ownerName: owner,
-      email: email,
-      phone: phone,
-      plan: _plan,
-      status: _status,
-      studentsCount: 0,
-      createdAt: DateTime.now(),
+    Navigator.of(context).pop(
+      CreateInstituteDraft(
+        name: name,
+        ownerName: owner,
+        email: email,
+        phone: phone,
+        address: address,
+        adminEmail: adminEmail,
+        adminPassword: adminPassword,
+        planId: planId,
+      ),
     );
-
-    Navigator.of(context).pop(institute);
   }
 }
 

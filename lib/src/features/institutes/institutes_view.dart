@@ -40,6 +40,14 @@ class _InstitutesViewState extends State<InstitutesView> {
     return ControllerBuilder<InstitutesController>(
       controller: _controller,
       builder: (context, controller, _) {
+        if (!controller.ready) {
+          return _NotReadyPanel(
+            busy: controller.busy,
+            message: controller.errorMessage,
+            onRetry: controller.retryInit,
+          );
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -54,20 +62,40 @@ class _InstitutesViewState extends State<InstitutesView> {
                 },
                 onSearchChanged: controller.setQuery,
                 onAdd: () async {
-                  final created = await AddInstituteDialog.show(context);
-                  if (created == null) return;
-                  controller.addInstitute(created);
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Institute created: ${created.name}'),
-                    ),
+                  final draft = await AddInstituteDialog.show(
+                    context,
+                    plans: controller.plans,
                   );
+                  if (draft == null) return;
+                  try {
+                    await controller.createInstitute(
+                      name: draft.name,
+                      ownerName: draft.ownerName,
+                      email: draft.email,
+                      phone: draft.phone,
+                      address: draft.address,
+                      adminEmail: draft.adminEmail,
+                      adminPassword: draft.adminPassword,
+                      planId: draft.planId,
+                    );
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Institute created: ${draft.name}'),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$e')),
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 20),
               InstitutesTable(
                 items: controller.paged,
+                planLabel: controller.planLabel,
                 onAction: (action) {
                   switch (action.action) {
                     case InstituteMenuAction.block:
@@ -187,8 +215,8 @@ class _Header extends StatelessWidget {
             showLabel: false,
             items: const [
               InstitutesFilter.all,
+              InstitutesFilter.pending,
               InstitutesFilter.active,
-              InstitutesFilter.expired,
               InstitutesFilter.blocked,
             ],
             value: filter,
@@ -196,8 +224,8 @@ class _Header extends StatelessWidget {
             prefixIcon: Icons.filter_alt_rounded,
             itemLabel: (f) => switch (f) {
               InstitutesFilter.all => 'All',
+              InstitutesFilter.pending => 'Pending',
               InstitutesFilter.active => 'Active',
-              InstitutesFilter.expired => 'Expired',
               InstitutesFilter.blocked => 'Blocked',
             },
             onChanged: (value) {
@@ -317,6 +345,93 @@ class _PagerIconState extends State<_PagerIcon> {
             onTap: widget.onTap,
             child: Icon(widget.icon, color: cs.onSurfaceVariant),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotReadyPanel extends StatelessWidget {
+  const _NotReadyPanel({
+    this.busy = false,
+    this.message,
+    required this.onRetry,
+  });
+
+  final bool busy;
+  final String? message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: AppRadii.r16,
+          border: Border.all(color: cs.outlineVariant),
+          boxShadow: AppShadows.soft(Colors.black),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.cloud_off_rounded, color: cs.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    busy ? 'Initializing Firebase...' : 'Firestore not ready',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message?.trim().isNotEmpty == true
+                        ? message!.trim()
+                        : 'Institutes require Firebase Firestore. Initialize Firebase to enable this module.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: busy ? null : () async => onRetry(),
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

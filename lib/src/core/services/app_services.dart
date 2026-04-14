@@ -11,6 +11,7 @@ import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -32,6 +33,7 @@ class AppServices {
   FeatureService? featureService;
   SubscriptionService? subscriptionService;
   FeatureAccessService? featureAccessService;
+  InstituteService? instituteService;
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
@@ -83,6 +85,11 @@ class AppServices {
         featureService: featureService!,
         planService: planService!,
         subscriptionService: subscriptionService!,
+      );
+      instituteService = InstituteService(
+        firestore: firestore!,
+        primaryApp: firebaseApp!,
+        primaryAuth: auth!,
       );
       firebaseReady = true;
       firebaseInitError = null;

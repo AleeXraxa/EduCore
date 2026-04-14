@@ -1,20 +1,39 @@
-import 'package:educore/src/core/mvc/base_controller.dart';
-import 'package:educore/src/features/institutes/models/institute.dart';
+﻿import 'dart:async';
 
-enum InstitutesFilter { all, active, expired, blocked }
+import 'package:educore/src/core/mvc/base_controller.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/services/plan_service.dart';
+import 'package:educore/src/features/institutes/models/institute.dart';
+import 'package:educore/src/features/plans/models/plan.dart';
+
+enum InstitutesFilter { all, pending, active, blocked }
 
 class InstitutesController extends BaseController {
-  final List<Institute> _all = <Institute>[];
+  InstitutesController() {
+    _instituteService = AppServices.instance.instituteService;
+    _planService = AppServices.instance.planService;
+    _attachOrInit();
+  }
+
+  InstituteService? _instituteService;
+  PlanService? _planService;
+  StreamSubscription<List<Academy>>? _sub;
+  StreamSubscription<List<Plan>>? _planSub;
+
+  List<Institute> _all = const [];
+  Map<String, String> _planNameById = const {};
+
   String _query = '';
   InstitutesFilter _filter = InstitutesFilter.all;
 
   int _page = 0;
   final int pageSize = 20;
 
-  InstitutesController() {
-    _seedMock();
-  }
+  List<Plan> plans = const [];
+  String? errorMessage;
 
+  bool get ready => _instituteService != null;
   String get query => _query;
   InstitutesFilter get filter => _filter;
   int get page => _page;
@@ -25,10 +44,10 @@ class InstitutesController extends BaseController {
 
     if (_filter != InstitutesFilter.all) {
       final status = switch (_filter) {
-        InstitutesFilter.active => InstituteStatus.active,
-        InstitutesFilter.expired => InstituteStatus.expired,
-        InstitutesFilter.blocked => InstituteStatus.blocked,
-        InstitutesFilter.all => InstituteStatus.active,
+        InstitutesFilter.pending => AcademyStatus.pending,
+        InstitutesFilter.active => AcademyStatus.active,
+        InstitutesFilter.blocked => AcademyStatus.blocked,
+        InstitutesFilter.all => AcademyStatus.active,
       };
       list = list.where((e) => e.status == status);
     }
@@ -53,6 +72,12 @@ class InstitutesController extends BaseController {
     if (start >= list.length) return const [];
     final end = (start + pageSize).clamp(0, list.length);
     return list.sublist(start, end);
+  }
+
+  String planLabel(String planId) {
+    final id = planId.trim();
+    if (id.isEmpty) return '-';
+    return _planNameById[id] ?? '-';
   }
 
   void setQuery(String value) {
@@ -80,105 +105,114 @@ class InstitutesController extends BaseController {
     notifyListeners();
   }
 
-  void addInstitute(Institute institute) {
-    _all.insert(0, institute);
-    _page = 0;
-    notifyListeners();
+  Future<void> createInstitute({
+    required String name,
+    required String ownerName,
+    required String email,
+    required String phone,
+    required String address,
+    required String adminEmail,
+    required String adminPassword,
+    required String planId,
+  }) async {
+    final svc = await _ensureService();
+    await runBusy<void>(() async {
+      await svc.createInstitute(
+        name: name,
+        ownerName: ownerName,
+        email: email,
+        phone: phone,
+        address: address,
+        adminEmail: adminEmail,
+        adminPassword: adminPassword,
+        planId: planId,
+      );
+    });
   }
 
-  void toggleBlocked(String id) {
-    final idx = _all.indexWhere((e) => e.id == id);
+  Future<void> toggleBlocked(String academyId) async {
+    final svc = await _ensureService();
+    final idx = _all.indexWhere((e) => e.id == academyId);
     if (idx < 0) return;
     final current = _all[idx];
-    final nextStatus = current.status == InstituteStatus.blocked
-        ? InstituteStatus.active
-        : InstituteStatus.blocked;
-    _all[idx] = Institute(
-      id: current.id,
-      name: current.name,
-      ownerName: current.ownerName,
-      email: current.email,
-      phone: current.phone,
-      plan: current.plan,
-      status: nextStatus,
-      studentsCount: current.studentsCount,
-      createdAt: current.createdAt,
-    );
-    notifyListeners();
+    final next = current.status == AcademyStatus.blocked
+        ? AcademyStatus.active
+        : AcademyStatus.blocked;
+    await runBusy<void>(() => svc.setAcademyStatus(academyId, next));
   }
 
-  void _seedMock() {
-    // Premium-feeling mock dataset for UI scaffolding. Replace with Firestore.
-    final now = DateTime.now();
-    final items = <Institute>[
-      Institute(
-        id: 'gv',
-        name: 'Green Valley Academy',
-        ownerName: 'Ahsan Khan',
-        email: 'admin@greenvalley.edu.pk',
-        phone: '+92 300 1234567',
-        plan: InstitutePlan.standard,
-        status: InstituteStatus.active,
-        studentsCount: 1248,
-        createdAt: now.subtract(const Duration(days: 92)),
-      ),
-      Institute(
-        id: 'cs',
-        name: 'City School – North Campus',
-        ownerName: 'Sara Ali',
-        email: 'hello@cityschool.pk',
-        phone: '+92 301 5550192',
-        plan: InstitutePlan.premium,
-        status: InstituteStatus.active,
-        studentsCount: 980,
-        createdAt: now.subtract(const Duration(days: 121)),
-      ),
-      Institute(
-        id: 'ap',
-        name: 'Apex Institute',
-        ownerName: 'Usman Raza',
-        email: 'ops@apex.edu.pk',
-        phone: '+92 333 1122044',
-        plan: InstitutePlan.basic,
-        status: InstituteStatus.blocked,
-        studentsCount: 412,
-        createdAt: now.subtract(const Duration(days: 64)),
-      ),
-      Institute(
-        id: 'sr',
-        name: 'Sunrise School',
-        ownerName: 'Hina Ahmed',
-        email: 'accounts@sunrise.edu.pk',
-        phone: '+92 321 9911200',
-        plan: InstitutePlan.standard,
-        status: InstituteStatus.expired,
-        studentsCount: 670,
-        createdAt: now.subtract(const Duration(days: 210)),
-      ),
-    ];
+  Future<void> retryInit() => _attachOrInit();
 
-    _all.addAll(items);
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _planSub?.cancel();
+    super.dispose();
+  }
 
-    // Add more items so the table + pagination feel realistic.
-    for (var i = 1; i <= 38; i++) {
-      _all.add(
-        Institute(
-          id: 'seed_$i',
-          name: 'Institute ${i.toString().padLeft(2, '0')}',
-          ownerName: 'Owner ${i.toString().padLeft(2, '0')}',
-          email: 'owner$i@educore.pk',
-          phone: '+92 300 000${i.toString().padLeft(4, '0')}',
-          plan: i % 3 == 0
-              ? InstitutePlan.premium
-              : (i % 3 == 1 ? InstitutePlan.standard : InstitutePlan.basic),
-          status: i % 10 == 0
-              ? InstituteStatus.blocked
-              : (i % 7 == 0 ? InstituteStatus.expired : InstituteStatus.active),
-          studentsCount: 120 + (i * 12),
-          createdAt: now.subtract(Duration(days: 10 + i * 3)),
-        ),
-      );
+  Future<void> _attachOrInit() async {
+    if (_instituteService == null) {
+      await runBusy<void>(() async {
+        await AppServices.instance.init();
+      });
+      _instituteService = AppServices.instance.instituteService;
+      _planService = AppServices.instance.planService;
+      if (_instituteService == null) {
+        errorMessage = AppServices.instance.firebaseInitError?.toString();
+        notifyListeners();
+        return;
+      }
+    }
+
+    final svc = _instituteService!;
+    _sub?.cancel();
+    _sub = svc.watchAcademies().listen((value) {
+      _all = value
+          .map(
+            (a) => Institute(
+              id: a.id,
+              name: a.name,
+              ownerName: a.ownerName,
+              email: a.email,
+              phone: a.phone,
+              address: a.address,
+              planId: a.planId,
+              status: a.status,
+              studentsCount: 0,
+              createdAt: a.createdAt,
+            ),
+          )
+          .toList(growable: false);
+      errorMessage = null;
+      notifyListeners();
+    }, onError: (e) {
+      errorMessage = e.toString();
+      notifyListeners();
+    });
+
+    final planSvc = _planService;
+    if (planSvc != null) {
+      _planSub?.cancel();
+      _planSub = planSvc.watchPlans().listen((value) {
+        plans = value;
+        _planNameById = {for (final p in value) p.id: p.name};
+        notifyListeners();
+      }, onError: (e) {
+        errorMessage = e.toString();
+        notifyListeners();
+      });
     }
   }
-}
 
+  Future<InstituteService> _ensureService() async {
+    final existing = _instituteService ?? AppServices.instance.instituteService;
+    if (existing != null) {
+      _instituteService = existing;
+      return existing;
+    }
+    await _attachOrInit();
+    final svc = _instituteService ?? AppServices.instance.instituteService;
+    if (svc == null) throw StateError('Firestore is not ready.');
+    return svc;
+  }
+}

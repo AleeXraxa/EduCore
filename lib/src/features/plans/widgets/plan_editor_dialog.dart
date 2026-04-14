@@ -83,11 +83,14 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
       insetPadding: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 920),
+        constraints: BoxConstraints(
+          maxWidth: 920,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -123,220 +126,221 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              _GroupCard(
-                title: 'Plan details',
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextField(
-                            controller: _name,
-                            label: 'Plan name',
-                            hintText: 'e.g. Basic / Pro / Premium',
-                            prefixIcon: Icons.workspace_premium_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AppTextField(
-                            controller: _price,
-                            label: 'Price (PKR)',
-                            hintText: 'e.g. 12000',
-                            prefixIcon: Icons.payments_rounded,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 190,
-                          child: _ActiveToggle(
-                            value: _isActive,
-                            onChanged: (v) => setState(() => _isActive = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    AppTextArea(
-                      controller: _description,
-                      label: 'Description',
-                      hintText: 'Short plan description for admins and sales.',
-                      minLines: 2,
-                      maxLines: 4,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final twoCol = constraints.maxWidth >= 860;
-                  return Flex(
-                    direction: twoCol ? Axis.horizontal : Axis.vertical,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _GroupCard(
-                          title: 'Features',
-                          child: grouped.isEmpty
-                              ? _EmptyFeatures()
-                              : ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 280),
-                                  child: ListView.separated(
-                                    shrinkWrap: true,
-                                    itemCount: grouped.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 8),
-                                    itemBuilder: (context, index) {
-                                      final entry = grouped[index];
-                                      final group = entry.$1;
-                                      final items = entry.$2;
-                                      return _FeatureGroupTile(
-                                        group: group,
-                                        items: items,
-                                        selected: _features,
-                                        onSelectAll: (enabled) {
-                                          setState(() {
-                                            if (enabled) {
-                                              for (final f in items) {
-                                                _features.add(f.key);
-                                              }
-                                            } else {
-                                              for (final f in items) {
-                                                _features.remove(f.key);
-                                              }
-                                            }
-                                          });
-                                        },
-                                        onToggle: (key, enabled) {
-                                          setState(() {
-                                            if (enabled) {
-                                              _features.add(key);
-                                            } else {
-                                              _features.remove(key);
-                                            }
-                                          });
-                                        },
-                                      );
-                                    },
+                      _GroupCard(
+                        title: 'Plan details',
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _name,
+                                    label: 'Plan name',
+                                    hintText: 'e.g. Basic / Pro / Premium',
+                                    prefixIcon: Icons.workspace_premium_rounded,
                                   ),
                                 ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _price,
+                                    label: 'Price (PKR)',
+                                    hintText: 'e.g. 12000',
+                                    prefixIcon: Icons.payments_rounded,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                SizedBox(
+                                  width: 190,
+                                  child: _ActiveToggle(
+                                    value: _isActive,
+                                    onChanged: (v) =>
+                                        setState(() => _isActive = v),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextArea(
+                              controller: _description,
+                              label: 'Description',
+                              hintText:
+                                  'Short plan description for admins and sales.',
+                              minLines: 2,
+                              maxLines: 4,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: twoCol ? 12 : 0, height: twoCol ? 0 : 12),
-                      Expanded(
-                        child: _GroupCard(
-                          title: 'Limits (optional)',
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _newLimitKey,
-                                      decoration: InputDecoration(
-                                        hintText: 'Limit key (e.g. maxStudents)',
-                                        filled: true,
-                                        fillColor: cs.surface,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: AppRadii.r12,
-                                          borderSide:
-                                              BorderSide(color: cs.outlineVariant),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: AppRadii.r12,
-                                          borderSide: BorderSide(
-                                            color: cs.primary,
-                                            width: 1.2,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  SizedBox(
-                                    width: 150,
-                                    child: TextField(
-                                      controller: _newLimitValue,
-                                      keyboardType: TextInputType.number,
-                                      decoration: InputDecoration(
-                                        hintText: 'Value',
-                                        filled: true,
-                                        fillColor: cs.surface,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: AppRadii.r12,
-                                          borderSide:
-                                              BorderSide(color: cs.outlineVariant),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: AppRadii.r12,
-                                          borderSide: BorderSide(
-                                            color: cs.primary,
-                                            width: 1.2,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  FilledButton(
-                                    onPressed: _addLimit,
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: cs.primary,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    child: const Text('Add'),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 280),
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Features',
+                        child: grouped.isEmpty
+                            ? _EmptyFeatures()
+                            : ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxHeight: 360),
                                 child: ListView.separated(
                                   shrinkWrap: true,
-                                  itemCount: limitKeys.length,
+                                  itemCount: grouped.length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 8),
                                   itemBuilder: (context, index) {
-                                    final k = limitKeys[index];
-                                    final v = _limits[k] ?? 0;
-                                    return _LimitTile(
-                                      label: _prettyKey(k),
-                                      value: v,
-                                      onChanged: (next) =>
-                                          setState(() => _limits[k] = next),
-                                      onRemove: () => setState(() {
-                                        _limits.remove(k);
-                                      }),
+                                    final entry = grouped[index];
+                                    final group = entry.$1;
+                                    final items = entry.$2;
+                                    return _FeatureGroupTile(
+                                      group: group,
+                                      items: items,
+                                      selected: _features,
+                                      onSelectAll: (enabled) {
+                                        setState(() {
+                                          if (enabled) {
+                                            for (final f in items) {
+                                              _features.add(f.key);
+                                            }
+                                          } else {
+                                            for (final f in items) {
+                                              _features.remove(f.key);
+                                            }
+                                          }
+                                        });
+                                      },
+                                      onToggle: (key, enabled) {
+                                        setState(() {
+                                          if (enabled) {
+                                            _features.add(key);
+                                          } else {
+                                            _features.remove(key);
+                                          }
+                                        });
+                                      },
                                     );
                                   },
                                 ),
                               ),
-                            ],
-                          ),
+                      ),
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Limits (optional)',
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _newLimitKey,
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Limit key (e.g. maxStudents)',
+                                      filled: true,
+                                      fillColor: cs.surface,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: AppRadii.r12,
+                                        borderSide: BorderSide(
+                                          color: cs.outlineVariant,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: AppRadii.r12,
+                                        borderSide: BorderSide(
+                                          color: cs.primary,
+                                          width: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 150,
+                                  child: TextField(
+                                    controller: _newLimitValue,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      hintText: 'Value',
+                                      filled: true,
+                                      fillColor: cs.surface,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: AppRadii.r12,
+                                        borderSide: BorderSide(
+                                          color: cs.outlineVariant,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: AppRadii.r12,
+                                        borderSide: BorderSide(
+                                          color: cs.primary,
+                                          width: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                FilledButton(
+                                  onPressed: _addLimit,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: cs.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  child: const Text('Add'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(maxHeight: 280),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                itemCount: limitKeys.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) {
+                                  final k = limitKeys[index];
+                                  final v = _limits[k] ?? 0;
+                                  return _LimitTile(
+                                    label: _prettyKey(k),
+                                    value: v,
+                                    onChanged: (next) =>
+                                        setState(() => _limits[k] = next),
+                                    onRemove: () => setState(() {
+                                      _limits.remove(k);
+                                    }),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
               const SizedBox(height: 18),
               Row(

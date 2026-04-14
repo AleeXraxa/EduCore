@@ -1,4 +1,5 @@
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/institutes/widgets/institute_status_badge.dart';
 import 'package:flutter/material.dart';
@@ -7,10 +8,12 @@ class InstitutesTable extends StatelessWidget {
   const InstitutesTable({
     super.key,
     required this.items,
+    required this.planLabel,
     required this.onAction,
   });
 
   final List<Institute> items;
+  final String Function(String planId) planLabel;
   final ValueChanged<InstituteRowAction> onAction;
 
   @override
@@ -46,6 +49,7 @@ class InstitutesTable extends StatelessWidget {
                         _TableRow(
                           index: i,
                           item: items[i],
+                          planLabel: planLabel,
                           onAction: onAction,
                         ),
                   ],
@@ -108,11 +112,13 @@ class _TableRow extends StatefulWidget {
   const _TableRow({
     required this.index,
     required this.item,
+    required this.planLabel,
     required this.onAction,
   });
 
   final int index;
   final Institute item;
+  final String Function(String planId) planLabel;
   final ValueChanged<InstituteRowAction> onAction;
 
   @override
@@ -170,7 +176,7 @@ class _TableRowState extends State<_TableRow> {
             ),
             Expanded(
               flex: 10,
-              child: _PlanPill(plan: item.plan),
+              child: _PlanPill(label: widget.planLabel(item.planId)),
             ),
             Expanded(
               flex: 10,
@@ -212,7 +218,7 @@ class _TableRowState extends State<_TableRow> {
               child: Align(
                 alignment: Alignment.centerRight,
                 child: _RowMenu(
-                  blocked: item.status == InstituteStatus.blocked,
+                  blocked: item.status == AcademyStatus.blocked,
                   onSelected: (value) {
                     widget.onAction(
                       InstituteRowAction(value, item.id),
@@ -265,31 +271,20 @@ class _PrimaryCell extends StatelessWidget {
 }
 
 class _PlanPill extends StatelessWidget {
-  const _PlanPill({required this.plan});
+  const _PlanPill({required this.label});
 
-  final InstitutePlan plan;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final (label, fg, bg) = switch (plan) {
-      InstitutePlan.basic => (
-          'Basic',
-          cs.onSurfaceVariant,
-          cs.surfaceContainerHighest.withValues(alpha: 0.65),
-        ),
-      InstitutePlan.standard => (
-          'Standard',
-          cs.primary,
-          cs.primary.withValues(alpha: 0.10),
-        ),
-      InstitutePlan.premium => (
-          'Premium',
-          cs.secondary,
-          cs.secondary.withValues(alpha: 0.10),
-        ),
-    };
+    final clean = label.trim().isEmpty ? '-' : label.trim();
+    final isKnown = clean != '-';
+    final fg = isKnown ? cs.primary : cs.onSurfaceVariant;
+    final bg = isKnown
+        ? cs.primary.withValues(alpha: 0.10)
+        : cs.surfaceContainerHighest.withValues(alpha: 0.65);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -299,7 +294,7 @@ class _PlanPill extends StatelessWidget {
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
       ),
       child: Text(
-        label,
+        clean,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: fg,
               fontWeight: FontWeight.w800,
@@ -482,7 +477,8 @@ String _fmtInt(int v) {
   return b.toString().split('').reversed.join();
 }
 
-String _fmtDate(DateTime d) {
+String _fmtDate(DateTime? d) {
+  if (d == null) return '-';
   final mm = d.month.toString().padLeft(2, '0');
   final dd = d.day.toString().padLeft(2, '0');
   return '${d.year}-$mm-$dd';

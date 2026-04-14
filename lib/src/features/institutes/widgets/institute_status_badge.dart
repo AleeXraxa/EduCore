@@ -1,27 +1,27 @@
-import 'package:educore/src/features/institutes/models/institute.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:flutter/material.dart';
 
 class InstituteStatusBadge extends StatelessWidget {
   const InstituteStatusBadge({super.key, required this.status});
 
-  final InstituteStatus status;
+  final AcademyStatus status;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
     final (bg, fg, label) = switch (status) {
-      InstituteStatus.active => (
+      AcademyStatus.active => (
           const Color(0xFF16A34A).withValues(alpha: 0.10),
           const Color(0xFF15803D),
           'Active',
         ),
-      InstituteStatus.expired => (
+      AcademyStatus.pending => (
           const Color(0xFFF59E0B).withValues(alpha: 0.11),
           const Color(0xFFB45309),
-          'Expired',
+          'Pending',
         ),
-      InstituteStatus.blocked => (
+      AcademyStatus.blocked => (
           const Color(0xFFEF4444).withValues(alpha: 0.10),
           const Color(0xFFB91C1C),
           'Blocked',
