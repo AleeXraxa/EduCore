@@ -100,7 +100,6 @@ class _LoginViewState extends State<LoginView>
       await _controller.signIn(
         email: _email.text.trim(),
         password: _password.text,
-        rememberMe: _rememberMe,
       );
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(

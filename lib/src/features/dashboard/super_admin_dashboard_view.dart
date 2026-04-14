@@ -2,6 +2,10 @@ import 'package:educore/src/app/shell/app_shell.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/features/analytics/analytics_view.dart';
+import 'package:educore/src/features/institutes/institutes_view.dart';
+import 'package:educore/src/features/payments/payments_view.dart';
+import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:flutter/material.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
@@ -46,6 +50,10 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
           key: ValueKey<String>(_selected),
           child: switch (current) {
             _SuperAdminNav.dashboard => const _DashboardHomeBody(),
+            _SuperAdminNav.institutes => const InstitutesView(),
+            _SuperAdminNav.subscriptions => const SubscriptionsView(),
+            _SuperAdminNav.payments => const PaymentsView(),
+            _SuperAdminNav.analytics => const AnalyticsView(),
             _ => _PlaceholderPage(title: current.title),
           },
         ),

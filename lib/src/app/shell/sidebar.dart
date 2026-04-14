@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
@@ -137,7 +136,6 @@ class Sidebar extends StatelessWidget {
 
     try {
       await authService.signOut();
-      await AppServices.instance.prefs.setBool(PrefsKeys.rememberMe, false);
       if (!context.mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.login,

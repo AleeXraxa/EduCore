@@ -37,6 +37,7 @@ dependencies:
   google_fonts: ^6.3.0
   flutter_spinkit: ^5.2.2
   shared_preferences: ^2.3.2
+  animated_custom_dropdown: ^3.1.1
   # Keep FlutterFire versions aligned with your working Windows project to
   # reduce Windows build size (Firebase C++ SDK extraction).
   firebase_core: 3.15.2
