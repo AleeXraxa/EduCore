@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/models/subscription_record.dart';
@@ -28,7 +29,10 @@ class InstituteDetailsPanel {
         );
       },
       transitionBuilder: (context, anim, secondary, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutCubic,
+        );
         final slide = Tween<Offset>(
           begin: const Offset(0.12, 0),
           end: Offset.zero,
@@ -54,7 +58,8 @@ class _InstituteDetailsDialog extends StatefulWidget {
   final VoidCallback onToggleBlocked;
 
   @override
-  State<_InstituteDetailsDialog> createState() => _InstituteDetailsDialogState();
+  State<_InstituteDetailsDialog> createState() =>
+      _InstituteDetailsDialogState();
 }
 
 class _InstituteDetailsDialogState extends State<_InstituteDetailsDialog> {
@@ -75,8 +80,9 @@ class _InstituteDetailsDialogState extends State<_InstituteDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final panelWidth =
-        MediaQuery.of(context).size.width < 560 ? double.infinity : 520.0;
+    final panelWidth = MediaQuery.of(context).size.width < 560
+        ? double.infinity
+        : 520.0;
     final maxHeight = MediaQuery.of(context).size.height - 36;
 
     return Material(
@@ -100,190 +106,252 @@ class _InstituteDetailsDialogState extends State<_InstituteDetailsDialog> {
               child: Container(
                 margin: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: AppRadii.r16,
-                  border: Border.all(color: cs.outlineVariant),
-                  boxShadow: AppShadows.soft(Colors.black),
+                  color: cs.surface.withValues(alpha: 0.85),
+                  borderRadius: AppRadii.r24,
+                  border: Border.all(
+                    color: cs.onSurface.withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 40,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
-                  borderRadius: AppRadii.r16,
-                  child: ControllerBuilder<InstituteDetailsController>(
-                    controller: _controller,
-                    builder: (context, controller, _) {
-                      final academy = controller.academy;
-                      final planName =
-                          controller.plan?.name.trim().isNotEmpty == true
-                              ? controller.plan!.name.trim()
-                              : widget.planLabel;
-                      final subscription = controller.subscription;
+                  borderRadius: AppRadii.r24,
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    child: ControllerBuilder<InstituteDetailsController>(
+                      controller: _controller,
+                      builder: (context, controller, _) {
+                        final academy = controller.academy;
+                        final planName =
+                            controller.plan?.name.trim().isNotEmpty == true
+                            ? controller.plan!.name.trim()
+                            : widget.planLabel;
+                        final subscription = controller.subscription;
 
-                      return Column(
-                        children: [
-                          _Header(
-                            instituteName: academy?.name ?? widget.institute.name,
-                            planName: planName,
-                            status: academy?.status ?? widget.institute.status,
-                            onClose: () => Navigator.of(context).pop(),
-                          ),
-                          const Divider(height: 1),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.all(18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _SectionTitle('Institute'),
-                                  const SizedBox(height: 10),
-                                  _InfoGrid(
-                                    items: [
-                                      ('Academy ID', widget.institute.id),
-                                      (
-                                        'Owner',
-                                        academy?.ownerName ??
-                                            widget.institute.ownerName
+                        return Column(
+                          children: [
+                            _Header(
+                              instituteName:
+                                  academy?.name ?? widget.institute.name,
+                              planName: planName,
+                              status:
+                                  academy?.status ?? widget.institute.status,
+                              onClose: () => Navigator.of(context).pop(),
+                            ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(
+                                  24,
+                                  8,
+                                  24,
+                                  24,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _AnimatedSlideIn(
+                                      delayIndex: 0,
+                                      child: _InfoSection(
+                                        title: 'INSTITUTE IDENTITY',
+                                        icon: Icons.badge_rounded,
+                                        child: _InfoGrid(
+                                          items: [
+                                            ('Academy ID', widget.institute.id),
+                                            (
+                                              'Owner',
+                                              academy?.ownerName ??
+                                                  widget.institute.ownerName,
+                                            ),
+                                            (
+                                              'Email',
+                                              academy?.email ??
+                                                  widget.institute.email,
+                                            ),
+                                            (
+                                              'Phone',
+                                              academy?.phone ??
+                                                  widget.institute.phone,
+                                            ),
+                                            (
+                                              'Address',
+                                              academy?.address ??
+                                                  widget.institute.address,
+                                            ),
+                                            (
+                                              'Member Since',
+                                              _fmtDate(
+                                                academy?.createdAt ??
+                                                    widget.institute.createdAt,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      ('Email', academy?.email ?? widget.institute.email),
-                                      ('Phone', academy?.phone ?? widget.institute.phone),
-                                      ('Address', academy?.address ?? widget.institute.address),
-                                      ('Plan', planName),
-                                      (
-                                        'Created',
-                                        _fmtDateTime(academy?.createdAt ?? widget.institute.createdAt),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _AnimatedSlideIn(
+                                      delayIndex: 1,
+                                      child: _InfoSection(
+                                        title: 'SUBSCRIPTION INTELLIGENCE',
+                                        icon: Icons.auto_awesome_rounded,
+                                        child: subscription == null
+                                            ? Text(
+                                                'No active subscription cycle found.',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelMedium
+                                                    ?.copyWith(
+                                                      color:
+                                                          cs.onSurfaceVariant,
+                                                    ),
+                                              )
+                                            : _InfoGrid(
+                                                items: [
+                                                  (
+                                                    'Status',
+                                                    _subStatusLabel(
+                                                      subscription.status,
+                                                    ),
+                                                  ),
+                                                  (
+                                                    'Start Boundary',
+                                                    _fmtDate(
+                                                      subscription.startDate,
+                                                    ),
+                                                  ),
+                                                  (
+                                                    'Next Renewal',
+                                                    _fmtDate(
+                                                      subscription.endDate,
+                                                    ),
+                                                  ),
+                                                  (
+                                                    'Policy Overrides',
+                                                    '${subscription.overrides.length} applied',
+                                                  ),
+                                                ],
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _AnimatedSlideIn(
+                                      delayIndex: 2,
+                                      child: _InfoSection(
+                                        title: 'ADMINISTRATIVE ACCESS',
+                                        icon:
+                                            Icons.admin_panel_settings_rounded,
+                                        child: controller.instituteAdmin == null
+                                            ? Text(
+                                                'Primary administrator account not linked.',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelMedium
+                                                    ?.copyWith(
+                                                      color:
+                                                          cs.onSurfaceVariant,
+                                                    ),
+                                              )
+                                            : _InfoGrid(
+                                                items: [
+                                                  (
+                                                    'Primary Email',
+                                                    controller
+                                                        .instituteAdmin!
+                                                        .email,
+                                                  ),
+                                                  (
+                                                    'Account Auth',
+                                                    controller
+                                                        .instituteAdmin!
+                                                        .status,
+                                                  ),
+                                                  (
+                                                    'Role Permission',
+                                                    'Institute Owner',
+                                                  ),
+                                                ],
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 32),
+                                    _AnimatedSlideIn(
+                                      delayIndex: 3,
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: _ActionBtn(
+                                              isDanger:
+                                                  (academy?.status ??
+                                                      widget
+                                                          .institute
+                                                          .status) !=
+                                                  AcademyStatus.blocked,
+                                              onPressed: () {
+                                                widget.onToggleBlocked();
+                                                Navigator.of(context).pop();
+                                              },
+                                              icon:
+                                                  (academy?.status ??
+                                                          widget
+                                                              .institute
+                                                              .status) ==
+                                                      AcademyStatus.blocked
+                                                  ? Icons.lock_open_rounded
+                                                  : Icons.block_rounded,
+                                              label:
+                                                  (academy?.status ??
+                                                          widget
+                                                              .institute
+                                                              .status) ==
+                                                      AcademyStatus.blocked
+                                                  ? 'Restore Access'
+                                                  : 'Restrict Access',
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _ActionBtn(
+                                              isDanger: false,
+                                              onPressed: () =>
+                                                  Navigator.of(context).pop(),
+                                              icon: Icons.close_rounded,
+                                              label: 'Close View',
+                                              outlined: true,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (controller.errorMessage
+                                            ?.trim()
+                                            .isNotEmpty ==
+                                        true) ...[
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        controller.errorMessage!.trim(),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              color: cs.error,
+                                              fontWeight: FontWeight.w800,
+                                            ),
                                       ),
                                     ],
-                                  ),
-                                  const SizedBox(height: 18),
-                                  _SectionTitle('Subscription'),
-                                  const SizedBox(height: 10),
-                                  if (subscription == null)
-                                    Text(
-                                      'No subscription record found yet.',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: cs.onSurfaceVariant,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    )
-                                  else
-                                    _InfoGrid(
-                                      items: [
-                                        ('Status', _subStatusLabel(subscription.status)),
-                                        ('Start', _fmtDate(subscription.startDate)),
-                                        ('End', _fmtDate(subscription.endDate)),
-                                        ('Overrides', '${subscription.overrides.length}'),
-                                        (
-                                          'Updated',
-                                          _fmtDateTime(subscription.updatedAt),
-                                        ),
-                                      ],
-                                    ),
-                                  const SizedBox(height: 18),
-                                  _SectionTitle('Admin Account'),
-                                  const SizedBox(height: 10),
-                                  if (controller.instituteAdmin == null)
-                                    Text(
-                                      'No institute admin user found in `users/` for this academy.',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: cs.onSurfaceVariant,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    )
-                                  else
-                                    _InfoGrid(
-                                      items: [
-                                        ('Email', controller.instituteAdmin!.email),
-                                        ('Status', controller.instituteAdmin!.status),
-                                        ('Created', _fmtDateTime(controller.instituteAdmin!.createdAt)),
-                                      ],
-                                    ),
-                                  const SizedBox(height: 18),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: FilledButton.icon(
-                                          onPressed: () {
-                                            widget.onToggleBlocked();
-                                            Navigator.of(context).pop();
-                                          },
-                                          icon: Icon(
-                                            (academy?.status ??
-                                                        widget.institute.status) ==
-                                                    AcademyStatus.blocked
-                                                ? Icons.lock_open_rounded
-                                                : Icons.block_rounded,
-                                          ),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor:
-                                                (academy?.status ??
-                                                            widget.institute.status) ==
-                                                        AcademyStatus.blocked
-                                                    ? cs.primary
-                                                    : const Color(0xFFB91C1C),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 14,
-                                            ),
-                                          ),
-                                          label: Text(
-                                            (academy?.status ??
-                                                        widget.institute.status) ==
-                                                    AcademyStatus.blocked
-                                                ? 'Unblock institute'
-                                                : 'Block institute',
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(),
-                                          icon: const Icon(Icons.close_rounded),
-                                          style: OutlinedButton.styleFrom(
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 14,
-                                            ),
-                                          ),
-                                          label: const Text('Close'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (controller.errorMessage?.trim().isNotEmpty ==
-                                      true) ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      controller.errorMessage!.trim(),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: const Color(0xFFB91C1C),
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -312,20 +380,35 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: [cs.primary, cs.primaryContainer],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: cs.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(Icons.apartment_rounded, color: cs.primary),
+            child: const Icon(
+              Icons.apartment_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,28 +417,30 @@ class _Header extends StatelessWidget {
                   instituteName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                      ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                const SizedBox(height: 8),
+                Row(
                   children: [
                     InstituteStatusBadge(status: status),
+                    const SizedBox(width: 10),
                     _PlanPill(label: planName),
                   ],
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Close',
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              tooltip: 'Close',
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
           ),
         ],
       ),
@@ -387,26 +472,60 @@ class _PlanPill extends StatelessWidget {
       child: Text(
         clean,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w800,
-            ),
+          color: fg,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
+class _InfoSection extends StatelessWidget {
+  const _InfoSection({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
   final String title;
+  final IconData icon;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.2,
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.4),
+        borderRadius: AppRadii.r20,
+        border: Border.all(
+          color: cs.onSurface.withValues(alpha: 0.05),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: cs.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: cs.primary,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -418,13 +537,11 @@ class _InfoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
         for (var i = 0; i < items.length; i++) ...[
           _InfoRow(label: items[i].$1, value: items[i].$2),
-          if (i != items.length - 1)
-            Divider(height: 14, color: cs.outlineVariant.withValues(alpha: 0.7)),
+          if (i != items.length - 1) const SizedBox(height: 12),
         ],
       ],
     );
@@ -440,29 +557,120 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final cleanValue = value.trim().isEmpty ? '—' : value.trim();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 120,
+        Expanded(
+          flex: 2,
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
+          flex: 3,
           child: Text(
-            value.trim().isEmpty ? '—' : value.trim(),
+            cleanValue,
+            textAlign: TextAlign.end,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+              fontWeight: FontWeight.w800,
+              color: cleanValue == '—' ? cs.onSurfaceVariant : cs.onSurface,
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  const _ActionBtn({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.isDanger,
+    this.outlined = false,
+  });
+
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final bool isDanger;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (outlined) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+          side: BorderSide(color: cs.outlineVariant),
+        ),
+        label: Text(label),
+      );
+    }
+
+    final color = isDanger ? const Color(0xFFDC2626) : cs.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: AppRadii.r16,
+        gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.8)]),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20, color: Colors.white),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+        ),
+        label: Text(label, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -473,14 +681,6 @@ String _fmtDate(DateTime? value) {
   final m = value.month.toString().padLeft(2, '0');
   final d = value.day.toString().padLeft(2, '0');
   return '$y-$m-$d';
-}
-
-String _fmtDateTime(DateTime? value) {
-  if (value == null) return '—';
-  final date = _fmtDate(value);
-  final hh = value.hour.toString().padLeft(2, '0');
-  final mm = value.minute.toString().padLeft(2, '0');
-  return '$date $hh:$mm';
 }
 
 String _subStatusLabel(SubscriptionRecordStatus status) {

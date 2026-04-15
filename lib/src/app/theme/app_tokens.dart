@@ -17,6 +17,7 @@ abstract final class AppRadii {
   static const r12 = BorderRadius.all(Radius.circular(12));
   static const r16 = BorderRadius.all(Radius.circular(16));
   static const r20 = BorderRadius.all(Radius.circular(20));
+  static const r24 = BorderRadius.all(Radius.circular(24));
 }
 
 abstract final class AppSpace {

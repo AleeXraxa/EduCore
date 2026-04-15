@@ -4,6 +4,7 @@ import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/features/dashboard/dashboard_controller.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
 import 'package:educore/src/features/features/features_view.dart';
@@ -342,6 +343,12 @@ class _HeaderRow extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 24),
+        const AppSearchField(
+          width: 320,
+          hintText: 'Search dashboard...',
+        ),
+        const SizedBox(width: 16),
         AppCard(
           onTap: () {},
           child: Row(

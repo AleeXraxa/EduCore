@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/features/users/widgets/user_role_badge.dart';
@@ -74,99 +75,97 @@ class _UserDetailsDialog extends StatelessWidget {
               child: Container(
                 margin: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: AppRadii.r16,
-                  border: Border.all(color: cs.outlineVariant),
-                  boxShadow: AppShadows.soft(Colors.black),
+                  color: cs.surface.withValues(alpha: 0.82),
+                  borderRadius: AppRadii.r24,
+                  border: Border.all(
+                    color: cs.onSurface.withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 40,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
-                  borderRadius: AppRadii.r16,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      _Header(user: user),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _InfoGrid(user: user),
-                              const SizedBox(height: 18),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () {
-                                        onToggleBlocked();
-                                        Navigator.of(context).pop();
-                                      },
-                                      icon: Icon(
-                                        user.status == AppUserStatus.blocked
-                                            ? Icons.lock_open_rounded
-                                            : Icons.lock_rounded,
-                                      ),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            user.status == AppUserStatus.blocked
-                                                ? cs.primary
-                                                : const Color(0xFFB91C1C),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 14,
+                  borderRadius: AppRadii.r24,
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        _Header(user: user),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _AnimatedSlideIn(
+                                  delayIndex: 0,
+                                  child: _InfoGrid(user: user),
+                                ),
+                                const SizedBox(height: 32),
+                                _AnimatedSlideIn(
+                                  delayIndex: 5,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: _ActionBtn(
+                                          isDanger: user.status != AppUserStatus.blocked,
+                                          onPressed: () {
+                                            onToggleBlocked();
+                                            Navigator.of(context).pop();
+                                          },
+                                          icon: user.status == AppUserStatus.blocked
+                                              ? Icons.lock_open_rounded
+                                              : Icons.lock_rounded,
+                                          label: user.status == AppUserStatus.blocked
+                                              ? 'Restore Access'
+                                              : 'Restrict Access',
                                         ),
                                       ),
-                                      label: Text(
-                                        user.status == AppUserStatus.blocked
-                                            ? 'Unblock user'
-                                            : 'Block user',
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _ActionBtn(
+                                          isDanger: false,
+                                          onPressed: () {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Credential reset initialization requested.',
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          icon: Icons.key_rounded,
+                                          label: 'Reset Key',
+                                          outlined: true,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Reset password is planned for a future release.',
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.key_rounded),
-                                      style: OutlinedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
+                                ),
+                                const SizedBox(height: 16),
+                                _AnimatedSlideIn(
+                                  delayIndex: 6,
+                                  child: Text(
+                                    'Note: Policy mandates and audit trails are logged for every modification to administrative accounts.',
+                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.4,
                                         ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 14,
-                                        ),
-                                      ),
-                                      label: const Text('Reset password'),
-                                    ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Note: Detailed audit logs and advanced access policies will be added as the platform scales.',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -186,22 +185,32 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: cs.primary.withValues(alpha: 0.12),
-            child: Text(
-              _initials(user.name),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w900,
-                  ),
+          Container(
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: cs.primary.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 26,
+              backgroundColor: cs.primary,
+              child: Text(
+                _initials(user.name),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,9 +219,9 @@ class _Header extends StatelessWidget {
                   user.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
+                        letterSpacing: -0.8,
                       ),
                 ),
                 const SizedBox(height: 4),
@@ -220,18 +229,23 @@ class _Header extends StatelessWidget {
                   user.email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Close',
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close_rounded),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              tooltip: 'Close',
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
           ),
         ],
       ),
@@ -259,43 +273,52 @@ class _InfoGrid extends StatelessWidget {
       required IconData icon,
       required String label,
       required Widget value,
+      required int delayIndex,
     }) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest.withValues(alpha: 0.26),
-          borderRadius: AppRadii.r16,
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: cs.primary, size: 18),
+      return _AnimatedSlideIn(
+        delayIndex: delayIndex,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow.withValues(alpha: 0.4),
+            borderRadius: AppRadii.r20,
+            border: Border.all(
+              color: cs.onSurface.withValues(alpha: 0.05),
+              width: 0.5,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  value,
-                ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: cs.primary, size: 20),
               ),
-            ),
-          ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    value,
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -303,55 +326,145 @@ class _InfoGrid extends StatelessWidget {
     return Column(
       children: [
         info(
-          icon: Icons.badge_rounded,
-          label: 'Role',
-          value: UserRoleBadge(role: user.role, compact: true),
+          icon: Icons.shield_rounded,
+          label: 'Security Status',
+          value: UserStatusBadge(status: user.status),
+          delayIndex: 0,
         ),
-        const SizedBox(height: 10),
+        info(
+          icon: Icons.badge_rounded,
+          label: 'Assigned Role',
+          value: UserRoleBadge(role: user.role, compact: true),
+          delayIndex: 1,
+        ),
         info(
           icon: Icons.apartment_rounded,
-          label: 'Institute',
+          label: 'Organization',
           value: Text(
             user.instituteName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
           ),
+          delayIndex: 2,
         ),
-        const SizedBox(height: 10),
-        info(
-          icon: Icons.shield_rounded,
-          label: 'Status',
-          value: Align(
-            alignment: Alignment.centerLeft,
-            child: UserStatusBadge(status: user.status),
-          ),
-        ),
-        const SizedBox(height: 10),
         info(
           icon: Icons.phone_rounded,
-          label: 'Phone',
+          label: 'Contact Baseline',
           value: Text(
             user.phone,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
           ),
+          delayIndex: 3,
         ),
-        const SizedBox(height: 10),
         info(
           icon: Icons.history_rounded,
-          label: 'Last login',
+          label: 'Last Session Activity',
           value: Text(
             lastLoginText(user.lastLoginAt),
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
           ),
+          delayIndex: 4,
         ),
       ],
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  const _ActionBtn({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.isDanger,
+    this.outlined = false,
+  });
+
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final bool isDanger;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (outlined) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+          side: BorderSide(color: cs.outlineVariant),
+        ),
+        label: Text(label),
+      );
+    }
+
+    final color = isDanger ? const Color(0xFFDC2626) : cs.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: AppRadii.r16,
+        gradient: LinearGradient(
+          colors: [
+            color,
+            color.withValues(alpha: 0.8),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20, color: Colors.white),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+        ),
+        label: Text(label, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 450 + (delayIndex * 80)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 15 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

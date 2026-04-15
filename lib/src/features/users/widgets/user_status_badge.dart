@@ -24,19 +24,40 @@ class UserStatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.fromLTRB(8, 4, 12, 4),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
+        border: Border.all(color: fg.withValues(alpha: 0.15)),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
               color: fg,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.15,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: fg.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0.8,
+                ),
+          ),
+        ],
       ),
     );
   }

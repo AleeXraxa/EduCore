@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/users/users_controller.dart';
 import 'package:educore/src/features/users/widgets/create_user_dialog.dart';
@@ -103,31 +104,11 @@ class _UsersViewState extends State<UsersView> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: WrapAlignment.end,
                 children: [
-                  SizedBox(
+                  AppSearchField(
                     width: stacked ? double.infinity : 340,
-                    height: toolbarHeight,
-                    child: TextField(
-                      controller: _search,
-                      onChanged: controller.setQuery,
-                      decoration: InputDecoration(
-                        hintText: 'Search name / email / phone',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        filled: true,
-                        fillColor: cs.surface,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: AppRadii.r12,
-                          borderSide: BorderSide(color: cs.outlineVariant),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: AppRadii.r12,
-                          borderSide: BorderSide(color: cs.primary, width: 1.2),
-                        ),
-                      ),
-                    ),
+                    controller: _search,
+                    onChanged: controller.setQuery,
+                    hintText: 'Search name / email / phone',
                   ),
                   SizedBox(
                     width: stacked ? double.infinity : 190,

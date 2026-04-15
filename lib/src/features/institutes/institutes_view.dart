@@ -4,6 +4,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/hover_scale.dart';
 import 'package:educore/src/features/institutes/institutes_controller.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/features/institutes/widgets/add_institute_dialog.dart';
 import 'package:educore/src/features/institutes/widgets/institute_details_panel.dart';
 import 'package:educore/src/features/institutes/widgets/edit_institute_dialog.dart';
@@ -231,29 +232,11 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 18),
-        SizedBox(
+        AppSearchField(
           width: 360,
-          height: toolbarHeight,
-          child: TextField(
-            controller: search,
-            onChanged: onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Search institute / owner / email',
-              prefixIcon: const Icon(Icons.search_rounded),
-              filled: true,
-              fillColor: cs.surface,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: AppRadii.r12,
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: AppRadii.r12,
-                borderSide: BorderSide(color: cs.primary, width: 1.2),
-              ),
-            ),
-          ),
+          controller: search,
+          onChanged: onSearchChanged,
+          hintText: 'Search institute / owner / email',
         ),
         const SizedBox(width: 12),
         SizedBox(
