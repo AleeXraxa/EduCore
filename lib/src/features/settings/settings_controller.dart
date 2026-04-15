@@ -1,75 +1,66 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:educore/src/core/mvc/base_controller.dart';
+import 'package:educore/src/core/services/app_services.dart';
+
+import 'package:educore/src/features/settings/models/global_settings.dart';
 import 'package:educore/src/features/settings/models/settings_models.dart';
 
 class SettingsController extends BaseController {
+  final _service = AppServices.instance.settingsService;
+  final _planService = AppServices.instance.planService;
+  final _auth = AppServices.instance.authService;
+
   SettingsSection _section = SettingsSection.general;
   SettingsSection get section => _section;
 
-  // General
-  String platformName = 'EduCore';
-  String supportEmail = 'support@tryunity.com';
-  String contactNumber = '+92 300 0000000';
-  Currency currency = Currency.pkr;
-  String timezone = 'Asia/Karachi';
+  GlobalSettings? _settings;
+  GlobalSettings? get settings => _settings;
 
-  // Plans
-  final List<SubscriptionPlan> plans = <SubscriptionPlan>[
-    const SubscriptionPlan(
-      id: 'basic',
-      name: 'Basic',
-      pricePkr: 12000,
-      durationDays: 30,
-      features: [
-        'Student management',
-        'Fees + receipts',
-        'Attendance',
-        'Basic reports',
-      ],
-    ),
-    const SubscriptionPlan(
-      id: 'standard',
-      name: 'Standard',
-      pricePkr: 18000,
-      durationDays: 30,
-      features: [
-        'Everything in Basic',
-        'Exams + results',
-        'Certificates',
-        'Monthly stats',
-      ],
-    ),
-    const SubscriptionPlan(
-      id: 'premium',
-      name: 'Premium',
-      pricePkr: 32000,
-      durationDays: 30,
-      features: [
-        'Everything in Standard',
-        'Advanced analytics',
-        'Priority support',
-        'Automation (phase)',
-      ],
-    ),
-  ];
+  StreamSubscription? _subscription;
 
-  // Payment settings
-  bool enableJazzCash = true;
-  bool enableEasyPaisa = true;
-  bool enableBankTransfer = true;
-  String paymentInstructions =
-      'Submit payment proof (screenshot) and reference number. Approval usually takes a few minutes.';
+  SettingsController() {
+    _init();
+  }
 
-  // Notification settings
-  bool enableNotifications = true;
-  bool enableEmailNotifications = true;
-  bool enablePushNotifications = false;
+  void _init() {
+    _subscription = _service?.watchGlobalSettings().listen((data) {
+      _settings =
+          data ??
+          GlobalSettings(
+            appName: 'EduCore',
+            appLogoUrl: '',
+            supportEmail: 'support@educore.com',
+            supportPhone: '+92 300 0000000',
+            paymentMethods: {
+              'jazzcash': PaymentMethodConfig(
+                isActive: true,
+                number: '',
+                accountTitle: 'EduCore',
+              ),
+              'easypaisa': PaymentMethodConfig(
+                isActive: true,
+                number: '',
+                accountTitle: 'EduCore',
+              ),
+              'bank': PaymentMethodConfig(
+                isActive: true,
+                accountNumber: '',
+                accountTitle: 'EduCore',
+                bankName: 'Bank Name',
+              ),
+            },
+          );
+      notifyListeners();
+    });
+  }
 
-  // Security
-  int sessionTimeoutMinutes = 30;
+  @override
+  void dispose() {
+    _subscription?.cancel();
 
-  // Preferences
-  ThemePreference themePreference = ThemePreference.light;
-  DateFormatOption dateFormat = DateFormatOption.ymd;
+    super.dispose();
+  }
 
   void selectSection(SettingsSection value) {
     if (_section == value) return;
@@ -77,28 +68,44 @@ class SettingsController extends BaseController {
     notifyListeners();
   }
 
-  Future<void> save() async {
-    await runBusy<void>(() async {
-      // Placeholder for Firestore write.
-      await Future<void>.delayed(const Duration(milliseconds: 260));
+  void updateSettings(GlobalSettings newSettings) {
+    _settings = newSettings;
+    notifyListeners();
+  }
+
+  Future<void> uploadLogo(File file) async {
+    await runBusy(() async {
+      final url = await _service?.uploadLogo(file);
+      if (url != null) {
+        _settings = _settings!.copyWith(appLogoUrl: url);
+        notifyListeners();
+      }
     });
   }
 
-  void addPlan(SubscriptionPlan plan) {
-    plans.insert(0, plan);
-    notifyListeners();
+  Future<void> save() async {
+    if (_settings == null) return;
+    await runBusy<void>(() async {
+      await _service?.updateGlobalSettings(
+        _settings!,
+        userId: _auth?.currentUser?.uid,
+      );
+    });
   }
 
-  void updatePlan(SubscriptionPlan plan) {
-    final idx = plans.indexWhere((e) => e.id == plan.id);
-    if (idx < 0) return;
-    plans[idx] = plan;
-    notifyListeners();
-  }
+  // Backward compatibility / Helper getters
+  String get platformName => _settings?.appName ?? 'EduCore';
+  String get supportEmail => _settings?.supportEmail ?? '';
+  String get contactNumber => _settings?.supportPhone ?? '';
 
-  void deletePlan(String id) {
-    plans.removeWhere((e) => e.id == id);
-    notifyListeners();
-  }
+  // Placeholder for other settings
+  Currency currency = Currency.pkr;
+  String timezone = 'Asia/Karachi';
+  ThemePreference themePreference = ThemePreference.light;
+  DateFormatOption dateFormat = DateFormatOption.ymd;
+  int sessionTimeoutMinutes = 30;
+
+  bool enableNotifications = true;
+  bool enableEmailNotifications = true;
+  bool enablePushNotifications = false;
 }
-

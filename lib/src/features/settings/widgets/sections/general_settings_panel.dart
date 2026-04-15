@@ -1,9 +1,10 @@
+import 'dart:io';
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
-import 'package:educore/src/features/settings/models/settings_models.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class GeneralSettingsPanel extends StatefulWidget {
   const GeneralSettingsPanel({super.key, required this.controller});
@@ -15,138 +16,187 @@ class GeneralSettingsPanel extends StatefulWidget {
 }
 
 class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
-  late final TextEditingController _platformName;
+  late final TextEditingController _appName;
   late final TextEditingController _supportEmail;
-  late final TextEditingController _contact;
-  late final TextEditingController _tz;
+  late final TextEditingController _supportPhone;
 
   @override
   void initState() {
     super.initState();
-    _platformName = TextEditingController(text: widget.controller.platformName);
-    _supportEmail = TextEditingController(text: widget.controller.supportEmail);
-    _contact = TextEditingController(text: widget.controller.contactNumber);
-    _tz = TextEditingController(text: widget.controller.timezone);
+    final settings = widget.controller.settings;
+    _appName = TextEditingController(text: settings?.appName);
+    _supportEmail = TextEditingController(text: settings?.supportEmail);
+    _supportPhone = TextEditingController(text: settings?.supportPhone);
 
-    _platformName.addListener(_bind);
-    _supportEmail.addListener(_bind);
-    _contact.addListener(_bind);
-    _tz.addListener(_bind);
+    _appName.addListener(_update);
+    _supportEmail.addListener(_update);
+    _supportPhone.addListener(_update);
+  }
+
+  void _update() {
+    final current = widget.controller.settings;
+    if (current == null) return;
+    widget.controller.updateSettings(
+      current.copyWith(
+        appName: _appName.text,
+        supportEmail: _supportEmail.text,
+        supportPhone: _supportPhone.text,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _platformName.dispose();
+    _appName.dispose();
     _supportEmail.dispose();
-    _contact.dispose();
-    _tz.dispose();
+    _supportPhone.dispose();
     super.dispose();
   }
 
-  void _bind() {
-    widget.controller.platformName = _platformName.text.trim();
-    widget.controller.supportEmail = _supportEmail.text.trim();
-    widget.controller.contactNumber = _contact.text.trim();
-    widget.controller.timezone = _tz.text.trim();
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      await widget.controller.uploadLogo(File(image.path));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final controller = widget.controller;
+    final settings = widget.controller.settings;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'General',
+          'App Branding',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.4,
               ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Platform identity and defaults.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-        ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: AppRadii.r16,
-            border: Border.all(color: cs.outlineVariant),
-            boxShadow: AppShadows.soft(Colors.black),
-          ),
+        _Card(
           child: Column(
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _LogoPreview(
+                    url: settings?.appLogoUrl,
+                    onUpload: _pickImage,
+                    isBusy: widget.controller.busy,
+                  ),
+                  const SizedBox(width: 24),
                   Expanded(
                     child: AppTextField(
-                      controller: _platformName,
-                      label: 'Platform name',
+                      controller: _appName,
+                      label: 'App Name',
                       hintText: 'EduCore',
-                      prefixIcon: Icons.badge_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppTextField(
-                      controller: _supportEmail,
-                      label: 'Support email',
-                      hintText: 'support@educore.com',
-                      prefixIcon: Icons.email_rounded,
-                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.edit_note_rounded,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      controller: _contact,
-                      label: 'Contact number',
-                      hintText: '+92 300 0000000',
-                      prefixIcon: Icons.phone_rounded,
-                      keyboardType: TextInputType.phone,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 240,
-                    child: AppDropdown<Currency>(
-                      label: 'Default currency',
-                      items: const [Currency.pkr, Currency.usd],
-                      value: controller.currency,
-                      prefixIcon: Icons.currency_exchange_rounded,
-                      itemLabel: (c) => switch (c) {
-                        Currency.pkr => 'PKR (Pakistan Rupee)',
-                        Currency.usd => 'USD (US Dollar)',
-                      },
-                      onChanged: (v) {
-                        setState(() {
-                          controller.currency = v ?? controller.currency;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _tz,
-                label: 'Timezone',
-                hintText: 'Asia/Karachi',
-                prefixIcon: Icons.public_rounded,
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 32),
+        Text(
+          'Support Details',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
+              ),
+        ),
+        const SizedBox(height: 16),
+        _Card(
+          child: Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  controller: _supportEmail,
+                  label: 'Support Email',
+                  hintText: 'support@educore.com',
+                  prefixIcon: Icons.email_rounded,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: AppTextField(
+                  controller: _supportPhone,
+                  label: 'Support Phone',
+                  hintText: '+92 300 0000000',
+                  prefixIcon: Icons.phone_rounded,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: AppShadows.soft(Colors.black),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _LogoPreview extends StatelessWidget {
+  const _LogoPreview({
+    this.url,
+    required this.onUpload,
+    this.isBusy = false,
+  });
+
+  final String? url;
+  final VoidCallback onUpload;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasLogo = url != null && url!.isNotEmpty;
+
+    return Column(
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: AppRadii.r12,
+            border: Border.all(color: cs.outlineVariant),
+            image: hasLogo
+                ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.contain)
+                : null,
+          ),
+          child: !hasLogo
+              ? Icon(Icons.business_rounded, size: 40, color: cs.onSurfaceVariant)
+              : null,
+        ),
+        const SizedBox(height: 12),
+        AppPrimaryButton(
+          label: 'Upload Logo',
+          onPressed: onUpload,
+          busy: isBusy,
+          variant: AppButtonVariant.secondary,
         ),
       ],
     );

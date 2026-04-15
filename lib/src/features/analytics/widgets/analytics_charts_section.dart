@@ -69,13 +69,17 @@ class AnalyticsChartsSection extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     child: _ChartCard(
                       title: 'Plan distribution',
-                      subtitle: 'Basic • Standard • Premium',
+                      subtitle: snapshot.planDist.items.isEmpty
+                          ? 'No active subscriptions'
+                          : snapshot.planDist.items.take(3).map((e) => e.label).join(' • '),
                       trailing: _Legend(
-                        items: const [
-                          _LegendItem(color: Color(0xFF2563EB), label: 'Basic'),
-                          _LegendItem(color: Color(0xFF6366F1), label: 'Standard'),
-                          _LegendItem(color: Color(0xFF8B5CF6), label: 'Premium'),
-                        ],
+                        items: snapshot.planDist.items.take(5).indexed.map((e) {
+                          final (i, item) = e;
+                          return _LegendItem(
+                            color: _DonutChart.segmentColors[i % _DonutChart.segmentColors.length],
+                            label: item.label,
+                          );
+                        }).toList(),
                       ),
                       child: _DonutChart(dist: snapshot.planDist),
                     ),
@@ -392,30 +396,34 @@ class _DonutChart extends StatelessWidget {
 
   final PlanDistribution dist;
 
+  static const segmentColors = [
+    Color(0xFF2563EB), // Blue
+    Color(0xFF8B5CF6), // Purple
+    Color(0xFF6366F1), // Indigo
+    Color(0xFFEC4899), // Pink
+    Color(0xFFF59E0B), // Amber
+    Color(0xFF10B981), // Emerald
+    Color(0xFF06B6D4), // Cyan
+  ];
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     
     // Find dominant plan to show in center
-    String dominantLabel = 'Standard';
-    int dominantPct = dist.standard;
-    if (dist.premium > dist.standard && dist.premium > dist.basic) {
-      dominantLabel = 'Premium';
-      dominantPct = dist.premium;
-    } else if (dist.basic > dist.standard && dist.basic > dist.premium) {
-      dominantLabel = 'Basic';
-      dominantPct = dist.basic;
-    } else if (dist.basic == 0 && dist.standard == 0 && dist.premium == 0) {
-      dominantLabel = 'No data';
-      dominantPct = 0;
+    String dominantLabel = 'No data';
+    int dominantPct = 0;
+    
+    if (dist.items.isNotEmpty) {
+      final dominant = dist.items.first;
+      dominantLabel = dominant.label;
+      dominantPct = dominant.percentage.round();
     }
 
     return CustomPaint(
       painter: _DonutPainter(
-        basic: dist.basic.toDouble(),
-        standard: dist.standard.toDouble(),
-        premium: dist.premium.toDouble(),
-        colors: const [Color(0xFF2563EB), Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        segments: dist.items,
+        colors: segmentColors,
         track: cs.outlineVariant.withValues(alpha: 0.65),
       ),
       child: Center(
@@ -430,12 +438,18 @@ class _DonutChart extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 4),
-            Text(
-              dominantLabel,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                dominantLabel,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
             ),
           ],
         ),
@@ -446,16 +460,12 @@ class _DonutChart extends StatelessWidget {
 
 class _DonutPainter extends CustomPainter {
   const _DonutPainter({
-    required this.basic,
-    required this.standard,
-    required this.premium,
+    required this.segments,
     required this.colors,
     required this.track,
   });
 
-  final double basic;
-  final double standard;
-  final double premium;
+  final List<PlanDistributionItem> segments;
   final List<Color> colors;
   final Color track;
 
@@ -474,28 +484,28 @@ class _DonutPainter extends CustomPainter {
 
     canvas.drawArc(rect, -pi / 2, pi * 2, false, trackPaint);
 
-    final total = max(1.0, basic + standard + premium);
-    final segments = <double>[basic, standard, premium];
+    if (segments.isEmpty) return;
+
+    final total = segments.fold<double>(0, (sum, e) => sum + e.percentage);
+    if (total <= 0) return;
 
     var start = -pi / 2;
     for (var i = 0; i < segments.length; i++) {
-      final sweep = (segments[i] / total) * (pi * 2);
+      final sweep = (segments[i].percentage / total) * (pi * 2);
       final paint = Paint()
-        ..color = colors[i]
+        ..color = colors[i % colors.length]
         ..style = PaintingStyle.stroke
         ..strokeWidth = thickness
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(rect, start, max(0.01, sweep), false, paint);
-      start += sweep + 0.04;
+      canvas.drawArc(rect, start, max(0.01, sweep - 0.04), false, paint);
+      start += sweep;
     }
   }
 
   @override
   bool shouldRepaint(covariant _DonutPainter oldDelegate) {
-    return oldDelegate.basic != basic ||
-        oldDelegate.standard != standard ||
-        oldDelegate.premium != premium ||
+    return oldDelegate.segments != segments ||
         oldDelegate.colors != colors ||
         oldDelegate.track != track;
   }

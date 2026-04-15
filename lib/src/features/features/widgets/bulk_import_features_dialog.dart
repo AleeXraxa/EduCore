@@ -1,6 +1,7 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class BulkImportFeaturesDialog extends StatefulWidget {
@@ -215,20 +216,10 @@ class _BulkImportFeaturesDialogState
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 10),
-                  FilledButton.icon(
+                  AppPrimaryButton(
                     onPressed: _create,
-                    icon: const Icon(Icons.upload_rounded),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    label: const Text('Create features'),
+                    icon: Icons.upload_rounded,
+                    label: 'Create features',
                   ),
                 ],
               ),

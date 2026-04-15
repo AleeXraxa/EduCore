@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class FeatureEditorDialog extends StatefulWidget {
@@ -222,20 +223,10 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 10),
-                  FilledButton.icon(
+                  AppPrimaryButton(
                     onPressed: _submit,
-                    icon: const Icon(Icons.check_rounded),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    label: Text(_editing ? 'Save changes' : 'Create feature'),
+                    icon: Icons.check_rounded,
+                    label: _editing ? 'Save changes' : 'Create feature',
                   ),
                 ],
               ),

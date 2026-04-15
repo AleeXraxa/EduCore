@@ -9,6 +9,7 @@ class Plan {
     required this.price,
     required this.description,
     required this.isActive,
+    required this.durationDays,
     required this.features,
     required this.limits,
     required this.createdAt,
@@ -18,6 +19,7 @@ class Plan {
   final String id;
   final String name;
   final num price;
+  final int durationDays;
   final String description;
   final bool isActive;
   final List<String> features;
@@ -31,6 +33,7 @@ class Plan {
       id: doc.id,
       name: (data['name'] as String?) ?? '',
       price: (data['price'] as num?) ?? 0,
+      durationDays: (data['durationDays'] as int?) ?? 30,
       description: (data['description'] as String?) ?? '',
       isActive: (data['isActive'] as bool?) ?? true,
       features: _mapFeatures(data['features']),
@@ -55,6 +58,7 @@ class Plan {
       id: id ?? this.id,
       name: name ?? this.name,
       price: price ?? this.price,
+      durationDays: durationDays ?? this.durationDays,
       description: description ?? this.description,
       isActive: isActive ?? this.isActive,
       features: features ?? this.features,

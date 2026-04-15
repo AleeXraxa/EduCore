@@ -74,11 +74,6 @@ const _items = <_SettingsNavItem>[
     icon: Icons.tune_rounded,
   ),
   _SettingsNavItem(
-    section: SettingsSection.subscriptionPlans,
-    label: 'Subscription plans',
-    icon: Icons.workspace_premium_rounded,
-  ),
-  _SettingsNavItem(
     section: SettingsSection.paymentSettings,
     label: 'Payment settings',
     icon: Icons.payments_rounded,

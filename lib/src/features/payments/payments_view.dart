@@ -6,6 +6,7 @@ import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/payments/payments_controller.dart';
 import 'package:educore/src/features/payments/widgets/payment_proof_dialog.dart';
 import 'package:educore/src/features/payments/widgets/payments_table.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class PaymentsView extends StatefulWidget {
@@ -306,10 +307,10 @@ Future<bool> _confirm(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          AppPrimaryButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: confirmColor),
-            child: Text(confirmLabel),
+            color: confirmColor,
+            label: confirmLabel,
           ),
         ],
       );

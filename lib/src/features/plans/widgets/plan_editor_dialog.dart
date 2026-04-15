@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class PlanEditorDialog extends StatefulWidget {
@@ -38,6 +39,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
   late final TextEditingController _name;
   late final TextEditingController _price;
   late final TextEditingController _description;
+  late final TextEditingController _duration;
 
   late Set<String> _features;
   late Map<String, num> _limits;
@@ -56,6 +58,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     _name = TextEditingController(text: initial?.name ?? '');
     _price = TextEditingController(text: (initial?.price ?? 0).toString());
     _description = TextEditingController(text: initial?.description ?? '');
+    _duration = TextEditingController(text: (initial?.durationDays ?? 30).toString());
     _isActive = initial?.isActive ?? true;
 
     _features = {...(initial?.features ?? const [])};
@@ -70,6 +73,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     _description.dispose();
     _newLimitKey.dispose();
     _newLimitValue.dispose();
+    _duration.dispose();
     super.dispose();
   }
 
@@ -153,6 +157,16 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                     label: 'Price (PKR)',
                                     hintText: 'e.g. 12000',
                                     prefixIcon: Icons.payments_rounded,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _duration,
+                                    label: 'Duration (days)',
+                                    hintText: 'e.g. 30',
+                                    prefixIcon: Icons.calendar_month_rounded,
                                     keyboardType: TextInputType.number,
                                   ),
                                 ),
@@ -295,19 +309,9 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                FilledButton(
+                                AppPrimaryButton(
                                   onPressed: _addLimit,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: cs.primary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 14,
-                                    ),
-                                  ),
-                                  child: const Text('Add'),
+                                  label: 'Add',
                                 ),
                               ],
                             ),
@@ -359,20 +363,10 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 10),
-                  FilledButton.icon(
+                  AppPrimaryButton(
                     onPressed: _submit,
-                    icon: const Icon(Icons.check_rounded),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    label: Text(_editing ? 'Save changes' : 'Create plan'),
+                    icon: Icons.check_rounded,
+                    label: _editing ? 'Save changes' : 'Create plan',
                   ),
                 ],
               ),
@@ -406,6 +400,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     final name = _name.text.trim();
     final price = num.tryParse(_price.text.trim()) ?? 0;
     final description = _description.text.trim();
+    final duration = int.tryParse(_duration.text.trim()) ?? 30;
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -428,6 +423,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
       price: price,
       description: description,
       isActive: _isActive,
+      durationDays: duration,
       features: cleanedFeatures,
       limits: cleanedLimits,
       createdAt: initial?.createdAt,

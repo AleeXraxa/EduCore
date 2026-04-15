@@ -7,7 +7,7 @@ import 'package:educore/src/features/settings/settings_controller.dart';
 import 'package:educore/src/features/settings/widgets/sections/general_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/notification_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/payment_settings_panel.dart';
-import 'package:educore/src/features/settings/widgets/sections/plans_settings_panel.dart';
+
 import 'package:educore/src/features/settings/widgets/sections/security_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/system_preferences_panel.dart';
 import 'package:educore/src/features/settings/widgets/settings_nav.dart';
@@ -167,7 +167,7 @@ class _SectionBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (controller.section) {
       SettingsSection.general => GeneralSettingsPanel(controller: controller),
-      SettingsSection.subscriptionPlans => PlansSettingsPanel(controller: controller),
+
       SettingsSection.paymentSettings => PaymentSettingsPanel(controller: controller),
       SettingsSection.notificationSettings =>
         NotificationSettingsPanel(controller: controller),

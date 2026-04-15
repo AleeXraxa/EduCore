@@ -348,23 +348,6 @@ class _HeaderRow extends StatelessWidget {
           width: 320,
           hintText: 'Search dashboard...',
         ),
-        const SizedBox(width: 16),
-        AppCard(
-          onTap: () {},
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_business_rounded, color: cs.primary),
-              const SizedBox(width: 10),
-              Text(
-                'Create Institute',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

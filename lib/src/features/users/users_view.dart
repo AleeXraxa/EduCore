@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/users/users_controller.dart';
@@ -187,38 +188,25 @@ class _UsersViewState extends State<UsersView> {
                       },
                     ),
                   ),
-                  SizedBox(
+                  AppPrimaryButton(
                     width: stacked ? double.infinity : 180,
-                    height: toolbarHeight,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        final created = await CreateUserDialog.show(
-                          context,
-                          instituteIds: controller.institutes,
-                          instituteLabelForId: controller.instituteNameForId,
-                        );
-                        if (created == null) return;
-                        controller.addUser(created);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('User created: ${created.name}'),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text('Create user'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                    onPressed: () async {
+                      final created = await CreateUserDialog.show(
+                        context,
+                        instituteIds: controller.institutes,
+                        instituteLabelForId: controller.instituteNameForId,
+                      );
+                      if (created == null) return;
+                      controller.addUser(created);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('User created: ${created.name}'),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                      ),
-                    ),
+                      );
+                    },
+                    icon: Icons.add_rounded,
+                    label: 'Create user',
                   ),
                 ],
               );

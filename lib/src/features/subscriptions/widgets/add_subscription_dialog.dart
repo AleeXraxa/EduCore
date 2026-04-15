@@ -1,6 +1,7 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class AddSubscriptionDialog extends StatefulWidget {
@@ -231,7 +232,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton(
+                    child: AppPrimaryButton(
                       onPressed: _selectedAcademyId == null || _selectedPlanId == null
                           ? null
                           : () {
@@ -241,11 +242,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                                 durationMonths: _durationMonths,
                               ));
                             },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
-                      ),
-                      child: const Text('Create Subscription'),
+                      label: 'Create Subscription',
                     ),
                   ),
                 ],

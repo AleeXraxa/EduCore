@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class SecuritySettingsPanel extends StatefulWidget {
@@ -100,7 +101,7 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
-                child: FilledButton.icon(
+                child: AppPrimaryButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Password change (UI only)')),
@@ -109,18 +110,8 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
                     _new.clear();
                     _confirm.clear();
                   },
-                  icon: const Icon(Icons.check_rounded),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                  ),
-                  label: const Text('Update password'),
+                  icon: Icons.check_rounded,
+                  label: 'Update password',
                 ),
               ),
               const SizedBox(height: 18),

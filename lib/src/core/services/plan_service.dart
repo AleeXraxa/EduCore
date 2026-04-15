@@ -22,6 +22,7 @@ class PlanService {
     required String description,
     required bool isActive,
     required List<String> features,
+    int durationDays = 30,
     Map<String, num>? limits,
   }) async {
     final trimmed = name.trim();
@@ -43,6 +44,7 @@ class PlanService {
       'description': description.trim(),
       'isActive': isActive,
       'features': _cleanFeatureKeys(features),
+      'durationDays': durationDays,
       if (limits != null) 'limits': limits,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -58,6 +60,7 @@ class PlanService {
     required String description,
     required bool isActive,
     required List<String> features,
+    int durationDays = 30,
     Map<String, num>? limits,
   }) async {
     final trimmed = name.trim();
@@ -78,6 +81,7 @@ class PlanService {
       'description': description.trim(),
       'isActive': isActive,
       'features': _cleanFeatureKeys(features),
+      'durationDays': durationDays,
       'limits': limits ?? <String, num>{},
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -95,6 +99,10 @@ class PlanService {
       'isActive': value,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> deletePlan(String planId) async {
+    await _col.doc(planId).delete();
   }
 
   Future<void> toggleFeature({

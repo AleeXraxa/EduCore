@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
@@ -27,32 +26,40 @@ class Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = collapsed ? 76.0 : 248.0;
+    final cs = Theme.of(context).colorScheme;
+    final width = collapsed ? 92.0 : 280.0;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.fastOutSlowIn,
       width: width,
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: cs.surface,
+        border: Border(
+          right: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(4, 0),
+          ),
+        ],
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: collapsed
-                ? CrossAxisAlignment.center
-                : CrossAxisAlignment.stretch,
-            children: [
-              _BrandRow(collapsed: collapsed, onToggle: onToggle),
-              const SizedBox(height: 12),
-              Expanded(
+        child: Column(
+          children: [
+            _BrandRow(collapsed: collapsed, onToggle: onToggle),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
-                    crossAxisAlignment: collapsed
-                        ? CrossAxisAlignment.center
-                        : CrossAxisAlignment.stretch,
                     children: [
                       for (final item in items)
                         _NavItem(
@@ -66,29 +73,34 @@ class Sidebar extends StatelessWidget {
                   ),
                 ),
               ),
-              if (bottomItems.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Divider(height: 1, color: AppColors.border),
-                ),
-              for (final item in bottomItems)
-                _NavItem(
-                  collapsed: collapsed,
-                  icon: item.icon,
-                  label: item.label,
-                  selected: selectedId == item.id,
-                  onTap: () => onSelect?.call(item.id),
-                ),
-              _NavItem(
-                collapsed: collapsed,
-                icon: Icons.logout_rounded,
-                label: 'Log out',
-                selected: false,
-                danger: true,
-                onTap: () => unawaited(_onLogout(context)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  if (bottomItems.isNotEmpty) ...[
+                    for (final item in bottomItems)
+                      _NavItem(
+                        collapsed: collapsed,
+                        icon: item.icon,
+                        label: item.label,
+                        selected: selectedId == item.id,
+                        onTap: () => onSelect?.call(item.id),
+                      ),
+                    const SizedBox(height: 12),
+                  ],
+                  _NavItem(
+                    collapsed: collapsed,
+                    icon: Icons.logout_rounded,
+                    label: 'Sign Out',
+                    selected: false,
+                    danger: true,
+                    onTap: () => unawaited(_onLogout(context)),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -100,24 +112,50 @@ class Sidebar extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Sign out'),
+          backgroundColor: cs.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Confirm Logout',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: cs.onSurface,
+            ),
+          ),
           content: Text(
-            'You will be returned to the login screen.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: cs.onSurfaceVariant),
+            'Are you sure you want to exit the current session?',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-            FilledButton(
+            TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: cs.primary),
-              child: const Text('Sign out'),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Sign Out',
+                style: TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ],
         );
@@ -127,30 +165,16 @@ class Sidebar extends StatelessWidget {
     if (confirmed != true) return;
 
     final authService = AppServices.instance.authService;
-    if (authService == null) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Auth is not available yet.')),
-      );
-      return;
-    }
+    if (authService == null) return;
 
     try {
-      // Clear the persisted sign-in flag before signing out so the splash
-      // screen correctly routes to login on the next cold start.
       await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
       await authService.signOut();
       if (!context.mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
-    }
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    } catch (_) {}
   }
 }
 
@@ -163,57 +187,116 @@ class _BrandRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final settingsService = AppServices.instance.settingsService;
 
-    final logo = ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 36,
-        height: 36,
-        color: cs.surface,
-        padding: const EdgeInsets.all(6),
-        child: Image.asset(
-          'assets/images/logo_v4.png',
-          fit: BoxFit.contain,
-        ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 16, 8),
+      child: StreamBuilder(
+        stream: settingsService?.watchGlobalSettings(),
+        builder: (context, snapshot) {
+          final settings = snapshot.data;
+          final appName = settings?.appName ?? 'EduCore';
+          final logoUrl = settings?.appLogoUrl;
+          final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
+
+          return Row(
+            mainAxisAlignment: collapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 44,
+                height: 44,
+                padding: EdgeInsets.all(hasLogo ? 0 : 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [cs.primary, cs.secondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.primary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: hasLogo
+                      ? Image.network(logoUrl, fit: BoxFit.cover)
+                      : Image.asset(
+                          'assets/images/logo_v4.png',
+                          color: Colors.white,
+                          fit: BoxFit.contain,
+                        ),
+                ),
+              ),
+              if (!collapsed) ...[
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        appName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: cs.onSurface,
+                              letterSpacing: -0.8,
+                              fontSize: 18,
+                            ),
+                      ),
+                      Text(
+                        'Management',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _ToggleBtn(collapsed: collapsed, onToggle: onToggle),
+              ],
+            ],
+          );
+        },
       ),
     );
+  }
+}
 
-    if (collapsed) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          logo,
-          const SizedBox(height: 8),
-          IconButton(
-            tooltip: 'Expand',
-            onPressed: onToggle,
-            icon: const Icon(Icons.chevron_right),
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-          ),
-        ],
-      );
-    }
+class _ToggleBtn extends StatelessWidget {
+  const _ToggleBtn({required this.collapsed, required this.onToggle});
+  final bool collapsed;
+  final VoidCallback onToggle;
 
-    return Row(
-      children: [
-        logo,
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'EduCore',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            collapsed ? Icons.menu_open_rounded : Icons.menu_rounded,
+            size: 20,
+            color: cs.onSurfaceVariant,
           ),
         ),
-        IconButton(
-          tooltip: 'Collapse',
-          onPressed: onToggle,
-          icon: const Icon(Icons.chevron_left),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -239,73 +322,107 @@ class _NavItem extends StatefulWidget {
   State<_NavItem> createState() => _NavItemState();
 }
 
-class _NavItemState extends State<_NavItem> {
+class _NavItemState extends State<_NavItem>
+    with SingleTickerProviderStateMixin {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    final primaryColor = widget.danger ? const Color(0xFFDC2626) : cs.primary;
+    final indicatorColor = widget.danger ? const Color(0xFFDC2626) : cs.primary;
+
     final bg = widget.selected
-        ? cs.primary.withValues(alpha: 0.10)
-        : (_hovered ? cs.surfaceContainerHighest : Colors.transparent);
+        ? primaryColor.withValues(alpha: 0.08)
+        : (_hovered
+              ? cs.onSurface.withValues(alpha: 0.04)
+              : Colors.transparent);
 
-    final fg = widget.danger
-        ? (widget.selected ? const Color(0xFFDC2626) : const Color(0xFFB91C1C))
-        : (widget.selected ? cs.primary : cs.onSurfaceVariant);
+    final fg = widget.selected
+        ? primaryColor
+        : (widget.danger ? const Color(0xFFB91C1C) : cs.onSurfaceVariant);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOutCubic,
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          hoverColor: (widget.danger ? fg : cs.primary).withValues(alpha: 0.06),
-          splashColor:
-              (widget.danger ? fg : cs.primary).withValues(alpha: 0.10),
-          onHover: (value) => setState(() => _hovered = value),
           onTap: widget.onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          onHover: (v) => setState(() => _hovered = v),
+          borderRadius: BorderRadius.circular(16),
+          splashColor: primaryColor.withValues(alpha: 0.1),
+          highlightColor: Colors.transparent,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.selected
+                    ? primaryColor.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
             child: Row(
               mainAxisAlignment: widget.collapsed
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.start,
               children: [
-                if (widget.selected && !widget.collapsed) ...[
-                  Container(
-                    width: 4,
-                    height: 20,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          widget.danger ? fg : cs.primary,
-                          widget.danger ? fg : cs.secondary,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedScale(
+                      scale: widget.selected ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.elasticOut,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    Icon(widget.icon, color: fg, size: 22),
+                  ],
+                ),
+                if (!widget.collapsed) ...[
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
+                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                        color: fg,
+                        fontWeight: widget.selected
+                            ? FontWeight.w900
+                            : FontWeight.w700,
+                        letterSpacing: widget.selected ? -0.2 : 0,
+                      ),
+                      child: Text(widget.label),
+                    ),
+                  ),
+                  if (widget.selected)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 400),
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: indicatorColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: indicatorColor.withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-                Icon(widget.icon, color: fg, size: 20),
-                if (!widget.collapsed) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.label,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: fg,
-                          ),
-                    ),
-                  ),
                 ],
               ],
             ),

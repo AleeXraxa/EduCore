@@ -5,6 +5,7 @@ import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class EditInstituteDraft {
@@ -315,20 +316,10 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 10),
-                  FilledButton.icon(
+                  AppPrimaryButton(
                     onPressed: _submit,
-                    icon: const Icon(Icons.save_rounded),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    label: const Text('Save changes'),
+                    icon: Icons.save_rounded,
+                    label: 'Save changes',
                   ),
                 ],
               ),

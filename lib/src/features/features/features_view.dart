@@ -148,7 +148,8 @@ class _FeaturesViewState extends State<FeaturesView> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    OutlinedButton.icon(
+                    AppPrimaryButton(
+                      variant: AppButtonVariant.secondary,
                       onPressed: controller.busy
                           ? null
                           : () async {
@@ -173,20 +174,11 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 );
                               }
                             },
-                      icon: const Icon(Icons.upload_file_rounded),
-                      label: const Text('Bulk import'),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                      ),
+                      icon: Icons.upload_file_rounded,
+                      label: 'Bulk import',
                     ),
                     const SizedBox(width: 12),
-                    FilledButton.icon(
+                    AppPrimaryButton(
                       onPressed: controller.busy
                           ? null
                           : () async {
@@ -213,24 +205,9 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 ).showSnackBar(SnackBar(content: Text('$e')));
                               }
                             },
-                      icon: controller.busy
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.add_rounded),
-                      label: const Text('Add feature'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                      ),
+                      busy: controller.busy,
+                      icon: Icons.add_rounded,
+                      label: 'Add feature',
                     ),
                   ],
                 ),

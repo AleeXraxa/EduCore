@@ -115,27 +115,16 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                     SizedBox(
                       width: 180,
                       height: toolbarHeight,
-                      child: AppDropdown<AnalyticsPlanFilter>(
+                      child: AppDropdown<String?>(
                         label: 'Plan',
                         showLabel: false,
                         compact: true,
                         prefixIcon: Icons.workspace_premium_rounded,
-                        items: const [
-                          AnalyticsPlanFilter.all,
-                          AnalyticsPlanFilter.basic,
-                          AnalyticsPlanFilter.standard,
-                          AnalyticsPlanFilter.premium,
-                        ],
+                        items: controller.planOptions,
                         value: controller.plan,
                         hintText: 'Plan',
-                        itemLabel: (p) => switch (p) {
-                          AnalyticsPlanFilter.all => 'All plans',
-                          AnalyticsPlanFilter.basic => 'Basic',
-                          AnalyticsPlanFilter.standard => 'Standard',
-                          AnalyticsPlanFilter.premium => 'Premium',
-                        },
+                        itemLabel: (p) => p ?? 'All plans',
                         onChanged: (value) {
-                          if (value == null) return;
                           controller.setPlan(value);
                         },
                       ),

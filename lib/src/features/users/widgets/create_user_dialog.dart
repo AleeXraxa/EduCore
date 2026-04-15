@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class CreateUserDialog extends StatefulWidget {
@@ -250,20 +251,10 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 10),
-                  FilledButton.icon(
+                  AppPrimaryButton(
                     onPressed: _submit,
-                    icon: const Icon(Icons.add_rounded),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    label: const Text('Create user'),
+                    icon: Icons.add_rounded,
+                    label: 'Create user',
                   ),
                 ],
               ),

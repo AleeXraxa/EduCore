@@ -15,6 +15,8 @@ import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/admin_payments_service.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/services/settings_service.dart';
+import 'package:educore/src/core/services/settings_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -40,6 +42,7 @@ class AppServices {
   AdminUsersService? adminUsersService;
   AdminSubscriptionsService? adminSubscriptionsService;
   AdminPaymentsService? adminPaymentsService;
+  SettingsService? settingsService;
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
@@ -100,6 +103,7 @@ class AppServices {
       adminUsersService = AdminUsersService(firestore: firestore!);
       adminSubscriptionsService = AdminSubscriptionsService(firestore: firestore!);
       adminPaymentsService = AdminPaymentsService(firestore: firestore!);
+      settingsService = SettingsService(firestore: firestore!);
       firebaseReady = true;
       firebaseInitError = null;
     } catch (e) {

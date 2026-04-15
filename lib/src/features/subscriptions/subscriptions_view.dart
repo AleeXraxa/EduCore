@@ -163,32 +163,23 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  SizedBox(
-                    height: toolbarHeight,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        final res = await AddSubscriptionDialog.show(
-                          context,
-                          academies: controller.academies,
-                          plans: controller.plans,
+                  AppPrimaryButton(
+                    onPressed: () async {
+                      final res = await AddSubscriptionDialog.show(
+                        context,
+                        academies: controller.academies,
+                        plans: controller.plans,
+                      );
+                      if (res != null) {
+                        await controller.addSubscription(
+                          academyId: res.academyId,
+                          planId: res.planId,
+                          durationMonths: res.durationMonths,
                         );
-                        if (res != null) {
-                          await controller.addSubscription(
-                            academyId: res.academyId,
-                            planId: res.planId,
-                            durationMonths: res.durationMonths,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text('Add Subscription'),
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: AppRadii.r12,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                    ),
+                      }
+                    },
+                    icon: Icons.add_rounded,
+                    label: 'Add Subscription',
                   ),
                 ],
               ),

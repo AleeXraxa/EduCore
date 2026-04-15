@@ -12,14 +12,14 @@ import 'dart:math';
 
 enum AnalyticsRange { last7, last30, last3Months, last12Months }
 
-enum AnalyticsPlanFilter { all, basic, standard, premium }
+// enum AnalyticsPlanFilter { all, basic, standard, premium } // Removed hardcoded enum
 
 class AnalyticsController extends BaseController {
   AnalyticsRange _range = AnalyticsRange.last30;
-  AnalyticsPlanFilter _plan = AnalyticsPlanFilter.all;
+  String? _plan; // null = all plans
 
   AnalyticsRange get range => _range;
-  AnalyticsPlanFilter get plan => _plan;
+  String? get plan => _plan;
 
   AnalyticsSnapshot _snapshot =
       const AnalyticsSnapshot(
@@ -37,7 +37,7 @@ class AnalyticsController extends BaseController {
         arpiTrendUp: true,
         revenueSeries: <double>[0, 0],
         growthSeries: <double>[0, 0],
-        planDist: PlanDistribution(basic: 0, standard: 0, premium: 0),
+        planDist: PlanDistribution(items: []),
         paymentBreakdown: PaymentBreakdown(approved: 0, pending: 0, rejected: 0),
         topInstitutes: <TopInstituteRow>[],
         upcomingExpiries: <ExpiryRow>[],
@@ -60,6 +60,11 @@ class AnalyticsController extends BaseController {
   Map<String, Plan> _planById = const <String, Plan>{};
   Map<String, Academy> _academyById = const <String, Academy>{};
 
+  List<String?> get planOptions {
+    final names = _planById.values.map((p) => p.name).where((n) => n.isNotEmpty).toList();
+    return [null, ...names];
+  }
+
   String? errorMessage;
   bool get ready => _subsService != null;
 
@@ -77,7 +82,7 @@ class AnalyticsController extends BaseController {
     notifyListeners();
   }
 
-  Future<void> setPlan(AnalyticsPlanFilter value) async {
+  Future<void> setPlan(String? value) async {
     _plan = value;
     _recompute();
     notifyListeners();
@@ -405,7 +410,7 @@ class AnalyticsSnapshot {
 
   static AnalyticsSnapshot mock({
     required AnalyticsRange range,
-    AnalyticsPlanFilter plan = AnalyticsPlanFilter.all,
+    String? plan,
     int? seed,
   }) {
     final rng = Random(seed ?? 42);
@@ -417,10 +422,8 @@ class AnalyticsSnapshot {
     };
 
     final planFactor = switch (plan) {
-      AnalyticsPlanFilter.all => 1.0,
-      AnalyticsPlanFilter.basic => 0.72,
-      AnalyticsPlanFilter.standard => 1.05,
-      AnalyticsPlanFilter.premium => 1.35,
+      null => 1.0,
+      _ => 0.85 + (rng.nextDouble() * 0.4),
     };
 
     final totalRevenue = (5_200_000 * rangeFactor * planFactor).round();
@@ -445,18 +448,15 @@ class AnalyticsSnapshot {
       growable: false,
     );
 
-    final base = plan == AnalyticsPlanFilter.all
-        ? const PlanDistribution(basic: 28, standard: 46, premium: 26)
-        : switch (plan) {
-            AnalyticsPlanFilter.basic =>
-              const PlanDistribution(basic: 92, standard: 6, premium: 2),
-            AnalyticsPlanFilter.standard =>
-              const PlanDistribution(basic: 12, standard: 82, premium: 6),
-            AnalyticsPlanFilter.premium =>
-              const PlanDistribution(basic: 6, standard: 14, premium: 80),
-            AnalyticsPlanFilter.all =>
-              const PlanDistribution(basic: 28, standard: 46, premium: 26),
-          };
+    final base = plan == null
+        ? const PlanDistribution(items: [
+            PlanDistributionItem(label: 'Basic', percentage: 28, count: 14),
+            PlanDistributionItem(label: 'Demo', percentage: 46, count: 23),
+            PlanDistributionItem(label: 'Pro', percentage: 26, count: 13),
+          ])
+        : PlanDistribution(items: [
+            PlanDistributionItem(label: plan, percentage: 100, count: 32),
+          ]);
 
     final payment = PaymentBreakdown(
       approved: max(45, (72 * (0.7 + rng.nextDouble() * 0.25)).round()),
@@ -467,7 +467,7 @@ class AnalyticsSnapshot {
     final top = List<TopInstituteRow>.generate(6, (i) {
       final rev = (rng.nextDouble() * 220_000 + 60_000).round();
       final growth = (rng.nextDouble() * 18 + 2);
-      final planLabel = switch (i % 3) { 0 => 'Standard', 1 => 'Premium', _ => 'Basic' };
+      final planLabel = switch (i % 3) { 0 => 'Demo', 1 => 'Pro', _ => 'Basic' };
       return TopInstituteRow(
         name: 'Institute ${String.fromCharCode(65 + i)}',
         revenuePkr: rev,
@@ -479,7 +479,7 @@ class AnalyticsSnapshot {
     final expiries = List<ExpiryRow>.generate(6, (i) {
       final days = i == 0 ? 2 : (3 + i * 3);
       final date = DateTime.now().add(Duration(days: days));
-      final planLabel = switch (i % 3) { 0 => 'Standard', 1 => 'Premium', _ => 'Basic' };
+      final planLabel = switch (i % 3) { 0 => 'Demo', 1 => 'Pro', _ => 'Basic' };
       return ExpiryRow(
         name: 'Institute ${String.fromCharCode(75 + i)}',
         plan: planLabel,
@@ -541,30 +541,24 @@ class _SeriesResult {
 List<SubscriptionRecord> _filterByPlan(
   List<SubscriptionRecord> input,
   Map<String, Plan> planById,
-  AnalyticsPlanFilter filter,
+  String? filter,
 ) {
-  if (filter == AnalyticsPlanFilter.all) return input;
-  final key = switch (filter) {
-    AnalyticsPlanFilter.basic => 'basic',
-    AnalyticsPlanFilter.standard => 'standard',
-    AnalyticsPlanFilter.premium => 'premium',
-    AnalyticsPlanFilter.all => '',
-  };
+  if (filter == null) return input;
 
   return input.where((s) {
     final p = planById[s.planId];
-    final name = (p?.name ?? s.planId).toLowerCase();
-    return name.contains(key);
+    final name = p?.name ?? s.planId;
+    return name == filter;
   }).toList(growable: false);
 }
 
 List<PaymentRecord> _filterPaymentsByPlan(
   List<PaymentRecord> payments,
   List<SubscriptionRecord> subscriptions,
-  AnalyticsPlanFilter filter,
+  String? filter,
   Map<String, Plan> planById,
 ) {
-  if (filter == AnalyticsPlanFilter.all) return payments;
+  if (filter == null) return payments;
   final allowedAcademies = <String>{};
   final subs = _filterByPlan(subscriptions, planById, filter);
   for (final s in subs) {
@@ -672,34 +666,34 @@ PlanDistribution _planDistribution(
   List<SubscriptionRecord> subs,
   Map<String, Plan> planById,
 ) {
-  int basic = 0;
-  int standard = 0;
-  int premium = 0;
+  final Map<String, int> counts = {};
+  int totalActive = 0;
+
   for (final s in subs) {
     if (s.status != SubscriptionRecordStatus.active) continue;
+    totalActive++;
+
     final plan = planById[s.planId];
-    final name = (plan?.name ?? s.planId).toLowerCase();
-    final price = plan?.price ?? 0;
+    String label = plan?.name ?? s.planId;
+    if (label.trim().isEmpty) label = 'Unknown';
     
-    // Heuristics: Premium/Pro/Ultimate or high price
-    if (name.contains('premium') || name.contains('pro') || name.contains('ultimate') || price >= 30000) {
-      premium++;
-    } 
-    // Heuristics: Basic/Starter/Lite/Free or low price
-    else if (name.contains('basic') || name.contains('starter') || name.contains('lite') || name.contains('free') || name.contains('demo') || (price > 0 && price < 15000)) {
-      basic++;
-    } 
-    // Default to Standard
-    else {
-      standard++;
-    }
+    counts[label] = (counts[label] ?? 0) + 1;
   }
-  final total = max(1, basic + standard + premium);
-  int pct(int v) => ((v * 100) / total).round();
-  final b = pct(basic);
-  final s = pct(standard);
-  final p = max(0, 100 - b - s);
-  return PlanDistribution(basic: b, standard: s, premium: p);
+
+  if (totalActive == 0) return const PlanDistribution(items: []);
+
+  final items = counts.entries.map((e) {
+    return PlanDistributionItem(
+      label: e.key,
+      count: e.value,
+      percentage: (e.value * 100) / totalActive,
+    );
+  }).toList();
+
+  // Sort by count descending
+  items.sort((a, b) => b.count.compareTo(a.count));
+
+  return PlanDistribution(items: items);
 }
 
 List<TopInstituteRow> _topInstitutes({
@@ -800,15 +794,19 @@ double _pctValue(int current, int previous) {
 }
 
 class PlanDistribution {
-  const PlanDistribution({
-    required this.basic,
-    required this.standard,
-    required this.premium,
-  });
+  const PlanDistribution({required this.items});
+  final List<PlanDistributionItem> items;
+}
 
-  final int basic;
-  final int standard;
-  final int premium;
+class PlanDistributionItem {
+  const PlanDistributionItem({
+    required this.label,
+    required this.percentage,
+    this.count = 0,
+  });
+  final String label;
+  final double percentage;
+  final int count;
 }
 
 class PaymentBreakdown {

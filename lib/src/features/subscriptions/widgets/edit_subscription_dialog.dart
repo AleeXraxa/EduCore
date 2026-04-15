@@ -3,6 +3,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/subscriptions/models/subscription.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class EditSubscriptionDialog extends StatefulWidget {
@@ -367,19 +368,10 @@ class _Footer extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton(
+            child: AppPrimaryButton(
               onPressed: saving ? null : onSave,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
-              ),
-              child: saving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w800)),
+              busy: saving,
+              label: 'Save Changes',
             ),
           ),
         ],

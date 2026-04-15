@@ -1,10 +1,11 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
-    required this.controller,
+    this.controller,
+    this.initialValue,
     required this.label,
     this.hintText,
     this.prefixIcon,
@@ -14,10 +15,12 @@ class AppTextField extends StatelessWidget {
     this.textInputAction,
     this.keyboardType,
     this.onSubmitted,
+    this.onChanged,
     this.autofillHints,
   });
 
-  final TextEditingController controller;
+  final TextEditingController? controller;
+  final String? initialValue;
   final String label;
   final String? hintText;
   final IconData? prefixIcon;
@@ -27,25 +30,58 @@ class AppTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
   final List<String>? autofillHints;
+
+  @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != null && widget.controller != oldWidget.controller) {
+      _controller = widget.controller!;
+    } else if (widget.initialValue != null && widget.initialValue != oldWidget.initialValue) {
+      _controller.text = widget.initialValue!;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
     return TextField(
-      controller: controller,
-      enabled: enabled,
-      obscureText: obscureText,
-      textInputAction: textInputAction,
-      keyboardType: keyboardType,
-      onSubmitted: onSubmitted,
-      autofillHints: autofillHints,
+      controller: _controller,
+      enabled: widget.enabled,
+      obscureText: widget.obscureText,
+      textInputAction: widget.textInputAction,
+      keyboardType: widget.keyboardType,
+      onSubmitted: widget.onSubmitted,
+      onChanged: widget.onChanged,
+      autofillHints: widget.autofillHints,
       decoration: InputDecoration(
-        labelText: label,
-        hintText: hintText,
-        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
-        suffixIcon: suffix,
+        labelText: widget.label,
+        hintText: widget.hintText,
+        prefixIcon: widget.prefixIcon == null ? null : Icon(widget.prefixIcon),
+        suffixIcon: widget.suffix,
         filled: true,
         fillColor: AppColors.surface,
         contentPadding:

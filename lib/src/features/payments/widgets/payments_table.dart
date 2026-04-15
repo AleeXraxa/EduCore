@@ -1,6 +1,7 @@
 import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/payments/widgets/payment_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class PaymentsTable extends StatelessWidget {
@@ -352,14 +353,11 @@ class _QuickActions extends StatelessWidget {
           child: const Text('Reject'),
         ),
         const SizedBox(width: 10),
-        FilledButton(
+        AppPrimaryButton(
           onPressed: onApprove,
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF16A34A),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: const Text('Approve'),
+          color: const Color(0xFF16A34A),
+          label: 'Approve',
+          height: 40,
         ),
       ],
     );

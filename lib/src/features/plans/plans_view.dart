@@ -1,6 +1,7 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/plans/plans_controller.dart';
@@ -100,7 +101,8 @@ class _PlansViewState extends State<PlansView> {
                           children: [
                             Text(
                               'Plans',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -0.4,
                                   ),
@@ -108,56 +110,37 @@ class _PlansViewState extends State<PlansView> {
                             const SizedBox(height: 6),
                             Text(
                               'Create and manage subscription plans and feature access.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: cs.onSurfaceVariant),
                             ),
                           ],
                         ),
                       ),
-                      FilledButton.icon(
-                        onPressed: controller.busy
-                            ? null
-                            : () async {
-                                final created = await PlanEditorDialog.show(
-                                  context,
-                                  availableFeatures: controller.registryFeatures,
-                                );
-                                if (created == null) return;
-                                try {
-                                  await controller.createPlan(created);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Plan created: ${created.name}'),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('$e')),
-                                  );
-                                }
-                              },
-                        icon: controller.busy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.add_rounded),
-                        label: const Text('Create plan'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: cs.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
-                        ),
+                      AppPrimaryButton(
+                        label: 'Create plan',
+                        icon: Icons.add_rounded,
+                        busy: controller.busy,
+                        onPressed: () async {
+                          final created = await PlanEditorDialog.show(
+                            context,
+                            availableFeatures: controller.registryFeatures,
+                          );
+                          if (created == null) return;
+                          try {
+                            await controller.createPlan(created);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Plan created: ${created.name}'),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text('$e')));
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -169,7 +152,8 @@ class _PlansViewState extends State<PlansView> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         controller.errorMessage!,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
                               color: const Color(0xFFB91C1C),
                               fontWeight: FontWeight.w800,
                             ),
@@ -190,13 +174,15 @@ class _PlansViewState extends State<PlansView> {
                         await controller.updatePlan(updated);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Plan updated: ${updated.name}')),
+                          SnackBar(
+                            content: Text('Plan updated: ${updated.name}'),
+                          ),
                         );
                       } catch (e) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$e')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('$e')));
                       }
                     },
                     onFeatures: (plan) => FeatureToggleDialog.show(
@@ -208,15 +194,16 @@ class _PlansViewState extends State<PlansView> {
                     ),
                     onToggleActive: (plan) =>
                         controller.setActive(plan.id, !plan.isActive),
-                    onArchive: (plan) => _confirmArchive(context, plan, controller),
+                    onArchive: (plan) =>
+                        _confirmArchive(context, plan, controller),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Tip: Build your first plan by cloning features from an existing plan, then adjust keys as you grow.',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -242,10 +229,9 @@ Future<void> _confirmArchive(
         title: const Text('Archive plan?'),
         content: Text(
           'This will deactivate "${plan.name}". You can re-activate it later.',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: cs.onSurfaceVariant),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
         ),
         actions: [
           TextButton(
@@ -254,7 +240,9 @@ Future<void> _confirmArchive(
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB91C1C)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB91C1C),
+            ),
             child: const Text('Archive'),
           ),
         ],
@@ -284,7 +272,10 @@ class _KpiGrid extends StatelessWidget {
           runSpacing: gap,
           children: [
             for (final item in items)
-              SizedBox(width: cardWidth, child: KpiCard(data: item)),
+              SizedBox(
+                width: cardWidth,
+                child: KpiCard(data: item),
+              ),
           ],
         );
       },
@@ -376,7 +367,8 @@ class _PlanCardState extends State<_PlanCard> {
 
     final enabledKeys = plan.features.toList(growable: false)..sort();
 
-    final limitEntries = plan.limits.entries.toList(growable: false)..sort((a, b) => a.key.compareTo(b.key));
+    final limitEntries = plan.limits.entries.toList(growable: false)
+      ..sort((a, b) => a.key.compareTo(b.key));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -435,7 +427,8 @@ class _PlanCardState extends State<_PlanCard> {
                           plan.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.2,
                               ),
@@ -443,7 +436,8 @@ class _PlanCardState extends State<_PlanCard> {
                         const SizedBox(height: 4),
                         Text(
                           'PKR ${_fmtMoney(plan.price)} / month',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
                                 color: cs.onSurfaceVariant,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -473,7 +467,10 @@ class _PlanCardState extends State<_PlanCard> {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit plan')),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit plan'),
+                      ),
                       const PopupMenuItem(
                         value: 'features',
                         child: Text('Toggle features'),
@@ -502,33 +499,33 @@ class _PlanCardState extends State<_PlanCard> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 )
               else
                 Text(
                   'No description',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               const SizedBox(height: 14),
               Text(
                 'Features',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               if (enabledKeys.isEmpty)
                 Text(
                   'No enabled features yet.',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 )
               else
                 Wrap(
@@ -544,18 +541,18 @@ class _PlanCardState extends State<_PlanCard> {
               const SizedBox(height: 14),
               Text(
                 'Limits',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               if (limitEntries.isEmpty)
                 Text(
                   'No limits set.',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 )
               else
                 Column(
@@ -563,14 +560,18 @@ class _PlanCardState extends State<_PlanCard> {
                     for (final e in limitEntries.take(4))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: _LimitRow(label: _prettyKey(e.key), value: e.value),
+                        child: _LimitRow(
+                          label: _prettyKey(e.key),
+                          value: e.value,
+                        ),
                       ),
                     if (limitEntries.length > 4)
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           '+${limitEntries.length - 4} more',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
                                 color: cs.onSurfaceVariant,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -642,10 +643,10 @@ class _FeatureChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.primary,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.15,
-            ),
+          color: cs.primary,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.15,
+        ),
       ),
     );
   }
@@ -672,16 +673,16 @@ class _LimitRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           Text(
             value.toString(),
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -716,16 +717,16 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'No plans yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           Text(
             'Create your first plan to define pricing and feature access.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),
@@ -776,8 +777,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase…' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -785,8 +786,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Plans require Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
