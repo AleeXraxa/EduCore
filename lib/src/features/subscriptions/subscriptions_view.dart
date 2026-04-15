@@ -5,6 +5,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_controller.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
+import 'package:educore/src/features/subscriptions/widgets/subscription_details_dialog.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionsView extends StatefulWidget {
@@ -226,10 +227,9 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                   switch (action.action) {
                     case SubscriptionMenuAction.view:
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Open details: ${sub.instituteName}'),
-                        ),
+                      SubscriptionDetailsDialog.show(
+                        context,
+                        subscription: sub,
                       );
                       break;
                     case SubscriptionMenuAction.approve:
@@ -245,12 +245,13 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                       await controller.cancel(action.subscriptionId);
                       break;
                     case SubscriptionMenuAction.changePlan:
-                      final ids =
-                          controller.planIds.where((e) => e != 'all').toList();
+                      final ids = controller.planIds
+                          .where((e) => e != 'all')
+                          .toList();
                       if (ids.isEmpty) break;
                       final curIndex = ids.indexOf(sub.planId);
-                      final next = ids[
-                          (curIndex < 0 ? 0 : (curIndex + 1) % ids.length)];
+                      final next =
+                          ids[(curIndex < 0 ? 0 : (curIndex + 1) % ids.length)];
                       await controller.changePlan(action.subscriptionId, next);
                       break;
                   }
@@ -323,8 +324,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase…' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -332,8 +333,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Subscriptions require Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
