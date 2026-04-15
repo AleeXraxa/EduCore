@@ -1,5 +1,7 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
+import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_page_background.dart';
 import 'package:educore/src/core/ui/widgets/auth_split_layout.dart';
 import 'package:educore/src/features/login/login_controller.dart';
@@ -101,6 +103,9 @@ class _LoginViewState extends State<LoginView>
         email: _email.text.trim(),
         password: _password.text,
       );
+      // Persist the signed-in flag so the splash screen can route to the
+      // dashboard on next app restart without waiting on the Firebase stream.
+      await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, true);
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.dashboard,

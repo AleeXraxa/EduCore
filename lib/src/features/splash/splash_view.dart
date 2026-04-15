@@ -1,4 +1,5 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
+import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_page_background.dart';
@@ -66,9 +67,33 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       _progress.forward(from: 0),
     ]);
     if (!mounted) return;
-    final stillSignedIn = AppServices.instance.authService?.currentUser != null;
+
+    final expectsSignIn = await AppServices.instance.prefs.getBool(
+      PrefsKeys.signedIn,
+    );
+
+    bool actualSignIn = false;
+    if (expectsSignIn) {
+      final authService = AppServices.instance.authService;
+      if (authService != null) {
+        try {
+          final user = await authService
+              .authStateChanges()
+              .firstWhere((u) => u != null)
+              .timeout(const Duration(seconds: 5));
+          actualSignIn = user != null;
+        } catch (_) {
+          // Timeout or error: we failed to restore session within 5s
+          actualSignIn = false;
+          // Sync the flag back to false since session couldn't be restored
+          await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
+        }
+      }
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(
-      stillSignedIn ? AppRoutes.dashboard : AppRoutes.login,
+      actualSignIn ? AppRoutes.dashboard : AppRoutes.login,
     );
   }
 
