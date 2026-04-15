@@ -288,9 +288,9 @@ class AnalyticsController extends BaseController {
     final monthTrendUp = monthRevenueNow >= monthRevenuePrev;
 
     final arpiNow =
-        revenueThisMonth ~/ max(_academies.length == 0 ? 1 : _academies.length, 1);
+        revenueThisMonth ~/ max(_academies.isEmpty ? 1 : _academies.length, 1);
     final arpiPrev =
-        (monthRevenuePrev) ~/ max(_academies.length == 0 ? 1 : _academies.length, 1);
+        (monthRevenuePrev) ~/ max(_academies.isEmpty ? 1 : _academies.length, 1);
     final arpiTrend = _pctTrend(arpiNow, arpiPrev);
     final arpiTrendUp = arpiNow >= arpiPrev;
 
@@ -677,12 +677,20 @@ PlanDistribution _planDistribution(
   int premium = 0;
   for (final s in subs) {
     if (s.status != SubscriptionRecordStatus.active) continue;
-    final name = (planById[s.planId]?.name ?? s.planId).toLowerCase();
-    if (name.contains('premium') || name.contains('pro')) {
+    final plan = planById[s.planId];
+    final name = (plan?.name ?? s.planId).toLowerCase();
+    final price = plan?.price ?? 0;
+    
+    // Heuristics: Premium/Pro/Ultimate or high price
+    if (name.contains('premium') || name.contains('pro') || name.contains('ultimate') || price >= 30000) {
       premium++;
-    } else if (name.contains('basic') || name.contains('demo')) {
+    } 
+    // Heuristics: Basic/Starter/Lite/Free or low price
+    else if (name.contains('basic') || name.contains('starter') || name.contains('lite') || name.contains('free') || name.contains('demo') || (price > 0 && price < 15000)) {
       basic++;
-    } else {
+    } 
+    // Default to Standard
+    else {
       standard++;
     }
   }
@@ -706,7 +714,9 @@ List<TopInstituteRow> _topInstitutes({
   final byAcademy = <String, int>{};
   for (final p in payments) {
     if (p.status != PaymentReviewStatus.approved) continue;
-    if (p.submittedAt.isBefore(window.start) || !p.submittedAt.isBefore(window.end)) continue;
+    if (p.submittedAt.isBefore(window.start) || !p.submittedAt.isBefore(window.end)) {
+      continue;
+    }
     byAcademy[p.academyId] = (byAcademy[p.academyId] ?? 0) + p.amountPkr;
   }
 

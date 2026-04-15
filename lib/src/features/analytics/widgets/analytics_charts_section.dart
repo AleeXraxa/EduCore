@@ -148,6 +148,7 @@ class _ChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final trailing = this.trailing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,7 +174,7 @@ class _ChartCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing!,
+            if (trailing != null) trailing,
           ],
         ),
         const SizedBox(height: 12),
@@ -394,6 +395,21 @@ class _DonutChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    
+    // Find dominant plan to show in center
+    String dominantLabel = 'Standard';
+    int dominantPct = dist.standard;
+    if (dist.premium > dist.standard && dist.premium > dist.basic) {
+      dominantLabel = 'Premium';
+      dominantPct = dist.premium;
+    } else if (dist.basic > dist.standard && dist.basic > dist.premium) {
+      dominantLabel = 'Basic';
+      dominantPct = dist.basic;
+    } else if (dist.basic == 0 && dist.standard == 0 && dist.premium == 0) {
+      dominantLabel = 'No data';
+      dominantPct = 0;
+    }
+
     return CustomPaint(
       painter: _DonutPainter(
         basic: dist.basic.toDouble(),
@@ -407,7 +423,7 @@ class _DonutChart extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${dist.standard}%',
+              '$dominantPct%',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.3,
@@ -415,7 +431,7 @@ class _DonutChart extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Standard',
+              dominantLabel,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                     fontWeight: FontWeight.w700,

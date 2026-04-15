@@ -6,6 +6,7 @@ import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_controller.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscription_details_dialog.dart';
+import 'package:educore/src/features/subscriptions/widgets/edit_subscription_dialog.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionsView extends StatefulWidget {
@@ -230,6 +231,22 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                       SubscriptionDetailsDialog.show(
                         context,
                         subscription: sub,
+                      );
+                      break;
+                    case SubscriptionMenuAction.edit:
+                      if (!context.mounted) return;
+                      EditSubscriptionDialog.show(
+                        context,
+                        subscription: sub,
+                        plans: controller.plans,
+                        onSave: (planId, status, expiry) async {
+                          await controller.updateSubscriptionDetails(
+                            sub.id,
+                            planId: planId,
+                            status: status,
+                            expiryDate: expiry,
+                          );
+                        },
                       );
                       break;
                     case SubscriptionMenuAction.approve:

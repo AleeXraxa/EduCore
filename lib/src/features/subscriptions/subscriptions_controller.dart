@@ -48,6 +48,8 @@ class SubscriptionsController extends BaseController {
   String get planIdFilter => _planIdFilter;
   int get page => _page;
 
+  List<Plan> get plans => _planById.values.toList(growable: false);
+
   List<String> get planIds {
     final ids = <String>{..._planById.keys};
     final list = ids.toList(growable: true);
@@ -336,6 +338,33 @@ class SubscriptionsController extends BaseController {
   Future<void> changePlan(String academyId, String planId) async {
     final svc = await _ensureService();
     await runBusy<void>(() => svc.updateSubscription(academyId, planId: planId));
+  }
+
+  Future<void> updateSubscriptionDetails(
+    String academyId, {
+    String? planId,
+    SubscriptionStatus? status,
+    DateTime? expiryDate,
+  }) async {
+    final svc = await _ensureService();
+    final statusStr = status == null
+        ? null
+        : switch (status) {
+            SubscriptionStatus.active => 'active',
+            SubscriptionStatus.pendingApproval => 'pending',
+            SubscriptionStatus.expired => 'expired',
+            SubscriptionStatus.canceled => 'canceled',
+          };
+
+    await runBusy<void>(() async {
+      await svc.updateSubscription(
+        academyId,
+        planId: planId,
+        status: statusStr,
+        endDate: expiryDate,
+        setEndDate: expiryDate != null,
+      );
+    });
   }
 
   SubscriptionKpis get kpis {

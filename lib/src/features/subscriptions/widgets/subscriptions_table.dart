@@ -387,6 +387,10 @@ class _RowMenu extends StatelessWidget {
         value: SubscriptionMenuAction.view,
         child: _MenuRow(icon: Icons.visibility_rounded, label: 'View details'),
       ),
+      const PopupMenuItem(
+        value: SubscriptionMenuAction.edit,
+        child: _MenuRow(icon: Icons.edit_rounded, label: 'Edit subscription'),
+      ),
       if (status == SubscriptionStatus.pendingApproval) ...[
         const PopupMenuItem(
           value: SubscriptionMenuAction.approve,
@@ -404,10 +408,6 @@ class _RowMenu extends StatelessWidget {
       const PopupMenuItem(
         value: SubscriptionMenuAction.extend,
         child: _MenuRow(icon: Icons.date_range_rounded, label: 'Extend 30 days'),
-      ),
-      const PopupMenuItem(
-        value: SubscriptionMenuAction.cancel,
-        child: _MenuRow(icon: Icons.cancel_rounded, label: 'Cancel', danger: true),
       ),
     ];
 
@@ -530,7 +530,7 @@ String _fmtDate(DateTime d) {
   return '${d.year}-$mm-$dd';
 }
 
-enum SubscriptionMenuAction { view, approve, reject, changePlan, extend, cancel }
+enum SubscriptionMenuAction { view, edit, approve, reject, changePlan, extend, cancel }
 
 @immutable
 class SubscriptionRowAction {
