@@ -530,7 +530,7 @@ String _fmtDate(DateTime d) {
   return '${d.year}-$mm-$dd';
 }
 
-enum SubscriptionMenuAction { view, edit, approve, reject, changePlan, extend, cancel }
+enum SubscriptionMenuAction { view, edit, approve, reject, changePlan, extend }
 
 @immutable
 class SubscriptionRowAction {

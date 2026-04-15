@@ -7,6 +7,7 @@ import 'package:educore/src/features/subscriptions/subscriptions_controller.dart
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscription_details_dialog.dart';
 import 'package:educore/src/features/subscriptions/widgets/edit_subscription_dialog.dart';
+import 'package:educore/src/features/subscriptions/widgets/add_subscription_dialog.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionsView extends StatefulWidget {
@@ -161,6 +162,34 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                       },
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    height: toolbarHeight,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        final res = await AddSubscriptionDialog.show(
+                          context,
+                          academies: controller.academies,
+                          plans: controller.plans,
+                        );
+                        if (res != null) {
+                          await controller.addSubscription(
+                            academyId: res.academyId,
+                            planId: res.planId,
+                            durationMonths: res.durationMonths,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Add Subscription'),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.r12,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -258,9 +287,7 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                     case SubscriptionMenuAction.extend:
                       await controller.extend30Days(action.subscriptionId);
                       break;
-                    case SubscriptionMenuAction.cancel:
-                      await controller.cancel(action.subscriptionId);
-                      break;
+
                     case SubscriptionMenuAction.changePlan:
                       final ids = controller.planIds
                           .where((e) => e != 'all')

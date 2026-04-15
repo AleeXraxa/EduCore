@@ -99,6 +99,11 @@ class InstituteService {
         .map((snap) => snap.docs.map(Academy.fromDoc).toList(growable: false));
   }
 
+  Future<List<Academy>> getAcademies() async {
+    final snap = await _academies.get();
+    return snap.docs.map(Academy.fromDoc).toList(growable: false);
+  }
+
   Stream<Academy?> watchAcademy(String academyId) {
     return _academies.doc(academyId).snapshots().map((snap) {
       if (!snap.exists) return null;
@@ -175,7 +180,7 @@ class InstituteService {
         'emailLower': email.trim().toLowerCase(),
         'phone': phone.trim(),
         'address': address.trim(),
-        'status': AcademyStatus.active.value,
+        'status': AcademyStatus.pending.value,
         'planId': planId.trim(),
         'createdAt': now,
         'createdBy': superUid,
@@ -192,17 +197,6 @@ class InstituteService {
         'status': 'active',
         'createdAt': now,
         'createdBy': superUid,
-      });
-
-      batch.set(subRef, {
-        'academyId': academyId,
-        'planId': planId.trim(),
-        'status': 'active',
-        'startDate': startDate,
-        'endDate': endTs,
-        'overrides': <String, dynamic>{},
-        'createdAt': now,
-        'updatedAt': now,
       });
 
       batch.set(bootstrapRef, {
@@ -224,7 +218,7 @@ class InstituteService {
         email: email.trim(),
         phone: phone.trim(),
         address: address.trim(),
-        status: AcademyStatus.active,
+        status: AcademyStatus.pending,
         planId: planId.trim(),
         createdAt: null,
         createdBy: superUid,

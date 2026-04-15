@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -116,8 +116,6 @@ class InstitutesController extends BaseController {
     required String address,
     required String adminEmail,
     required String adminPassword,
-    required String planId,
-    DateTime? endDate,
   }) async {
     final svc = await _ensureService();
     await runBusy<void>(() async {
@@ -129,8 +127,8 @@ class InstitutesController extends BaseController {
         address: address,
         adminEmail: adminEmail,
         adminPassword: adminPassword,
-        planId: planId,
-        endDate: endDate,
+        planId: '',
+        endDate: null,
       );
     });
   }
@@ -176,7 +174,8 @@ class InstitutesController extends BaseController {
         await svc.setPlan(academyId, planId);
       }
 
-      final subs = _subsService ?? AppServices.instance.adminSubscriptionsService;
+      final subs =
+          _subsService ?? AppServices.instance.adminSubscriptionsService;
       if (subs != null) {
         await subs.updateSubscription(
           academyId,
@@ -223,41 +222,47 @@ class InstitutesController extends BaseController {
 
     final svc = _instituteService!;
     _sub?.cancel();
-    _sub = svc.watchAcademies().listen((value) {
-      _all = value
-          .map(
-            (a) => Institute(
-              id: a.id,
-              name: a.name,
-              ownerName: a.ownerName,
-              email: a.email,
-              phone: a.phone,
-              address: a.address,
-              planId: a.planId,
-              status: a.status,
-              studentsCount: 0,
-              createdAt: a.createdAt,
-            ),
-          )
-          .toList(growable: false);
-      errorMessage = null;
-      notifyListeners();
-    }, onError: (e) {
-      errorMessage = e.toString();
-      notifyListeners();
-    });
+    _sub = svc.watchAcademies().listen(
+      (value) {
+        _all = value
+            .map(
+              (a) => Institute(
+                id: a.id,
+                name: a.name,
+                ownerName: a.ownerName,
+                email: a.email,
+                phone: a.phone,
+                address: a.address,
+                planId: a.planId,
+                status: a.status,
+                studentsCount: 0,
+                createdAt: a.createdAt,
+              ),
+            )
+            .toList(growable: false);
+        errorMessage = null;
+        notifyListeners();
+      },
+      onError: (e) {
+        errorMessage = e.toString();
+        notifyListeners();
+      },
+    );
 
     final planSvc = _planService;
     if (planSvc != null) {
       _planSub?.cancel();
-      _planSub = planSvc.watchPlans().listen((value) {
-        plans = value;
-        _planNameById = {for (final p in value) p.id: p.name};
-        notifyListeners();
-      }, onError: (e) {
-        errorMessage = e.toString();
-        notifyListeners();
-      });
+      _planSub = planSvc.watchPlans().listen(
+        (value) {
+          plans = value;
+          _planNameById = {for (final p in value) p.id: p.name};
+          notifyListeners();
+        },
+        onError: (e) {
+          errorMessage = e.toString();
+          notifyListeners();
+        },
+      );
     }
   }
 

@@ -4,10 +4,12 @@ import 'package:educore/src/core/models/subscription_record.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/admin_payments_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/subscriptions/models/subscription.dart';
+import 'package:educore/src/core/models/payment_record.dart';
 
 enum SubscriptionsFilter { all, active, expired, pending, canceled }
 
@@ -20,6 +22,7 @@ class SubscriptionsController extends BaseController {
   }
 
   AdminSubscriptionsService? _service;
+  AdminPaymentsService? _paymentsService;
   PlanService? _planService;
   InstituteService? _instituteService;
 
@@ -49,6 +52,7 @@ class SubscriptionsController extends BaseController {
   int get page => _page;
 
   List<Plan> get plans => _planById.values.toList(growable: false);
+  List<Academy> get academies => _academyById.values.toList(growable: false);
 
   List<String> get planIds {
     final ids = <String>{..._planById.keys};
@@ -88,6 +92,7 @@ class SubscriptionsController extends BaseController {
     });
 
     _service = AppServices.instance.adminSubscriptionsService;
+    _paymentsService = AppServices.instance.adminPaymentsService;
     _planService = AppServices.instance.planService;
     _instituteService = AppServices.instance.instituteService;
 
@@ -300,6 +305,28 @@ class SubscriptionsController extends BaseController {
     notifyListeners();
   }
 
+  Future<void> addSubscription({
+    required String academyId,
+    required String planId,
+    required int durationMonths,
+  }) async {
+    final svc = await _ensureService();
+    final plan = _planById[planId];
+    if (plan == null) throw Exception('Plan not found.');
+
+    final totalAmount = (plan.price * durationMonths).round();
+
+    await runBusy<void>(() async {
+      await svc.createSubscription(
+        academyId: academyId,
+        planId: planId,
+        amount: totalAmount,
+        durationMonths: durationMonths,
+        superUid: AppServices.instance.authService!.currentUser!.uid,
+      );
+    });
+  }
+
   void prevPage() {
     if (_page <= 0) return;
     _page -= 1;
@@ -307,15 +334,29 @@ class SubscriptionsController extends BaseController {
   }
 
   Future<void> approve(String academyId) async {
-    final svc = await _ensureService();
+    final svc = _paymentsService ?? AppServices.instance.adminPaymentsService;
+    if (svc == null) return;
+
     await runBusy<void>(() async {
-      final now = DateTime.now();
-      await svc.updateSubscription(
-        academyId,
-        status: 'active',
-        startDate: now,
-        endDate: now.add(const Duration(days: 30)),
-        setEndDate: true,
+      // Find the pending payment for this academy
+      final payments = await svc.watchPayments().first;
+      final pending = payments.where((e) => 
+        e.academyId == academyId && 
+        e.status == PaymentReviewStatus.pending
+      ).toList();
+
+      if (pending.isEmpty) {
+        throw Exception('No pending payment found for this institute.');
+      }
+
+      final sub = _raw.firstWhere((e) => e.academyId == academyId);
+
+      await svc.approvePayment(
+        paymentId: pending.first.id,
+        academyId: academyId,
+        planId: sub.planId,
+        reviewerUid: AppServices.instance.authService!.currentUser!.uid,
+        durationMonths: sub.durationMonths,
       );
     });
   }

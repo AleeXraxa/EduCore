@@ -67,7 +67,6 @@ class _InstitutesViewState extends State<InstitutesView> {
                 onAdd: () async {
                   final draft = await AddInstituteDialog.show(
                     context,
-                    plans: controller.plans,
                   );
                   if (draft == null) return;
                   try {
@@ -79,8 +78,6 @@ class _InstitutesViewState extends State<InstitutesView> {
                       address: draft.address,
                       adminEmail: draft.adminEmail,
                       adminPassword: draft.adminPassword,
-                      planId: draft.planId,
-                      endDate: draft.endDate,
                     );
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(

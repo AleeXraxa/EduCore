@@ -161,7 +161,7 @@ class AnalyticsController extends BaseController {
     _paymentsSub = svc.watchPayments().listen(
       (value) {
         final list = value.toList(growable: true)
-          ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _payments = list;
         _recompute();
         notifyListeners();
@@ -593,7 +593,7 @@ int _revenueInRange({
 }) {
   final approved = payments.where((p) => p.status == PaymentReviewStatus.approved);
   final sumPayments = approved
-      .where((p) => !p.submittedAt.isBefore(start) && p.submittedAt.isBefore(end))
+      .where((p) => !p.createdAt.isBefore(start) && p.createdAt.isBefore(end))
       .fold<int>(0, (sum, p) => sum + p.amountPkr);
   if (sumPayments > 0) return sumPayments;
 
@@ -714,7 +714,7 @@ List<TopInstituteRow> _topInstitutes({
   final byAcademy = <String, int>{};
   for (final p in payments) {
     if (p.status != PaymentReviewStatus.approved) continue;
-    if (p.submittedAt.isBefore(window.start) || !p.submittedAt.isBefore(window.end)) {
+    if (p.createdAt.isBefore(window.start) || !p.createdAt.isBefore(window.end)) {
       continue;
     }
     byAcademy[p.academyId] = (byAcademy[p.academyId] ?? 0) + p.amountPkr;
@@ -733,8 +733,8 @@ List<TopInstituteRow> _topInstitutes({
     for (final p in payments) {
       if (p.status != PaymentReviewStatus.approved) continue;
       if (p.academyId != academyId) continue;
-      if (p.submittedAt.isBefore(prevWindow.start) ||
-          !p.submittedAt.isBefore(prevWindow.end)) continue;
+      if (p.createdAt.isBefore(prevWindow.start) ||
+          !p.createdAt.isBefore(prevWindow.end)) continue;
       sum += p.amountPkr;
     }
     return sum;

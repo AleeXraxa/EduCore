@@ -1,4 +1,4 @@
-﻿import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
@@ -14,8 +14,6 @@ class CreateInstituteDraft {
     required this.address,
     required this.adminEmail,
     required this.adminPassword,
-    required this.planId,
-    required this.endDate,
   });
 
   final String name;
@@ -25,23 +23,20 @@ class CreateInstituteDraft {
   final String address;
   final String adminEmail;
   final String adminPassword;
-  final String planId;
-  final DateTime? endDate;
 }
 
 class AddInstituteDialog extends StatefulWidget {
-  const AddInstituteDialog({super.key, required this.plans});
+  const AddInstituteDialog({super.key});
 
-  final List<Plan> plans;
+
 
   static Future<CreateInstituteDraft?> show(
-    BuildContext context, {
-    required List<Plan> plans,
-  }) {
+    BuildContext context,
+  ) {
     return showDialog<CreateInstituteDraft?>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => AddInstituteDialog(plans: plans),
+      builder: (_) => const AddInstituteDialog(),
     );
   }
 
@@ -78,8 +73,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final activePlans = widget.plans.where((p) => p.isActive).toList(growable: false);
-    final endLabel = _endDate == null ? 'Not set' : _fmtDate(_endDate!);
+
 
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
@@ -246,55 +240,6 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      _GroupCard(
-                        title: 'Subscription',
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: AppDropdown<Plan>(
-                                label: 'Plan',
-                                items: activePlans,
-                                value: _plan,
-                                itemLabel: (p) => p.name,
-                                onChanged: (v) => setState(() {
-                                  _plan = v;
-                                  _endDate ??= DateTime.now().add(const Duration(days: 30));
-                                }),
-                                hintText: activePlans.isEmpty
-                                    ? 'No active plans'
-                                    : 'Select plan',
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: _PickTile(
-                                label: 'End date',
-                                value: endLabel,
-                                icon: Icons.event_rounded,
-                                onPick: () async {
-                                  final initial = _endDate ??
-                                      DateTime.now().add(const Duration(days: 30));
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: initial,
-                                    firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                                    lastDate: DateTime.now().add(const Duration(days: 3650)),
-                                  );
-                                  if (picked == null) return;
-                                  if (!context.mounted) return;
-                                  setState(() => _endDate = picked);
-                                },
-                                onClear: _endDate == null
-                                    ? null
-                                    : () => setState(() => _endDate = null),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -304,7 +249,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      'This creates the academy, an admin user, a global user record, and a subscription record.',
+                      'This creates the academy, an admin user, and a global user record.',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
@@ -354,8 +299,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
         owner.isEmpty ||
         email.isEmpty ||
         adminEmail.isEmpty ||
-        adminPassword.trim().isEmpty ||
-        planId.trim().isEmpty) {
+        adminPassword.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill required fields.')),
       );
@@ -371,102 +315,9 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
         address: address,
         adminEmail: adminEmail,
         adminPassword: adminPassword,
-        planId: planId,
-        endDate: _endDate,
       ),
     );
   }
-}
-
-class _PickTile extends StatelessWidget {
-  const _PickTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onPick,
-    this.onClear,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final VoidCallback onPick;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r16,
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: cs.primary, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          if (onClear != null)
-            IconButton(
-              tooltip: 'Clear',
-              onPressed: onClear,
-              icon: const Icon(Icons.close_rounded, size: 18),
-            ),
-          FilledButton.tonal(
-            onPressed: onPick,
-            style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-            child: const Text('Pick'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _fmtDate(DateTime value) {
-  final y = value.year.toString().padLeft(4, '0');
-  final m = value.month.toString().padLeft(2, '0');
-  final d = value.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
 }
 
 class _GroupCard extends StatelessWidget {

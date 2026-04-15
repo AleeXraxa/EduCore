@@ -1,38 +1,69 @@
+import 'dart:async';
 import 'package:educore/src/core/mvc/base_controller.dart';
-import 'package:educore/src/features/payments/models/payment.dart';
+import 'package:educore/src/core/services/admin_payments_service.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/models/payment_record.dart';
+import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 
 enum PaymentsFilter { all, pending, approved, rejected }
 
 enum PaymentMethodFilter { all, jazzCash, easyPaisa, bank }
 
 class PaymentsController extends BaseController {
-  final List<Payment> _all = <Payment>[];
+  PaymentsController() {
+    _paymentService = AppServices.instance.adminPaymentsService;
+    _instituteService = AppServices.instance.instituteService;
+    _subscriptionService = AppServices.instance.adminSubscriptionsService;
+    _init();
+  }
+
+  AdminPaymentsService? _paymentService;
+  InstituteService? _instituteService;
+  AdminSubscriptionsService? _subscriptionService;
+  StreamSubscription? _sub;
+
+  List<PaymentRecord> _all = [];
+  Map<String, String> _instituteNames = {};
+  
   String _query = '';
   PaymentsFilter _filter = PaymentsFilter.all;
   PaymentMethodFilter _methodFilter = PaymentMethodFilter.all;
 
   int _page = 0;
+  int get page => _page;
   final int pageSize = 20;
 
-  PaymentsController() {
-    _seedMock();
+  void _init() {
+    if (_paymentService == null) return;
+    _sub = _paymentService!.watchPayments().listen((data) {
+      _all = data.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _fetchInstitutesIfNeeded();
+      notifyListeners();
+    });
   }
 
-  String get query => _query;
-  PaymentsFilter get filter => _filter;
-  PaymentMethodFilter get methodFilter => _methodFilter;
-  int get page => _page;
+  Future<void> _fetchInstitutesIfNeeded() async {
+    if (_instituteService == null) return;
+    final academies = await _instituteService!.getAcademies();
+    _instituteNames = {
+      for (final a in academies) a.id: a.name,
+    };
+    notifyListeners();
+  }
 
-  List<Payment> get filtered {
+  String getInstituteName(String id) => _instituteNames[id] ?? 'Loading...';
+
+  List<PaymentRecord> get filtered {
     final q = _query.trim().toLowerCase();
-    Iterable<Payment> list = _all;
+    Iterable<PaymentRecord> list = _all;
 
     if (_filter != PaymentsFilter.all) {
       final status = switch (_filter) {
         PaymentsFilter.pending => PaymentReviewStatus.pending,
         PaymentsFilter.approved => PaymentReviewStatus.approved,
         PaymentsFilter.rejected => PaymentReviewStatus.rejected,
-        PaymentsFilter.all => PaymentReviewStatus.pending,
+        _ => PaymentReviewStatus.pending,
       };
       list = list.where((e) => e.status == status);
     }
@@ -42,13 +73,16 @@ class PaymentsController extends BaseController {
         PaymentMethodFilter.jazzCash => PaymentMethod.jazzCash,
         PaymentMethodFilter.easyPaisa => PaymentMethod.easyPaisa,
         PaymentMethodFilter.bank => PaymentMethod.bankTransfer,
-        PaymentMethodFilter.all => PaymentMethod.jazzCash,
+        _ => PaymentMethod.bankTransfer,
       };
       list = list.where((e) => e.method == method);
     }
 
     if (q.isNotEmpty) {
-      list = list.where((e) => e.instituteName.toLowerCase().contains(q));
+      list = list.where((e) {
+        final name = getInstituteName(e.academyId).toLowerCase();
+        return name.contains(q);
+      });
     }
 
     return list.toList(growable: false);
@@ -56,7 +90,7 @@ class PaymentsController extends BaseController {
 
   int get totalCount => filtered.length;
 
-  List<Payment> get paged {
+  List<PaymentRecord> get paged {
     final start = _page * pageSize;
     final list = filtered;
     if (start >= list.length) return const [];
@@ -65,7 +99,6 @@ class PaymentsController extends BaseController {
   }
 
   PaymentsKpis get kpis {
-    final total = _all.length;
     final pending = _all.where((e) => e.status == PaymentReviewStatus.pending).length;
     final approved = _all.where((e) => e.status == PaymentReviewStatus.approved).length;
     final monthRevenue = _all
@@ -73,7 +106,7 @@ class PaymentsController extends BaseController {
         .fold<int>(0, (sum, e) => sum + e.amountPkr);
 
     return PaymentsKpis(
-      total: total,
+      total: _all.length,
       pending: pending,
       approved: approved,
       monthRevenuePkr: monthRevenue,
@@ -111,99 +144,33 @@ class PaymentsController extends BaseController {
     notifyListeners();
   }
 
-  void approve(String id) {
-    final idx = _all.indexWhere((e) => e.id == id);
-    if (idx < 0) return;
-    final cur = _all[idx];
-    _all[idx] = Payment(
-      id: cur.id,
-      instituteId: cur.instituteId,
-      instituteName: cur.instituteName,
-      amountPkr: cur.amountPkr,
-      method: cur.method,
-      submittedAt: cur.submittedAt,
-      status: PaymentReviewStatus.approved,
-      proofRef: cur.proofRef,
+  Future<void> approve(String id) async {
+    final p = _all.firstWhere((e) => e.id == id);
+    final sub = await _subscriptionService?.getSubscription(p.academyId);
+    
+    // Default to 1 month if not specified in sub (unlikely but safe)
+    final duration = sub?.durationMonths ?? 1;
+
+    await _paymentService?.approvePayment(
+      paymentId: id,
+      academyId: p.academyId,
+      planId: p.planId,
+      durationMonths: duration,
+      reviewerUid: AppServices.instance.authService!.currentUser!.uid,
     );
-    notifyListeners();
   }
 
-  void reject(String id) {
-    final idx = _all.indexWhere((e) => e.id == id);
-    if (idx < 0) return;
-    final cur = _all[idx];
-    _all[idx] = Payment(
-      id: cur.id,
-      instituteId: cur.instituteId,
-      instituteName: cur.instituteName,
-      amountPkr: cur.amountPkr,
-      method: cur.method,
-      submittedAt: cur.submittedAt,
-      status: PaymentReviewStatus.rejected,
-      proofRef: cur.proofRef,
+  Future<void> reject(String id) async {
+    await _paymentService?.rejectPayment(
+      id,
+      AppServices.instance.authService!.currentUser!.uid,
     );
-    notifyListeners();
   }
 
-  void _seedMock() {
-    final now = DateTime.now();
-    _all.addAll([
-      Payment(
-        id: 'p1',
-        instituteId: 'gv',
-        instituteName: 'Green Valley Academy',
-        amountPkr: 18000,
-        method: PaymentMethod.jazzCash,
-        submittedAt: now.subtract(const Duration(hours: 2)),
-        status: PaymentReviewStatus.pending,
-        proofRef: 'proof_gv_01',
-      ),
-      Payment(
-        id: 'p2',
-        instituteId: 'cs',
-        instituteName: 'City School – North Campus',
-        amountPkr: 32000,
-        method: PaymentMethod.bankTransfer,
-        submittedAt: now.subtract(const Duration(days: 1, hours: 3)),
-        status: PaymentReviewStatus.approved,
-        proofRef: 'proof_cs_02',
-      ),
-      Payment(
-        id: 'p3',
-        instituteId: 'sr',
-        instituteName: 'Sunrise School',
-        amountPkr: 18000,
-        method: PaymentMethod.easyPaisa,
-        submittedAt: now.subtract(const Duration(days: 2, hours: 6)),
-        status: PaymentReviewStatus.rejected,
-        proofRef: 'proof_sr_03',
-      ),
-    ]);
-
-    for (var i = 1; i <= 40; i++) {
-      final status = i % 7 == 0
-          ? PaymentReviewStatus.rejected
-          : (i % 4 == 0 ? PaymentReviewStatus.approved : PaymentReviewStatus.pending);
-      final method = i % 3 == 0
-          ? PaymentMethod.bankTransfer
-          : (i % 3 == 1 ? PaymentMethod.jazzCash : PaymentMethod.easyPaisa);
-      final amount = method == PaymentMethod.bankTransfer ? 32000 : 18000;
-      _all.add(
-        Payment(
-          id: 'seed_pay_$i',
-          instituteId: 'seed_$i',
-          instituteName: 'Institute ${i.toString().padLeft(2, '0')}',
-          amountPkr: amount,
-          method: method,
-          submittedAt: now.subtract(Duration(hours: 4 + i * 6)),
-          status: status,
-          proofRef: 'proof_seed_$i',
-        ),
-      );
-    }
-
-    // Recent first.
-    _all.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }
 

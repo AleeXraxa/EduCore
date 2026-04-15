@@ -219,8 +219,9 @@ class _PaymentsViewState extends State<PaymentsView> {
               const SizedBox(height: 20),
               PaymentsTable(
                 items: controller.paged,
+                resolveName: controller.getInstituteName,
                 onViewProof: (payment) =>
-                    PaymentProofDialog.show(context, payment: payment),
+                    PaymentProofDialog.show(context, payment: payment, instituteName: controller.getInstituteName(payment.academyId)),
                 onAction: (action) async {
                   final p = controller.paged.firstWhere(
                     (e) => e.id == action.paymentId,
@@ -229,7 +230,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                   switch (action.action) {
                     case PaymentMenuAction.viewDetails:
                       if (!context.mounted) return;
-                      PaymentProofDialog.show(context, payment: p);
+                      PaymentProofDialog.show(context, payment: p, instituteName: controller.getInstituteName(p.academyId));
                       break;
                     case PaymentMenuAction.approve:
                       final ok = await _confirm(

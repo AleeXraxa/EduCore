@@ -1,4 +1,4 @@
-import 'package:educore/src/features/payments/models/payment.dart';
+import 'package:educore/src/core/models/payment_record.dart';
 import 'package:flutter/material.dart';
 
 class PaymentReviewStatusBadge extends StatelessWidget {

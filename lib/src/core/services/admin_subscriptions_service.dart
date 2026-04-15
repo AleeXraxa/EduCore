@@ -64,4 +64,44 @@ class AdminSubscriptionsService {
       });
     });
   }
+  Future<void> createSubscription({
+    required String academyId,
+    required String planId,
+    required int amount,
+    required int durationMonths,
+    required String superUid,
+  }) async {
+    final batch = _firestore.batch();
+    final now = DateTime.now();
+
+    // 1. Create Pending Subscription
+    final subRef = _col.doc(academyId);
+    batch.set(subRef, {
+      'academyId': academyId,
+      'planId': planId,
+      'status': 'pending',
+      'startDate': null,
+      'endDate': null,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdBy': superUid,
+      'durationMonths': durationMonths, // store for activation later
+    });
+
+    // 2. Create Pending Payment
+    final payRef = _firestore.collection('payments').doc();
+    batch.set(payRef, {
+      'academyId': academyId,
+      'planId': planId,
+      'amountPkr': amount,
+      'amount': amount,
+      'status': 'pending',
+      'method': 'bank_transfer', // default or allow choice
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': superUid,
+      'proofRef': '',
+    });
+
+    await batch.commit();
+  }
 }

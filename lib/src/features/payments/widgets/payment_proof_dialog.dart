@@ -1,18 +1,29 @@
+import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
-import 'package:educore/src/features/payments/models/payment.dart';
 import 'package:educore/src/features/payments/widgets/payment_status_badge.dart';
 import 'package:flutter/material.dart';
 
 class PaymentProofDialog extends StatelessWidget {
-  const PaymentProofDialog({super.key, required this.payment});
+  const PaymentProofDialog({
+    super.key,
+    required this.payment,
+    this.instituteName,
+  });
 
-  final Payment payment;
+  final PaymentRecord payment;
+  final String? instituteName;
 
-  static Future<void> show(BuildContext context, {required Payment payment}) {
+  static Future<void> show(BuildContext context, {
+    required PaymentRecord payment,
+    String? instituteName,
+  }) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => PaymentProofDialog(payment: payment),
+      builder: (_) => PaymentProofDialog(
+        payment: payment,
+        instituteName: instituteName,
+      ),
     );
   }
 
@@ -39,8 +50,7 @@ class PaymentProofDialog extends StatelessWidget {
                       children: [
                         Text(
                           'Payment proof',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.4,
                               ),
@@ -48,8 +58,9 @@ class PaymentProofDialog extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           'Verify details and approve or reject confidently.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: cs.onSurfaceVariant),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -125,8 +136,10 @@ class PaymentProofDialog extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            payment.instituteName,
-                            style: Theme.of(context).textTheme.titleMedium
+                            instituteName ?? payment.academyId,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(height: 10),
@@ -136,7 +149,9 @@ class PaymentProofDialog extends StatelessWidget {
                               const Spacer(),
                               Text(
                                 _fmtMoney(payment.amountPkr),
-                                style: Theme.of(context).textTheme.titleMedium
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: -0.2,
@@ -152,17 +167,19 @@ class PaymentProofDialog extends StatelessWidget {
                           const SizedBox(height: 10),
                           _KV(
                             label: 'Date',
-                            value: _fmtDateTime(payment.submittedAt),
+                            value: _fmtDateTime(payment.createdAt),
                           ),
                           const SizedBox(height: 10),
                           _KV(
                             label: 'Institute ID',
-                            value: payment.instituteId,
+                            value: payment.academyId,
                           ),
                           const SizedBox(height: 18),
                           Text(
                             'Use this panel to confirm amount, date, and method match the submitted proof.',
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(color: cs.onSurfaceVariant),
                           ),
                           const SizedBox(height: 14),
@@ -215,9 +232,9 @@ class _KV extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
         ),
         Expanded(
@@ -225,9 +242,10 @@ class _KV extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -236,10 +254,10 @@ class _KV extends StatelessWidget {
 }
 
 String _methodLabel(PaymentMethod m) => switch (m) {
-  PaymentMethod.jazzCash => 'JazzCash',
-  PaymentMethod.easyPaisa => 'EasyPaisa',
-  PaymentMethod.bankTransfer => 'Bank Transfer',
-};
+      PaymentMethod.jazzCash => 'JazzCash',
+      PaymentMethod.easyPaisa => 'EasyPaisa',
+      PaymentMethod.bankTransfer => 'Bank Transfer',
+    };
 
 String _fmtMoney(int pkr) => 'PKR ${_fmtInt(pkr)}';
 

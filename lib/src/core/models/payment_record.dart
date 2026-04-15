@@ -10,35 +10,48 @@ class PaymentRecord {
   const PaymentRecord({
     required this.id,
     required this.academyId,
+    required this.planId,
     required this.amountPkr,
     required this.method,
     required this.status,
-    required this.submittedAt,
+    required this.createdAt,
+    this.reviewedAt,
+    this.reviewedBy,
     required this.proofRef,
+    this.transactionId,
+    this.createdBy,
   });
 
   final String id;
   final String academyId;
+  final String planId;
   final int amountPkr;
   final PaymentMethod method;
   final PaymentReviewStatus status;
-  final DateTime submittedAt;
+  final DateTime createdAt;
+  final DateTime? reviewedAt;
+  final String? reviewedBy;
   final String proofRef;
+  final String? transactionId;
+  final String? createdBy;
 
   static PaymentRecord fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return PaymentRecord(
       id: doc.id,
-      academyId: (data['academyId'] as String?) ??
-          (data['instituteId'] as String?) ??
-          '',
+      academyId: (data['academyId'] as String?) ?? (data['instituteId'] as String?) ?? '',
+      planId: (data['planId'] as String?) ?? '',
       amountPkr: _asInt(data['amountPkr'] ?? data['amount'] ?? 0),
       method: _methodFrom(data['method']),
       status: _statusFrom(data['status']),
-      submittedAt: (data['submittedAt'] as Timestamp?)?.toDate() ??
-          (data['createdAt'] as Timestamp?)?.toDate() ??
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ??
+          (data['submittedAt'] as Timestamp?)?.toDate() ??
           DateTime.now(),
-      proofRef: (data['proofRef'] as String?) ?? '',
+      reviewedAt: (data['reviewedAt'] as Timestamp?)?.toDate(),
+      reviewedBy: data['reviewedBy'] as String?,
+      proofRef: (data['proofRef'] as String?) ?? (data['proofUrl'] as String?) ?? '',
+      transactionId: data['transactionId'] as String?,
+      createdBy: data['createdBy'] as String?,
     );
   }
 }

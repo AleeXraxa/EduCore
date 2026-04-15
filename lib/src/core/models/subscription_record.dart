@@ -14,6 +14,7 @@ class SubscriptionRecord {
     required this.overrides,
     required this.createdAt,
     required this.updatedAt,
+    required this.durationMonths,
   });
 
   final String academyId;
@@ -24,6 +25,7 @@ class SubscriptionRecord {
   final Map<String, bool> overrides;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final int durationMonths;
 
   static SubscriptionRecord fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
@@ -36,6 +38,7 @@ class SubscriptionRecord {
       overrides: _mapBool(data['overriddenFeatures'] ?? data['overrides']),
       createdAt: _tsToDate(data['createdAt']),
       updatedAt: _tsToDate(data['updatedAt']),
+      durationMonths: (data['durationMonths'] as int?) ?? 1,
     );
   }
 }

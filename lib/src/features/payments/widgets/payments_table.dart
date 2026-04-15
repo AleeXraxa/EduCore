@@ -1,5 +1,5 @@
+import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
-import 'package:educore/src/features/payments/models/payment.dart';
 import 'package:educore/src/features/payments/widgets/payment_status_badge.dart';
 import 'package:flutter/material.dart';
 
@@ -9,11 +9,13 @@ class PaymentsTable extends StatelessWidget {
     required this.items,
     required this.onAction,
     required this.onViewProof,
+    required this.resolveName,
   });
 
-  final List<Payment> items;
+  final List<PaymentRecord> items;
   final ValueChanged<PaymentRowAction> onAction;
-  final ValueChanged<Payment> onViewProof;
+  final ValueChanged<PaymentRecord> onViewProof;
+  final String Function(String academyId) resolveName;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,7 @@ class PaymentsTable extends StatelessWidget {
                           item: items[i],
                           onAction: onAction,
                           onViewProof: onViewProof,
+                          resolveName: resolveName,
                         ),
                   ],
                 ),
@@ -101,12 +104,14 @@ class _Row extends StatefulWidget {
     required this.item,
     required this.onAction,
     required this.onViewProof,
+    required this.resolveName,
   });
 
   final int index;
-  final Payment item;
+  final PaymentRecord item;
   final ValueChanged<PaymentRowAction> onAction;
-  final ValueChanged<Payment> onViewProof;
+  final ValueChanged<PaymentRecord> onViewProof;
+  final String Function(String academyId) resolveName;
 
   @override
   State<_Row> createState() => _RowState();
@@ -149,8 +154,8 @@ class _RowState extends State<_Row> {
             Expanded(
               flex: 26,
               child: _PrimaryCell(
-                title: item.instituteName,
-                subtitle: 'ID: ${item.instituteId}',
+                title: widget.resolveName(item.academyId),
+                subtitle: 'ID: ${item.academyId}',
               ),
             ),
             Expanded(
@@ -175,7 +180,7 @@ class _RowState extends State<_Row> {
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  _fmtDateTime(item.submittedAt),
+                  _fmtDateTime(item.createdAt),
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: cs.onSurfaceVariant,
                         fontWeight: FontWeight.w800,

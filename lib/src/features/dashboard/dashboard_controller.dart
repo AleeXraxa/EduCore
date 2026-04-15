@@ -44,13 +44,13 @@ class DashboardPendingPaymentItem {
     required this.instituteName,
     required this.amountPkr,
     required this.status,
-    required this.submittedAt,
+    required this.createdAt,
   });
 
   final String instituteName;
   final int amountPkr;
   final PaymentReviewStatus status;
-  final DateTime submittedAt;
+  final DateTime createdAt;
 }
 
 class DashboardController extends BaseController {
@@ -120,7 +120,7 @@ class DashboardController extends BaseController {
         instituteName: (name?.trim().isNotEmpty == true) ? name!.trim() : p.academyId,
         amountPkr: p.amountPkr,
         status: p.status,
-        submittedAt: p.submittedAt,
+        createdAt: p.createdAt,
       );
     }).toList(growable: false);
     return items;
@@ -169,7 +169,7 @@ class DashboardController extends BaseController {
           kind: 'payment_pending',
           title: 'Payment submitted',
           subtitle: '$academyName • PKR ${_fmtInt(p.amountPkr)}',
-          time: p.submittedAt,
+          time: p.createdAt,
         ),
       );
     }
