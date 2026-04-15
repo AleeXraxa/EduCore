@@ -316,30 +316,66 @@ class _RowMenu extends StatelessWidget {
     return PopupMenuButton<InstituteMenuAction>(
       tooltip: 'Actions',
       onSelected: onSelected,
-      elevation: 10,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 14,
+      color: cs.surface,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.black.withValues(alpha: 0.14),
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, 10),
+      constraints: const BoxConstraints(minWidth: 240),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       itemBuilder: (context) => [
+        PopupMenuItem<InstituteMenuAction>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          height: 0,
+          child: Text(
+            'ACTIONS',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+          ),
+        ),
         const PopupMenuItem(
           value: InstituteMenuAction.view,
+          height: 44,
+          padding: EdgeInsets.zero,
           child: _MenuRow(icon: Icons.visibility_rounded, label: 'View details'),
         ),
         const PopupMenuItem(
           value: InstituteMenuAction.edit,
+          height: 44,
+          padding: EdgeInsets.zero,
           child: _MenuRow(icon: Icons.edit_rounded, label: 'Edit institute'),
         ),
         PopupMenuItem(
-          value: blocked
-              ? InstituteMenuAction.unblock
-              : InstituteMenuAction.block,
+          value: blocked ? InstituteMenuAction.unblock : InstituteMenuAction.block,
+          height: 44,
+          padding: EdgeInsets.zero,
           child: _MenuRow(
             icon: blocked ? Icons.lock_open_rounded : Icons.block_rounded,
-            label: blocked ? 'Unblock' : 'Block',
+            label: blocked ? 'Unblock institute' : 'Block institute',
           ),
         ),
-        PopupMenuDivider(height: 1, color: cs.outlineVariant),
-        PopupMenuItem(
+        PopupMenuItem<InstituteMenuAction>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          height: 1,
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            indent: 14,
+            endIndent: 14,
+            color: cs.outlineVariant.withValues(alpha: 0.85),
+          ),
+        ),
+        const PopupMenuItem(
           value: InstituteMenuAction.delete,
-          child: const _MenuRow(
+          height: 44,
+          padding: EdgeInsets.zero,
+          child: _MenuRow(
             icon: Icons.delete_outline_rounded,
             label: 'Delete (soft)',
             danger: true,
@@ -405,18 +441,30 @@ class _MenuRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = danger ? const Color(0xFFB91C1C) : cs.onSurface;
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-      ],
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.1,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

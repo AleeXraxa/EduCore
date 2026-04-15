@@ -15,6 +15,17 @@ class AdminUsersService {
         .map((snap) => snap.docs.map(core_models.AppUser.fromDoc).toList(growable: false));
   }
 
+  Stream<List<core_models.AppUser>> watchUsersForAcademy(String academyId) {
+    return _col
+        .where('academyId', isEqualTo: academyId)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map(core_models.AppUser.fromDoc)
+              .toList(growable: false),
+        );
+  }
+
   Future<void> setStatus(String uid, String status) async {
     await _col.doc(uid).update({
       'status': status,
@@ -22,4 +33,3 @@ class AdminUsersService {
     });
   }
 }
-

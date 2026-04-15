@@ -443,8 +443,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase…' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -452,8 +452,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Users require Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

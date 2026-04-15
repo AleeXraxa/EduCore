@@ -2,6 +2,7 @@
 
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
@@ -13,11 +14,13 @@ class InstitutesController extends BaseController {
   InstitutesController() {
     _instituteService = AppServices.instance.instituteService;
     _planService = AppServices.instance.planService;
+    _subsService = AppServices.instance.adminSubscriptionsService;
     _attachOrInit();
   }
 
   InstituteService? _instituteService;
   PlanService? _planService;
+  AdminSubscriptionsService? _subsService;
   StreamSubscription<List<Academy>>? _sub;
   StreamSubscription<List<Plan>>? _planSub;
 
@@ -114,6 +117,7 @@ class InstitutesController extends BaseController {
     required String adminEmail,
     required String adminPassword,
     required String planId,
+    DateTime? endDate,
   }) async {
     final svc = await _ensureService();
     await runBusy<void>(() async {
@@ -126,6 +130,7 @@ class InstitutesController extends BaseController {
         adminEmail: adminEmail,
         adminPassword: adminPassword,
         planId: planId,
+        endDate: endDate,
       );
     });
   }
@@ -139,6 +144,58 @@ class InstitutesController extends BaseController {
         ? AcademyStatus.active
         : AcademyStatus.blocked;
     await runBusy<void>(() => svc.setAcademyStatus(academyId, next));
+  }
+
+  Future<void> updateInstitute({
+    required String academyId,
+    required String name,
+    required String ownerName,
+    required String email,
+    required String phone,
+    required String address,
+    required String planId,
+    required AcademyStatus status,
+    DateTime? endDate,
+  }) async {
+    final svc = await _ensureService();
+    await runBusy<void>(() async {
+      await svc.updateInstitute(
+        academyId: academyId,
+        name: name,
+        ownerName: ownerName,
+        email: email,
+        phone: phone,
+        address: address,
+      );
+
+      await svc.setAcademyStatus(academyId, status);
+
+      final idx = _all.indexWhere((e) => e.id == academyId);
+      final currentPlanId = idx < 0 ? '' : _all[idx].planId;
+      if (planId.trim().isNotEmpty && planId.trim() != currentPlanId.trim()) {
+        await svc.setPlan(academyId, planId);
+      }
+
+      final subs = _subsService ?? AppServices.instance.adminSubscriptionsService;
+      if (subs != null) {
+        await subs.updateSubscription(
+          academyId,
+          endDate: endDate,
+          setEndDate: true,
+        );
+      }
+    });
+  }
+
+  Future<DateTime?> getSubscriptionEndDate(String academyId) async {
+    final svc = _subsService ?? AppServices.instance.adminSubscriptionsService;
+    if (svc == null) return null;
+    try {
+      final record = await svc.getSubscription(academyId);
+      return record?.endDate;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> retryInit() => _attachOrInit();

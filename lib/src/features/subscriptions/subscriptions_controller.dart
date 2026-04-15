@@ -313,6 +313,7 @@ class SubscriptionsController extends BaseController {
         status: 'active',
         startDate: now,
         endDate: now.add(const Duration(days: 30)),
+        setEndDate: true,
       );
     });
   }

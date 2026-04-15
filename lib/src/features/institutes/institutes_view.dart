@@ -5,6 +5,8 @@ import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/hover_scale.dart';
 import 'package:educore/src/features/institutes/institutes_controller.dart';
 import 'package:educore/src/features/institutes/widgets/add_institute_dialog.dart';
+import 'package:educore/src/features/institutes/widgets/institute_details_panel.dart';
+import 'package:educore/src/features/institutes/widgets/edit_institute_dialog.dart';
 import 'package:educore/src/features/institutes/widgets/institutes_table.dart';
 import 'package:flutter/material.dart';
 
@@ -77,6 +79,7 @@ class _InstitutesViewState extends State<InstitutesView> {
                       adminEmail: draft.adminEmail,
                       adminPassword: draft.adminPassword,
                       planId: draft.planId,
+                      endDate: draft.endDate,
                     );
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -96,14 +99,61 @@ class _InstitutesViewState extends State<InstitutesView> {
               InstitutesTable(
                 items: controller.paged,
                 planLabel: controller.planLabel,
-                onAction: (action) {
+                onAction: (action) async {
                   switch (action.action) {
                     case InstituteMenuAction.block:
                     case InstituteMenuAction.unblock:
                       controller.toggleBlocked(action.instituteId);
                       break;
                     case InstituteMenuAction.view:
+                      final institute = controller.paged.firstWhere(
+                        (e) => e.id == action.instituteId,
+                      );
+                      InstituteDetailsPanel.show(
+                        context,
+                        institute: institute,
+                        planLabel: controller.planLabel(institute.planId),
+                        onToggleBlocked: () =>
+                            controller.toggleBlocked(action.instituteId),
+                      );
+                      break;
                     case InstituteMenuAction.edit:
+                      final institute = controller.paged.firstWhere(
+                        (e) => e.id == action.instituteId,
+                      );
+                      final endDate =
+                          await controller.getSubscriptionEndDate(institute.id);
+                      if (!context.mounted) return;
+                      final draft = await EditInstituteDialog.show(
+                        context,
+                        institute: institute,
+                        plans: controller.plans,
+                        initialEndDate: endDate,
+                      );
+                      if (draft == null) return;
+                      try {
+                        await controller.updateInstitute(
+                          academyId: institute.id,
+                          name: draft.name,
+                          ownerName: draft.ownerName,
+                          email: draft.email,
+                          phone: draft.phone,
+                          address: draft.address,
+                          planId: draft.planId,
+                          status: draft.status,
+                          endDate: draft.endDate,
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Institute updated: ${draft.name}')),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$e')),
+                        );
+                      }
+                      break;
                     case InstituteMenuAction.delete:
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(

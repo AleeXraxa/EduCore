@@ -17,12 +17,26 @@ class AdminSubscriptionsService {
         );
   }
 
+  Stream<SubscriptionRecord?> watchSubscription(String academyId) {
+    return _col.doc(academyId).snapshots().map((snap) {
+      if (!snap.exists) return null;
+      return SubscriptionRecord.fromDoc(snap);
+    });
+  }
+
+  Future<SubscriptionRecord?> getSubscription(String academyId) async {
+    final snap = await _col.doc(academyId).get();
+    if (!snap.exists) return null;
+    return SubscriptionRecord.fromDoc(snap);
+  }
+
   Future<void> updateSubscription(
     String academyId, {
     String? planId,
     String? status,
     DateTime? startDate,
     DateTime? endDate,
+    bool setEndDate = false,
   }) async {
     final patch = <String, dynamic>{
       'updatedAt': FieldValue.serverTimestamp(),
@@ -30,7 +44,9 @@ class AdminSubscriptionsService {
     if (planId != null) patch['planId'] = planId.trim();
     if (status != null) patch['status'] = status.trim();
     if (startDate != null) patch['startDate'] = Timestamp.fromDate(startDate);
-    if (endDate != null) patch['endDate'] = Timestamp.fromDate(endDate);
+    if (setEndDate) {
+      patch['endDate'] = endDate == null ? null : Timestamp.fromDate(endDate);
+    }
     await _col.doc(academyId).update(patch);
   }
 
@@ -49,4 +65,3 @@ class AdminSubscriptionsService {
     });
   }
 }
-

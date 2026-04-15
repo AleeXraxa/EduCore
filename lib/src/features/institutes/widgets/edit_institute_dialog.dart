@@ -1,20 +1,21 @@
-﻿import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:flutter/material.dart';
 
-class CreateInstituteDraft {
-  const CreateInstituteDraft({
+class EditInstituteDraft {
+  const EditInstituteDraft({
     required this.name,
     required this.ownerName,
     required this.email,
     required this.phone,
     required this.address,
-    required this.adminEmail,
-    required this.adminPassword,
     required this.planId,
+    required this.status,
     required this.endDate,
   });
 
@@ -23,45 +24,74 @@ class CreateInstituteDraft {
   final String email;
   final String phone;
   final String address;
-  final String adminEmail;
-  final String adminPassword;
   final String planId;
+  final AcademyStatus status;
   final DateTime? endDate;
 }
 
-class AddInstituteDialog extends StatefulWidget {
-  const AddInstituteDialog({super.key, required this.plans});
+class EditInstituteDialog extends StatefulWidget {
+  const EditInstituteDialog({
+    super.key,
+    required this.institute,
+    required this.plans,
+    required this.initialEndDate,
+  });
 
+  final Institute institute;
   final List<Plan> plans;
+  final DateTime? initialEndDate;
 
-  static Future<CreateInstituteDraft?> show(
+  static Future<EditInstituteDraft?> show(
     BuildContext context, {
+    required Institute institute,
     required List<Plan> plans,
+    required DateTime? initialEndDate,
   }) {
-    return showDialog<CreateInstituteDraft?>(
+    return showDialog<EditInstituteDraft?>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => AddInstituteDialog(plans: plans),
+      builder: (_) => EditInstituteDialog(
+        institute: institute,
+        plans: plans,
+        initialEndDate: initialEndDate,
+      ),
     );
   }
 
   @override
-  State<AddInstituteDialog> createState() => _AddInstituteDialogState();
+  State<EditInstituteDialog> createState() => _EditInstituteDialogState();
 }
 
-class _AddInstituteDialogState extends State<AddInstituteDialog> {
-  final _name = TextEditingController();
-  final _owner = TextEditingController();
-  final _email = TextEditingController();
-  final _phone = TextEditingController();
-  final _address = TextEditingController();
-
-  final _adminEmail = TextEditingController();
-  final _adminPassword = TextEditingController();
+class _EditInstituteDialogState extends State<EditInstituteDialog> {
+  late final TextEditingController _name;
+  late final TextEditingController _owner;
+  late final TextEditingController _email;
+  late final TextEditingController _phone;
+  late final TextEditingController _address;
 
   Plan? _plan;
+  AcademyStatus _status = AcademyStatus.active;
   DateTime? _endDate;
-  bool _showPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final i = widget.institute;
+    _name = TextEditingController(text: i.name);
+    _owner = TextEditingController(text: i.ownerName);
+    _email = TextEditingController(text: i.email);
+    _phone = TextEditingController(text: i.phone);
+    _address = TextEditingController(text: i.address);
+    _status = i.status;
+    _endDate = widget.initialEndDate;
+
+    if (widget.plans.isNotEmpty) {
+      _plan = widget.plans.firstWhere(
+        (p) => p.id == i.planId,
+        orElse: () => widget.plans.first,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -70,15 +100,14 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
     _email.dispose();
     _phone.dispose();
     _address.dispose();
-    _adminEmail.dispose();
-    _adminPassword.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final activePlans = widget.plans.where((p) => p.isActive).toList(growable: false);
+    final activePlans =
+        widget.plans.where((p) => p.isActive).toList(growable: false);
     final endLabel = _endDate == null ? 'Not set' : _fmtDate(_endDate!);
 
     return Dialog(
@@ -86,7 +115,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 820,
+          maxWidth: 860,
           maxHeight: MediaQuery.sizeOf(context).height * 0.90,
         ),
         child: Padding(
@@ -102,7 +131,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Add Institute',
+                          'Edit institute',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.4,
@@ -110,7 +139,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Create a new tenant on EduCore and provision the admin account.',
+                          'Update tenant profile and subscription metadata.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: cs.onSurfaceVariant,
                               ),
@@ -128,9 +157,8 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
               const SizedBox(height: 16),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(right: 4),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _GroupCard(
                         title: 'Institute details',
@@ -196,101 +224,73 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                       ),
                       const SizedBox(height: 12),
                       _GroupCard(
-                        title: 'Institute admin account',
-                        child: Row(
+                        title: 'Access & subscription',
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: AppTextField(
-                                controller: _adminEmail,
-                                label: 'Admin email',
-                                hintText: 'admin@institute.com',
-                                prefixIcon: Icons.admin_panel_settings_rounded,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _adminPassword,
-                                obscureText: !_showPassword,
-                                decoration: InputDecoration(
-                                  labelText: 'Admin password',
-                                  hintText: 'Create a secure password',
-                                  prefixIcon: const Icon(Icons.lock_rounded),
-                                  filled: true,
-                                  fillColor: cs.surface,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 14,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: AppRadii.r12,
-                                    borderSide: BorderSide(color: cs.outlineVariant),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: AppRadii.r12,
-                                    borderSide: BorderSide(color: cs.primary, width: 1.2),
-                                  ),
-                                  suffixIcon: IconButton(
-                                    tooltip: _showPassword ? 'Hide' : 'Show',
-                                    onPressed: () => setState(() => _showPassword = !_showPassword),
-                                    icon: Icon(
-                                      _showPassword
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                    ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppDropdown<AcademyStatus>(
+                                    label: 'Status',
+                                    items: const [
+                                      AcademyStatus.active,
+                                      AcademyStatus.pending,
+                                      AcademyStatus.blocked,
+                                    ],
+                                    value: _status,
+                                    hintText: 'Select status',
+                                    prefixIcon: Icons.shield_rounded,
+                                    itemLabel: (s) => switch (s) {
+                                      AcademyStatus.active => 'Active',
+                                      AcademyStatus.pending => 'Pending',
+                                      AcademyStatus.blocked => 'Blocked',
+                                    },
+                                    onChanged: (v) =>
+                                        setState(() => _status = v ?? _status),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppDropdown<Plan>(
+                                    label: 'Plan',
+                                    items: activePlans,
+                                    value: _plan,
+                                    itemLabel: (p) => p.name,
+                                    onChanged: (v) => setState(() {
+                                      _plan = v;
+                                      _endDate ??=
+                                          DateTime.now().add(const Duration(days: 30));
+                                    }),
+                                    hintText: activePlans.isEmpty
+                                        ? 'No active plans'
+                                        : 'Select plan',
+                                    prefixIcon: Icons.workspace_premium_rounded,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _GroupCard(
-                        title: 'Subscription',
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: AppDropdown<Plan>(
-                                label: 'Plan',
-                                items: activePlans,
-                                value: _plan,
-                                itemLabel: (p) => p.name,
-                                onChanged: (v) => setState(() {
-                                  _plan = v;
-                                  _endDate ??= DateTime.now().add(const Duration(days: 30));
-                                }),
-                                hintText: activePlans.isEmpty
-                                    ? 'No active plans'
-                                    : 'Select plan',
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: _PickTile(
-                                label: 'End date',
-                                value: endLabel,
-                                icon: Icons.event_rounded,
-                                onPick: () async {
-                                  final initial = _endDate ??
-                                      DateTime.now().add(const Duration(days: 30));
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: initial,
-                                    firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                                    lastDate: DateTime.now().add(const Duration(days: 3650)),
-                                  );
-                                  if (picked == null) return;
-                                  if (!context.mounted) return;
-                                  setState(() => _endDate = picked);
-                                },
-                                onClear: _endDate == null
-                                    ? null
-                                    : () => setState(() => _endDate = null),
-                              ),
+                            const SizedBox(height: 12),
+                            _PickTile(
+                              label: 'Subscription end date',
+                              value: endLabel,
+                              icon: Icons.event_rounded,
+                              onPick: () async {
+                                final initial = _endDate ??
+                                    DateTime.now().add(const Duration(days: 30));
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: initial,
+                                  firstDate:
+                                      DateTime.now().subtract(const Duration(days: 1)),
+                                  lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                );
+                                if (picked == null) return;
+                                if (!context.mounted) return;
+                                setState(() => _endDate = picked);
+                              },
+                              onClear: _endDate == null
+                                  ? null
+                                  : () => setState(() => _endDate = null),
                             ),
                           ],
                         ),
@@ -304,7 +304,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      'This creates the academy, an admin user, a global user record, and a subscription record.',
+                      'Changes update `academies/` and `subscriptions/` in real time.',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
@@ -317,7 +317,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                   const SizedBox(width: 10),
                   FilledButton.icon(
                     onPressed: _submit,
-                    icon: const Icon(Icons.add_rounded),
+                    icon: const Icon(Icons.save_rounded),
                     style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       shape: RoundedRectangleBorder(
@@ -328,7 +328,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                         vertical: 14,
                       ),
                     ),
-                    label: const Text('Create institute'),
+                    label: const Text('Save changes'),
                   ),
                 ],
               ),
@@ -345,17 +345,9 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
     final email = _email.text.trim();
     final phone = _phone.text.trim();
     final address = _address.text.trim();
+    final planId = _plan?.id ?? widget.institute.planId;
 
-    final adminEmail = _adminEmail.text.trim();
-    final adminPassword = _adminPassword.text;
-    final planId = _plan?.id ?? '';
-
-    if (name.isEmpty ||
-        owner.isEmpty ||
-        email.isEmpty ||
-        adminEmail.isEmpty ||
-        adminPassword.trim().isEmpty ||
-        planId.trim().isEmpty) {
+    if (name.isEmpty || owner.isEmpty || email.isEmpty || planId.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill required fields.')),
       );
@@ -363,16 +355,49 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
     }
 
     Navigator.of(context).pop(
-      CreateInstituteDraft(
+      EditInstituteDraft(
         name: name,
         ownerName: owner,
         email: email,
         phone: phone,
         address: address,
-        adminEmail: adminEmail,
-        adminPassword: adminPassword,
         planId: planId,
+        status: _status,
         endDate: _endDate,
+      ),
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: AppShadows.soft(Colors.black),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
@@ -467,37 +492,4 @@ String _fmtDate(DateTime value) {
   final m = value.month.toString().padLeft(2, '0');
   final d = value.day.toString().padLeft(2, '0');
   return '$y-$m-$d';
-}
-
-class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r16,
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
 }

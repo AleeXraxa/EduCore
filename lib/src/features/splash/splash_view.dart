@@ -66,8 +66,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       _progress.forward(from: 0),
     ]);
     if (!mounted) return;
-    final stillSignedIn =
-        AppServices.instance.authService?.currentUser != null;
+    final stillSignedIn = AppServices.instance.authService?.currentUser != null;
     Navigator.of(context).pushReplacementNamed(
       stillSignedIn ? AppRoutes.dashboard : AppRoutes.login,
     );
@@ -110,9 +109,9 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(18),
                                       child: Image.asset(
-                                        'assets/images/logo_v1.jpg',
-                                        width: 312,
-                                        height: 312,
+                                        'assets/images/logo_v2.jpg',
+                                        width: 320,
+                                        height: 320,
                                         fit: BoxFit.cover,
                                       ),
                                     ),

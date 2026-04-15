@@ -1,7 +1,10 @@
 import 'package:educore/src/app/shell/app_shell.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
+import 'package:educore/src/core/models/payment_record.dart';
+import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/features/dashboard/dashboard_controller.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
 import 'package:educore/src/features/features/features_view.dart';
 import 'package:educore/src/features/institutes/institutes_view.dart';
@@ -195,63 +198,117 @@ class _DashboardHomeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = screenSizeForWidth(constraints.maxWidth);
-        final columns = switch (size) {
-          ScreenSize.compact => 1,
-          ScreenSize.medium => 2,
-          ScreenSize.expanded => 4,
-        };
+    return const _DashboardHomeBodyStateful();
+  }
+}
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeaderRow(),
-              const SizedBox(height: 16),
-              _KpiGrid(columns: columns),
-              const SizedBox(height: 24),
-              _SectionTitle(
-                title: 'Analytics',
-                subtitle: 'Revenue and institute growth at a glance.',
-              ),
-              const SizedBox(height: 12),
-              Flex(
-                direction:
-                    size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
+class _DashboardHomeBodyStateful extends StatefulWidget {
+  const _DashboardHomeBodyStateful();
+
+  @override
+  State<_DashboardHomeBodyStateful> createState() =>
+      _DashboardHomeBodyStatefulState();
+}
+
+class _DashboardHomeBodyStatefulState extends State<_DashboardHomeBodyStateful> {
+  late final DashboardController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = DashboardController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ControllerBuilder<DashboardController>(
+      controller: _controller,
+      builder: (context, controller, _) {
+        if (!controller.ready) {
+          return _NotReadyPanel(
+            busy: controller.busy,
+            message: controller.errorMessage,
+            onRetry: controller.retryInit,
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final size = screenSizeForWidth(constraints.maxWidth);
+            final columns = switch (size) {
+              ScreenSize.compact => 1,
+              ScreenSize.medium => 2,
+              ScreenSize.expanded => 4,
+            };
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: AppCard(child: _RevenueChart())),
-                  SizedBox(
-                    width: size == ScreenSize.compact ? 0 : 16,
-                    height: size == ScreenSize.compact ? 16 : 0,
+                  _HeaderRow(),
+                  const SizedBox(height: 16),
+                  _KpiGrid(columns: columns, kpis: controller.kpis),
+                  const SizedBox(height: 24),
+                  _SectionTitle(
+                    title: 'Analytics',
+                    subtitle: 'Revenue and institute growth at a glance.',
                   ),
-                  Expanded(child: AppCard(child: _GrowthChart())),
+                  const SizedBox(height: 12),
+                  Flex(
+                    direction: size == ScreenSize.compact
+                        ? Axis.vertical
+                        : Axis.horizontal,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: AppCard(child: _RevenueChart())),
+                      SizedBox(
+                        width: size == ScreenSize.compact ? 0 : 16,
+                        height: size == ScreenSize.compact ? 16 : 0,
+                      ),
+                      Expanded(child: AppCard(child: _GrowthChart())),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _SectionTitle(
+                    title: 'Operations',
+                    subtitle: 'Recent activity and pending approvals.',
+                  ),
+                  const SizedBox(height: 12),
+                  Flex(
+                    direction: size == ScreenSize.compact
+                        ? Axis.vertical
+                        : Axis.horizontal,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppCard(
+                          child: _ActivityList(items: controller.recentActivity),
+                        ),
+                      ),
+                      SizedBox(
+                        width: size == ScreenSize.compact ? 0 : 16,
+                        height: size == ScreenSize.compact ? 16 : 0,
+                      ),
+                      Expanded(
+                        child: AppCard(
+                          child: _PendingPaymentsTable(
+                            items: controller.pendingPaymentsTop,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-              _SectionTitle(
-                title: 'Operations',
-                subtitle: 'Recent activity and pending approvals.',
-              ),
-              const SizedBox(height: 12),
-              Flex(
-                direction:
-                    size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: AppCard(child: _ActivityList())),
-                  SizedBox(
-                    width: size == ScreenSize.compact ? 0 : 16,
-                    height: size == ScreenSize.compact ? 16 : 0,
-                  ),
-                  Expanded(child: AppCard(child: _PendingPaymentsTable())),
-                ],
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -307,36 +364,37 @@ class _HeaderRow extends StatelessWidget {
 }
 
 class _KpiGrid extends StatelessWidget {
-  const _KpiGrid({required this.columns});
+  const _KpiGrid({required this.columns, required this.kpis});
 
   final int columns;
+  final DashboardKpis kpis;
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
+    final items = [
       _KpiData(
         'Total Institutes',
-        '68',
+        _fmtInt(kpis.totalInstitutes),
         Icons.apartment_rounded,
-        [Color(0xFF2563EB), Color(0xFF6366F1)],
+        const [Color(0xFF2563EB), Color(0xFF6366F1)],
       ),
       _KpiData(
         'Active Subscriptions',
-        '52',
+        _fmtInt(kpis.activeSubscriptions),
         Icons.verified_rounded,
-        [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
       ),
       _KpiData(
         'Monthly Revenue',
-        'PKR 420k',
+        'PKR ${_fmtInt(kpis.monthlyRevenuePkr)}',
         Icons.payments_rounded,
-        [Color(0xFF2563EB), Color(0xFF8B5CF6)],
+        const [Color(0xFF2563EB), Color(0xFF8B5CF6)],
       ),
       _KpiData(
         'Pending Payments',
-        '14',
+        _fmtInt(kpis.pendingPayments),
         Icons.pending_actions_rounded,
-        [Color(0xFF1D4ED8), Color(0xFF6366F1)],
+        const [Color(0xFF1D4ED8), Color(0xFF6366F1)],
       ),
     ];
 
@@ -749,6 +807,9 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _ActivityList extends StatelessWidget {
+  const _ActivityList({required this.items});
+
+  final List<DashboardActivityItem> items;
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -763,6 +824,30 @@ class _ActivityList extends StatelessWidget {
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Text(
+              'No recent activity yet.',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        if (items.isNotEmpty) ...[
+          for (var i = 0; i < items.length; i++) ...[
+            _ActivityRow(
+              icon: _activityIcon(items[i].kind),
+              title: items[i].title,
+              subtitle: items[i].subtitle,
+              time: _fmtAgo(items[i].time),
+              tint: _activityTint(cs, items[i].kind),
+            ),
+            if (i != items.length - 1) const SizedBox(height: 10),
+          ],
+        ],
+        if (false) ...[
         _ActivityRow(
           icon: Icons.verified_rounded,
           title: 'Subscription approved',
@@ -786,6 +871,7 @@ class _ActivityList extends StatelessWidget {
           time: '1h ago',
           tint: cs.tertiary,
         ),
+        ],
       ],
     );
   }
@@ -854,6 +940,10 @@ class _ActivityRow extends StatelessWidget {
 }
 
 class _PendingPaymentsTable extends StatelessWidget {
+  const _PendingPaymentsTable({required this.items});
+
+  final List<DashboardPendingPaymentItem> items;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -882,11 +972,34 @@ class _PendingPaymentsTable extends StatelessWidget {
         const SizedBox(height: 12),
         _TableHeader(),
         const SizedBox(height: 6),
+        if (items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Text(
+              'No pending payments.',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        if (items.isNotEmpty) ...[
+          for (var i = 0; i < items.length.clamp(0, 3); i++) ...[
+            _TableRow(
+              name: items[i].instituteName,
+              amount: 'PKR ${_fmtInt(items[i].amountPkr)}',
+              status: _paymentStatusLabel(items[i].status),
+            ),
+            if (i != items.length.clamp(0, 3) - 1) const SizedBox(height: 6),
+          ],
+        ],
+        if (false) ...[
         _TableRow(name: 'Green Valley', amount: 'PKR 18,000', status: 'Pending'),
         const SizedBox(height: 6),
         _TableRow(name: 'City School', amount: 'PKR 12,500', status: 'Review'),
         const SizedBox(height: 6),
         _TableRow(name: 'Apex Institute', amount: 'PKR 21,000', status: 'Pending'),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [
@@ -1012,4 +1125,132 @@ class _TableRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NotReadyPanel extends StatelessWidget {
+  const _NotReadyPanel({
+    this.busy = false,
+    this.message,
+    required this.onRetry,
+  });
+
+  final bool busy;
+  final String? message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: AppCard(
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.cloud_off_rounded, color: cs.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    busy ? 'Initializing Firebase…' : 'Firestore not ready',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message?.trim().isNotEmpty == true
+                        ? message!.trim()
+                        : 'Dashboard requires Firebase Firestore. Initialize Firebase to enable this module.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: busy ? null : () async => onRetry(),
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+IconData _activityIcon(String kind) {
+  switch (kind) {
+    case 'academy_created':
+      return Icons.add_business_rounded;
+    case 'payment_pending':
+      return Icons.receipt_long_rounded;
+    case 'subscription':
+    default:
+      return Icons.verified_rounded;
+  }
+}
+
+Color _activityTint(ColorScheme cs, String kind) {
+  return switch (kind) {
+    'academy_created' => cs.primary,
+    'payment_pending' => cs.secondary,
+    'subscription' => cs.tertiary,
+    _ => cs.primary,
+  };
+}
+
+String _fmtAgo(DateTime value) {
+  final d = DateTime.now().difference(value);
+  if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+  if (d.inHours < 24) return '${d.inHours}h ago';
+  return '${d.inDays}d ago';
+}
+
+String _paymentStatusLabel(PaymentReviewStatus status) {
+  return switch (status) {
+    PaymentReviewStatus.pending => 'Pending',
+    PaymentReviewStatus.approved => 'Approved',
+    PaymentReviewStatus.rejected => 'Rejected',
+  };
+}
+
+String _fmtInt(int v) {
+  final s = v.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    final idx = s.length - i;
+    buf.write(s[i]);
+    if (idx > 1 && idx % 3 == 1) buf.write(',');
+  }
+  return buf.toString();
 }

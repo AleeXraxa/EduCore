@@ -99,6 +99,13 @@ class InstituteService {
         .map((snap) => snap.docs.map(Academy.fromDoc).toList(growable: false));
   }
 
+  Stream<Academy?> watchAcademy(String academyId) {
+    return _academies.doc(academyId).snapshots().map((snap) {
+      if (!snap.exists) return null;
+      return Academy.fromDoc(snap);
+    });
+  }
+
   Future<String> generateAcademyId(String name) async {
     final base = _sanitizeAcademyId(name);
     final candidateBase = base.isEmpty ? 'academy' : base;
@@ -124,6 +131,7 @@ class InstituteService {
     required String adminEmail,
     required String adminPassword,
     required String planId,
+    DateTime? endDate,
   }) async {
     final superUid = _primaryAuth.currentUser?.uid;
     if (superUid == null) {
@@ -154,6 +162,8 @@ class InstituteService {
           academyRef.collection('system').doc('bootstrap');
 
       final now = FieldValue.serverTimestamp();
+      final startDate = Timestamp.fromDate(DateTime.now());
+      final endTs = endDate == null ? null : Timestamp.fromDate(endDate);
       final batch = _firestore.batch();
 
       batch.set(academyRef, {
@@ -188,8 +198,8 @@ class InstituteService {
         'academyId': academyId,
         'planId': planId.trim(),
         'status': 'active',
-        'startDate': now,
-        'endDate': null,
+        'startDate': startDate,
+        'endDate': endTs,
         'overrides': <String, dynamic>{},
         'createdAt': now,
         'updatedAt': now,
@@ -260,6 +270,19 @@ class InstituteService {
 
   Future<void> setAcademyStatus(String academyId, AcademyStatus status) async {
     await _academies.doc(academyId).update({'status': status.value});
+  }
+
+  Future<void> setPlan(String academyId, String planId) async {
+    final clean = planId.trim();
+    if (clean.isEmpty) return;
+
+    final batch = _firestore.batch();
+    batch.update(_academies.doc(academyId), {'planId': clean});
+    batch.update(_subscriptions.doc(academyId), {
+      'planId': clean,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
   }
 
   Future<void> assignPlan({

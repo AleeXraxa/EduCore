@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/notifications/models/admin_notification.dart';
 import 'package:educore/src/features/notifications/widgets/notification_status_badge.dart';
@@ -57,19 +56,17 @@ class NotificationDetailsDialog extends StatelessWidget {
                       children: [
                         Text(
                           'Notification details',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Review message, target, and delivery status.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -92,15 +89,15 @@ class NotificationDetailsDialog extends StatelessWidget {
                         Expanded(
                           child: Text(
                             notification.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
                         AdminNotificationTypePill(type: notification.type),
                         const SizedBox(width: 10),
-                        AdminNotificationStatusBadge(status: notification.status),
+                        AdminNotificationStatusBadge(
+                          status: notification.status,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -108,21 +105,24 @@ class NotificationDetailsDialog extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest.withValues(alpha: 0.30),
+                        color: cs.surfaceContainerHighest.withValues(
+                          alpha: 0.30,
+                        ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: cs.outlineVariant),
                       ),
                       child: Text(
                         notification.message,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              height: 1.45,
-                            ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(height: 1.45),
                       ),
                     ),
                     const SizedBox(height: 14),
                     _KV(
                       label: 'Target',
-                      value: notification.audience ==
+                      value:
+                          notification.audience ==
                               AdminNotificationAudience.allInstitutes
                           ? 'All institutes'
                           : '${notification.targets.length} institutes',
@@ -149,9 +149,9 @@ class NotificationDetailsDialog extends StatelessWidget {
                     child: Text(
                       'Resend creates a new delivery attempt with the same content.',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -209,9 +209,9 @@ class _KV extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         Expanded(
@@ -219,9 +219,9 @@ class _KV extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -236,4 +236,3 @@ String _fmtDateTime(DateTime d) {
   final mi = d.minute.toString().padLeft(2, '0');
   return '${d.year}-$mm-$dd • $hh:$mi';
 }
-
