@@ -8,6 +8,7 @@ import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/notifications/notifications_controller.dart';
 import 'package:educore/src/features/notifications/widgets/create_notification_dialog.dart';
 import 'package:educore/src/features/notifications/widgets/notifications_table.dart';
+import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:flutter/material.dart';
 
 class NotificationsView extends StatefulWidget {
@@ -136,19 +137,16 @@ class _NotificationsViewState extends State<NotificationsView> {
                     child: AppKpiGrid(columns: kpiCols, items: kpis),
                   ),
                   const SizedBox(height: 24),
-                  AppAnimatedSlide(
-                    delayIndex: 2,
-                    child: controller.isLoading
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 48),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        : NotificationsTable(
-                            notifications: controller.notifications,
-                            onDelete: controller.deleteNotification,
-                          ),
+                  AppLoadingOverlay(
+                    isLoading: controller.busy,
+                    message: 'Broadcasting Messages',
+                    child: AppAnimatedSlide(
+                      delayIndex: 2,
+                      child: NotificationsTable(
+                        notifications: controller.notifications,
+                        onDelete: controller.deleteNotification,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   AppAnimatedSlide(

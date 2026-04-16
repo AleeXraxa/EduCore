@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/notifications/models/app_notification.dart';
-import 'package:flutter/material.dart';
+import 'package:educore/src/core/mvc/base_controller.dart';
 
-class NotificationsController extends ChangeNotifier {
+class NotificationsController extends BaseController {
   NotificationsController() {
     _init();
   }
@@ -18,9 +18,6 @@ class NotificationsController extends ChangeNotifier {
   List<Academy> _academies = [];
   List<Academy> get academies => _academies;
 
-  bool _isLoading = true;
-  bool get isLoading => _isLoading;
-
   bool _isSending = false;
   bool get isSending => _isSending;
 
@@ -28,9 +25,10 @@ class NotificationsController extends ChangeNotifier {
   StreamSubscription? _academiesSub;
 
   void _init() {
+    setBusy(true);
     _notificationsSub = _service?.watchNotifications().listen((data) {
       _notifications = data;
-      _isLoading = false;
+      setBusy(false);
       notifyListeners();
     });
 

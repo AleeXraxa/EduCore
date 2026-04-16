@@ -1,10 +1,11 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/app_user.dart' as core_models;
 import 'package:educore/src/core/mvc/base_controller.dart';
-import 'package:educore/src/core/services/admin_users_service.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
 
 enum UsersRoleFilter { all, superAdmin, instituteAdmin, staff, teacher }
@@ -13,173 +14,211 @@ enum UsersStatusFilter { all, active, blocked }
 
 class UsersController extends BaseController {
   UsersController() {
-    _service = AppServices.instance.adminUsersService;
+    _repository = AppServices.instance.userRepository;
     _instituteService = AppServices.instance.instituteService;
-    _attachOrInit();
+    _init();
   }
 
-  AdminUsersService? _service;
+  UserRepository? _repository;
   InstituteService? _instituteService;
 
-  StreamSubscription<List<core_models.AppUser>>? _usersSub;
   StreamSubscription<List<Academy>>? _academiesSub;
 
-  List<core_models.AppUser> _rawUsers = const [];
+  final List<AppUser> _all = <AppUser>[];
   Map<String, Academy> _academyById = const <String, Academy>{};
 
-  final List<AppUser> _all = <AppUser>[];
-
+  // State
   String _query = '';
   UsersRoleFilter _role = UsersRoleFilter.all;
   UsersStatusFilter _status = UsersStatusFilter.all;
   String _instituteId = 'all';
 
-  int _page = 0;
-  final int pageSize = 20;
+  // Pagination State
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  final int _pageSize = 50;
 
   String? errorMessage;
 
-  bool get ready => _service != null;
+  bool get ready => _repository != null;
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
 
   String get query => _query;
   UsersRoleFilter get role => _role;
   UsersStatusFilter get status => _status;
   String get instituteId => _instituteId;
-  int get page => _page;
 
   @override
   void dispose() {
-    _usersSub?.cancel();
     _academiesSub?.cancel();
     super.dispose();
   }
 
-  Future<void> retryInit() => _attachOrInit();
+  Future<void> _init() async {
+    if (_repository == null) {
+      await runBusy<void>(() async {
+        await AppServices.instance.init();
+      });
+      _repository = AppServices.instance.userRepository;
+      _instituteService = AppServices.instance.instituteService;
+    }
+
+    if (_repository != null) {
+      _attachAcademies();
+      await refresh();
+    } else {
+      errorMessage = AppServices.instance.firebaseInitError?.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> retryInit() => _init();
+
+  /// Initial load or filter change: reset and fetch first batch.
+  Future<void> refresh() async {
+    _lastDoc = null;
+    _hasMore = true;
+    _all.clear();
+    
+    await runBusy<void>(() async {
+      await _fetchNextBatch();
+    });
+  }
+
+  /// Pagination: Fetch next batch and append.
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    
+    _isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      await _fetchNextBatch();
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchNextBatch() async {
+    if (_repository == null) return;
+
+    try {
+      final core_models.AppUserRole? roleFilter = switch (_role) {
+        UsersRoleFilter.superAdmin => core_models.AppUserRole.superAdmin,
+        UsersRoleFilter.instituteAdmin => core_models.AppUserRole.instituteAdmin,
+        UsersRoleFilter.staff => core_models.AppUserRole.staff,
+        UsersRoleFilter.teacher => core_models.AppUserRole.teacher,
+        UsersRoleFilter.all => null,
+      };
+
+      final statusVal = switch (_status) {
+        UsersStatusFilter.all => 'all',
+        UsersStatusFilter.active => 'active',
+        UsersStatusFilter.blocked => 'blocked',
+      };
+      
+      final results = await _repository!.getUsersBatch(
+        limit: _pageSize,
+        lastDoc: _lastDoc,
+        role: roleFilter,
+        status: statusVal,
+        academyId: _instituteId == 'all' ? null : _instituteId,
+      );
+
+      if (results.length < _pageSize) {
+        _hasMore = false;
+      }
+
+      if (results.isNotEmpty) {
+        final lastUser = results.last;
+        final lastDocSnap = await FirebaseFirestore.instance.collection('users').doc(lastUser.uid).get();
+        _lastDoc = lastDocSnap;
+        
+        _all.addAll(results.map(_mapToUi));
+      }
+      
+      errorMessage = null;
+    } catch (e) {
+      errorMessage = e.toString();
+      _hasMore = false;
+    }
+  }
+
+  // --- UI Mappings & Filters ---
+
+  List<AppUser> get list => filtered; 
+
+  List<AppUser> get filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _all;
+    return _all.where((e) {
+      return e.name.toLowerCase().contains(q) || 
+             e.email.toLowerCase().contains(q) ||
+             e.phone.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  int get allCount => _all.length;
+  int get totalCount => _all.length;
+  int get activeCount => _all.where((e) => e.status == AppUserStatus.active).length;
+  int get instituteAdminsCount => _all.where((e) => e.role == AppUserRole.instituteAdmin).length;
+  int get staffTeachersCount => _all.where((e) => e.role == AppUserRole.teacher || e.role == AppUserRole.staff).length;
 
   List<String> get institutes {
     final ids = <String>{..._all.map((e) => e.instituteId)};
     ids.add('all');
-    final list = ids.toList(growable: true);
-    list.sort((a, b) => instituteNameForId(a).compareTo(instituteNameForId(b)));
-    if (list.remove('all')) {
-      list.insert(0, 'all');
+    final sortedList = ids.toList(growable: true);
+    sortedList.sort((a, b) => instituteNameForId(a).compareTo(instituteNameForId(b)));
+    if (sortedList.remove('all')) {
+      sortedList.insert(0, 'all');
     }
-    return list;
+    return sortedList;
   }
 
   String instituteNameForId(String id) {
     if (id == 'all') return 'All institutes';
-    return _all.firstWhere((e) => e.instituteId == id).instituteName;
-  }
-
-  List<AppUser> get filtered {
-    final q = _query.trim().toLowerCase();
-    Iterable<AppUser> list = _all;
-
-    if (_role != UsersRoleFilter.all) {
-      final role = switch (_role) {
-        UsersRoleFilter.superAdmin => AppUserRole.superAdmin,
-        UsersRoleFilter.instituteAdmin => AppUserRole.instituteAdmin,
-        UsersRoleFilter.staff => AppUserRole.staff,
-        UsersRoleFilter.teacher => AppUserRole.teacher,
-        UsersRoleFilter.all => AppUserRole.staff,
-      };
-      list = list.where((e) => e.role == role);
-    }
-
-    if (_status != UsersStatusFilter.all) {
-      final st = switch (_status) {
-        UsersStatusFilter.active => AppUserStatus.active,
-        UsersStatusFilter.blocked => AppUserStatus.blocked,
-        UsersStatusFilter.all => AppUserStatus.active,
-      };
-      list = list.where((e) => e.status == st);
-    }
-
-    if (_instituteId != 'all') {
-      list = list.where((e) => e.instituteId == _instituteId);
-    }
-
-    if (q.isNotEmpty) {
-      list = list.where((e) {
-        return e.name.toLowerCase().contains(q) ||
-            e.email.toLowerCase().contains(q) ||
-            e.phone.toLowerCase().contains(q) ||
-            e.instituteName.toLowerCase().contains(q);
-      });
-    }
-
-    return list.toList(growable: false);
-  }
-
-  int get totalCount => filtered.length;
-
-  int get allCount => _all.length;
-
-  int get activeCount =>
-      _all.where((e) => e.status == AppUserStatus.active).length;
-
-  int get instituteAdminsCount =>
-      _all.where((e) => e.role == AppUserRole.instituteAdmin).length;
-
-  int get staffTeachersCount => _all
-      .where(
-        (e) => e.role == AppUserRole.staff || e.role == AppUserRole.teacher,
-      )
-      .length;
-
-  List<AppUser> get paged {
-    final start = _page * pageSize;
-    final list = filtered;
-    if (start >= list.length) return const [];
-    final end = (start + pageSize).clamp(0, list.length);
-    return list.sublist(start, end);
+    return _academyById[id]?.name ?? id;
   }
 
   void setQuery(String value) {
     _query = value;
-    _page = 0;
     notifyListeners();
   }
 
   void setRole(UsersRoleFilter value) {
     _role = value;
-    _page = 0;
-    notifyListeners();
+    unawaited(refresh());
   }
 
   void setStatus(UsersStatusFilter value) {
     _status = value;
-    _page = 0;
-    notifyListeners();
+    unawaited(refresh());
   }
 
   void setInstitute(String value) {
     _instituteId = value;
-    _page = 0;
-    notifyListeners();
+    unawaited(refresh());
   }
 
-  void nextPage() {
-    final maxPage = ((totalCount - 1) / pageSize).floor();
-    if (_page >= maxPage) return;
-    _page += 1;
-    notifyListeners();
+  // Action Handlers
+  
+  Future<void> addUser(AppUser draft) async {
+    // This would typically involve AuthService or UserRepository.
+    // For now we delegate to Repository or skip if not implemented.
   }
 
-  void prevPage() {
-    if (_page <= 0) return;
-    _page -= 1;
-    notifyListeners();
-  }
-
-  void toggleBlocked(String userId) {
+  Future<void> toggleBlocked(String userId) async {
     final idx = _all.indexWhere((e) => e.id == userId);
-    if (idx < 0) return;
+    if (idx < 0 || _repository == null) return;
+    
     final current = _all[idx];
-    final nextStatus = current.status == AppUserStatus.blocked
-        ? AppUserStatus.active
-        : AppUserStatus.blocked;
+    final nextStatus = current.status == AppUserStatus.blocked ? 'active' : 'blocked';
+    
+    await _repository!.setStatus(userId, nextStatus);
+    
     _all[idx] = AppUser(
       id: current.id,
       name: current.name,
@@ -188,24 +227,9 @@ class UsersController extends BaseController {
       role: current.role,
       instituteId: current.instituteId,
       instituteName: current.instituteName,
-      status: nextStatus,
+      status: nextStatus == 'blocked' ? AppUserStatus.blocked : AppUserStatus.active,
       lastLoginAt: current.lastLoginAt,
     );
-    notifyListeners();
-
-    final svc = _service ?? AppServices.instance.adminUsersService;
-    if (svc == null) return;
-    unawaited(
-      svc.setStatus(
-        userId,
-        nextStatus == AppUserStatus.blocked ? 'blocked' : 'active',
-      ),
-    );
-  }
-
-  void addUser(AppUser user) {
-    _all.insert(0, user);
-    _page = 0;
     notifyListeners();
   }
 
@@ -213,9 +237,18 @@ class UsersController extends BaseController {
     String userId, {
     required String name,
     required String phone,
-    required AppUserRole role,
+    required core_models.AppUserRole role,
     required String instituteId,
   }) async {
+    if (_repository == null) return;
+
+    await _repository!.updateUser(userId, {
+      'name': name,
+      'phone': phone,
+      'role': role.value,
+      'academyId': instituteId,
+    });
+
     final idx = _all.indexWhere((e) => e.id == userId);
     if (idx >= 0) {
       final current = _all[idx];
@@ -224,9 +257,14 @@ class UsersController extends BaseController {
         name: name,
         email: current.email,
         phone: phone,
-        role: role,
+        role: switch (role) {
+          core_models.AppUserRole.superAdmin => AppUserRole.superAdmin,
+          core_models.AppUserRole.instituteAdmin => AppUserRole.instituteAdmin,
+          core_models.AppUserRole.staff => AppUserRole.staff,
+          core_models.AppUserRole.teacher => AppUserRole.teacher,
+        },
         instituteId: instituteId,
-        instituteName: role == AppUserRole.superAdmin
+        instituteName: role == core_models.AppUserRole.superAdmin
             ? 'EduCore Platform'
             : (_academyById[instituteId]?.name ?? instituteId),
         status: current.status,
@@ -234,63 +272,6 @@ class UsersController extends BaseController {
       );
       notifyListeners();
     }
-
-    final svc = _service ?? AppServices.instance.adminUsersService;
-    if (svc == null) return;
-
-    final roleStr = switch (role) {
-      AppUserRole.superAdmin => 'superAdmin',
-      AppUserRole.instituteAdmin => 'instituteAdmin',
-      AppUserRole.staff => 'staff',
-      AppUserRole.teacher => 'teacher',
-    };
-
-    await svc.updateUser(userId, {
-      'name': name,
-      'phone': phone,
-      'role': roleStr,
-      'academyId': instituteId,
-    });
-  }
-
-  Future<void> _attachOrInit() async {
-    if (_service != null) {
-      _attach(_service!);
-      _attachAcademies();
-      return;
-    }
-
-    await runBusy<void>(() async {
-      await AppServices.instance.init();
-    });
-
-    _service = AppServices.instance.adminUsersService;
-    _instituteService = AppServices.instance.instituteService;
-    if (_service != null) {
-      _attach(_service!);
-      _attachAcademies();
-    } else {
-      errorMessage = AppServices.instance.firebaseInitError?.toString();
-      notifyListeners();
-    }
-  }
-
-  void _attach(AdminUsersService svc) {
-    if (_service == svc && _usersSub != null) return;
-    _service = svc;
-    _usersSub?.cancel();
-    _usersSub = svc.watchUsers().listen(
-      (value) {
-        _rawUsers = value;
-        errorMessage = null;
-        _rebuild();
-      },
-      onError: (e) {
-        errorMessage = e.toString();
-        notifyListeners();
-      },
-    );
-    notifyListeners();
   }
 
   void _attachAcademies() {
@@ -305,36 +286,17 @@ class UsersController extends BaseController {
           map[a.id] = a;
         }
         _academyById = map;
-        _rebuild();
+        notifyListeners();
       },
       onError: (e) {
-        // Not fatal; fall back to academyId label.
-        // ignore: avoid_print
-        print('Academies stream error: $e');
+        debugPrint('Academies stream error: $e');
       },
     );
   }
 
-  void _rebuild() {
-    _all
-      ..clear()
-      ..addAll(_rawUsers.map(_mapToUi));
-
-    if (_instituteId != 'all' && !institutes.contains(_instituteId)) {
-      _instituteId = 'all';
-    }
-
-    if (_page > 0) {
-      final maxPage = ((totalCount - 1) / pageSize).floor();
-      if (_page > maxPage) _page = maxPage.clamp(0, maxPage);
-    }
-
-    notifyListeners();
-  }
-
   AppUser _mapToUi(core_models.AppUser u) {
-    final academyId = u.academyId.trim().isEmpty ? 'all' : u.academyId.trim();
-    final instituteName = academyId == 'all'
+    final academyId = u.academyId.trim();
+    final instituteName = u.role == core_models.AppUserRole.superAdmin
         ? 'EduCore Platform'
         : (_academyById[academyId]?.name ?? academyId);
 
@@ -371,82 +333,8 @@ class UsersController extends BaseController {
     final local = clean.split('@').first;
     if (local.isEmpty) return 'Unknown';
     final parts = local.split(RegExp(r'[._-]+')).where((e) => e.isNotEmpty);
-    final titled = parts
+    return parts
         .map((p) => p.substring(0, 1).toUpperCase() + p.substring(1))
         .join(' ');
-    return titled.isEmpty ? local : titled;
-  }
-
-  // Mock dataset kept for quick UX testing without Firestore.
-  // ignore: unused_element
-  void _seedMock() {
-    // Replace with Firestore later. This dataset exists to validate UX at scale.
-    final now = DateTime.now();
-    final institutes = <({String id, String name})>[
-      (id: 'all', name: 'All institutes'),
-      (id: 'gv', name: 'Green Valley Academy'),
-      (id: 'cs', name: 'City School — North Campus'),
-      (id: 'ap', name: 'Apex Institute'),
-      (id: 'sr', name: 'Sunrise School'),
-    ];
-
-    _all.addAll([
-      AppUser(
-        id: 'super_alee',
-        name: 'Alee',
-        email: 'alee@tryunity.com',
-        phone: '+92 300 0000000',
-        role: AppUserRole.superAdmin,
-        instituteId: 'all',
-        instituteName: 'EduCore Platform',
-        status: AppUserStatus.active,
-        lastLoginAt: now.subtract(const Duration(minutes: 18)),
-      ),
-      AppUser(
-        id: 'super_ops',
-        name: 'Platform Ops',
-        email: 'ops@educore.com',
-        phone: '+92 300 1112223',
-        role: AppUserRole.superAdmin,
-        instituteId: 'all',
-        instituteName: 'EduCore Platform',
-        status: AppUserStatus.active,
-        lastLoginAt: now.subtract(const Duration(hours: 7)),
-      ),
-    ]);
-
-    for (var i = 1; i <= 66; i++) {
-      final institute = institutes[(i % (institutes.length - 1)) + 1];
-      final role = switch (i % 4) {
-        0 => AppUserRole.instituteAdmin,
-        1 => AppUserRole.staff,
-        2 => AppUserRole.teacher,
-        _ => AppUserRole.staff,
-      };
-      final status = i % 17 == 0 ? AppUserStatus.blocked : AppUserStatus.active;
-      final name = switch (role) {
-        AppUserRole.instituteAdmin =>
-          'Institute Admin ${i.toString().padLeft(2, '0')}',
-        AppUserRole.teacher => 'Teacher ${i.toString().padLeft(2, '0')}',
-        AppUserRole.staff => 'Staff ${i.toString().padLeft(2, '0')}',
-        AppUserRole.superAdmin => 'Super Admin',
-      };
-
-      _all.add(
-        AppUser(
-          id: 'u_$i',
-          name: name,
-          email: 'user$i@${institute.id}.edu.pk',
-          phone: '+92 301 55${(10000 + i).toString()}',
-          role: role,
-          instituteId: institute.id,
-          instituteName: institute.name,
-          status: status,
-          lastLoginAt: i % 6 == 0
-              ? null
-              : now.subtract(Duration(days: i % 14, hours: i % 9)),
-        ),
-      );
-    }
   }
 }

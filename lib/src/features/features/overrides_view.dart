@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
@@ -90,17 +89,17 @@ class _Header extends StatelessWidget {
               Text(
                 'Feature Overrides',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.8,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.8,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Customize feature access for specific institutes independently of their plan.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -207,10 +206,10 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                  letterSpacing: 2.0,
-                ),
+              fontWeight: FontWeight.w900,
+              color: color,
+              letterSpacing: 2.0,
+            ),
           ),
           const SizedBox(width: 12),
           Container(
@@ -255,10 +254,7 @@ class _FeatureGrid extends StatelessWidget {
       ),
       itemCount: features.length,
       itemBuilder: (context, i) {
-        return _FeatureCard(
-          feature: features[i],
-          controller: controller,
-        );
+        return _FeatureCard(feature: features[i], controller: controller);
       },
     );
   }
@@ -321,9 +317,9 @@ class _FeatureCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        height: 1.3,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -410,9 +406,10 @@ class _ToggleSwitch extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2))
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 ),
                 alignment: Alignment.center,
@@ -420,14 +417,14 @@ class _ToggleSwitch extends StatelessWidget {
                   value == null
                       ? Icons.remove_rounded
                       : (value == true
-                          ? Icons.check_rounded
-                          : Icons.close_rounded),
+                            ? Icons.check_rounded
+                            : Icons.close_rounded),
                   size: 16,
                   color: value == null
                       ? cs.onSurfaceVariant
                       : (value == true
-                          ? Colors.green.shade700
-                          : Colors.red.shade700),
+                            ? Colors.green.shade700
+                            : Colors.red.shade700),
                 ),
               ),
             ),
@@ -474,26 +471,29 @@ class _SelectInstitutePlaceholder extends StatelessWidget {
               color: cs.primary.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.tune_rounded,
-                size: 64, color: cs.primary.withValues(alpha: 0.3)),
+            child: Icon(
+              Icons.tune_rounded,
+              size: 64,
+              color: cs.primary.withValues(alpha: 0.3),
+            ),
           ),
           const SizedBox(height: 24),
           Text(
             'Target Institute Selection',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: cs.onSurface,
-                  letterSpacing: -1.0,
-                ),
+              fontWeight: FontWeight.w900,
+              color: cs.onSurface,
+              letterSpacing: -1.0,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Select an academy from the dropdown above\nto manage its feature overrides independently.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

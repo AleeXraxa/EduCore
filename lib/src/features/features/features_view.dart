@@ -3,7 +3,6 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
-import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
@@ -112,9 +111,7 @@ class _FeaturesViewState extends State<FeaturesView> {
                           children: [
                             Text(
                               'Feature Management',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
+                              style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -0.8,
@@ -123,9 +120,7 @@ class _FeaturesViewState extends State<FeaturesView> {
                             const SizedBox(height: 6),
                             Text(
                               'Control system-wide feature access and plan capabilities.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     color: cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w600,
@@ -149,13 +144,15 @@ class _FeaturesViewState extends State<FeaturesView> {
                             : () async {
                                 final created =
                                     await BulkImportFeaturesDialog.show(
-                                  context,
-                                  groups: controller.groups,
-                                );
+                                      context,
+                                      groups: controller.groups,
+                                    );
                                 if (created == null || created.isEmpty) return;
                                 try {
-                                  AppDialogs.showLoading(context,
-                                      message: 'Importing features...');
+                                  AppDialogs.showLoading(
+                                    context,
+                                    message: 'Importing features...',
+                                  );
                                   await controller.createFeaturesBulk(created);
                                   if (!context.mounted) return;
                                   AppDialogs.hide(context);
@@ -190,8 +187,10 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 );
                                 if (created == null) return;
                                 try {
-                                  AppDialogs.showLoading(context,
-                                      message: 'Adding feature...');
+                                  AppDialogs.showLoading(
+                                    context,
+                                    message: 'Adding feature...',
+                                  );
                                   await controller.createFeature(created);
                                   if (!context.mounted) return;
                                   AppDialogs.hide(context);
@@ -230,9 +229,9 @@ class _FeaturesViewState extends State<FeaturesView> {
                     child: Text(
                       controller.errorMessage!,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: const Color(0xFFB91C1C),
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: const Color(0xFFB91C1C),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 AppAnimatedSlide(
@@ -257,10 +256,10 @@ class _FeaturesViewState extends State<FeaturesView> {
                     Text(
                       'TIP: Keep keys stable to avoid breaking plan assignments.',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ],
                 ),
@@ -396,8 +395,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase...' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -405,8 +404,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Features require Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

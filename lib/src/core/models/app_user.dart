@@ -11,17 +11,17 @@ enum AppUserRole {
   final String value;
 
   static AppUserRole fromValue(String? value) {
-    switch ((value ?? '').trim().toLowerCase()) {
-      case 'super_admin':
-        return AppUserRole.superAdmin;
-      case 'institute_admin':
-        return AppUserRole.instituteAdmin;
-      case 'teacher':
-        return AppUserRole.teacher;
-      case 'staff':
-      default:
-        return AppUserRole.staff;
+    final val = (value ?? '').trim().toLowerCase();
+    
+    if (val.contains('super_admin') || val.contains('superadmin')) {
+      return AppUserRole.superAdmin;
     }
+    
+    if (val == 'institute_admin') return AppUserRole.instituteAdmin;
+    if (val == 'teacher') return AppUserRole.teacher;
+    if (val == 'staff') return AppUserRole.staff;
+    
+    return AppUserRole.staff;
   }
 }
 

@@ -11,5 +11,7 @@ class AuthSession {
     this.permissions = const [],
   });
 
-  bool get isSuperAdmin => user.role == AppUserRole.superAdmin;
+  bool get isSuperAdmin {
+    return user.role == AppUserRole.superAdmin;
+  }
 }

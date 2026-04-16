@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
 import 'package:flutter/material.dart';
@@ -70,7 +69,8 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
       children: [
         _SectionHeader(
           title: 'Identity & Branding',
-          subtitle: 'Configure the public-facing attributes of the EduCore platform.',
+          subtitle:
+              'Configure the public-facing attributes of the EduCore platform.',
         ),
         const SizedBox(height: 20),
         _GroupCard(
@@ -97,25 +97,29 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.05),
                         borderRadius: AppRadii.r16,
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.tips_and_updates_rounded, 
-                            color: Theme.of(context).colorScheme.primary, 
-                            size: 20
+                          Icon(
+                            Icons.tips_and_updates_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'The platform name is displayed across login portals and email notifications.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -186,17 +190,17 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1.0,
-              ),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.0,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -232,10 +236,10 @@ class _GroupCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                  color: cs.primary,
-                ),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: cs.primary,
+            ),
           ),
           const SizedBox(height: 20),
           child,
@@ -246,11 +250,7 @@ class _GroupCard extends StatelessWidget {
 }
 
 class _LogoPreview extends StatelessWidget {
-  const _LogoPreview({
-    this.url,
-    required this.onUpload,
-    this.isBusy = false,
-  });
+  const _LogoPreview({this.url, required this.onUpload, this.isBusy = false});
 
   final String? url;
   final VoidCallback onUpload;
@@ -271,23 +271,37 @@ class _LogoPreview extends StatelessWidget {
             borderRadius: AppRadii.r20,
             border: Border.all(color: cs.outlineVariant),
             image: hasLogo
-                ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.contain)
+                ? DecorationImage(
+                    image: NetworkImage(url!),
+                    fit: BoxFit.contain,
+                  )
                 : null,
           ),
           child: !hasLogo
-              ? Icon(Icons.business_rounded, size: 48, color: cs.onSurfaceVariant)
+              ? Icon(
+                  Icons.business_rounded,
+                  size: 48,
+                  color: cs.onSurfaceVariant,
+                )
               : null,
         ),
         const SizedBox(height: 12),
         TextButton.icon(
           onPressed: isBusy ? null : onUpload,
-          icon: isBusy 
-            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Icon(Icons.cloud_upload_outlined, size: 18),
+          icon: isBusy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.cloud_upload_outlined, size: 18),
           label: const Text('Update Logo'),
           style: TextButton.styleFrom(
             foregroundColor: cs.primary,
-            textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
           ),
         ),
       ],

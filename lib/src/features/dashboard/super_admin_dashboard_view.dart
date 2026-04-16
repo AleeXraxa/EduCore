@@ -5,7 +5,6 @@ import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
-import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
@@ -21,6 +20,7 @@ import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:educore/src/features/users/users_view.dart';
 import 'package:educore/src/features/audit/audit_logs_view.dart';
+import 'package:educore/src/features/system/platform_health_view.dart';
 import 'package:flutter/material.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
@@ -48,11 +48,13 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
         layoutBuilder: (currentChild, previousChildren) {
-          final c = currentChild;
           return Stack(
             alignment: Alignment.topLeft,
             fit: StackFit.expand,
-            children: <Widget>[...previousChildren, if (c != null) c],
+            children: <Widget>[
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
           );
         },
         transitionBuilder: (child, animation) {
@@ -83,6 +85,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.featureOverrides => const FeatureOverridesView(),
             _SuperAdminNav.plans => const PlansView(),
             _SuperAdminNav.auditLogs => const AuditLogsView(),
+            _SuperAdminNav.platformHealth => const PlatformHealthView(),
             _SuperAdminNav.settings => const SettingsView(),
           },
         ),
@@ -92,13 +95,25 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
 }
 
 enum _SuperAdminNav {
-  dashboard('dashboard', 'Dashboard', 'Super Admin Overview',
-      Icons.dashboard_rounded),
+  dashboard(
+    'dashboard',
+    'Dashboard',
+    'Super Admin Overview',
+    Icons.dashboard_rounded,
+  ),
   analytics(
-      'analytics', 'Analytics', 'Platform Analytics', Icons.trending_up_rounded),
+    'analytics',
+    'Analytics',
+    'Platform Analytics',
+    Icons.trending_up_rounded,
+  ),
 
   institutes(
-      'institutes', 'Institutes', 'Institute Management', Icons.apartment_rounded),
+    'institutes',
+    'Institutes',
+    'Institute Management',
+    Icons.apartment_rounded,
+  ),
   users('users', 'Users', 'User Management', Icons.people_alt_rounded),
   notifications(
     'notifications',
@@ -114,15 +129,33 @@ enum _SuperAdminNav {
     Icons.verified_rounded,
   ),
   payments(
-      'payments', 'Payments', 'Payment Verification', Icons.payments_rounded),
+    'payments',
+    'Payments',
+    'Payment Verification',
+    Icons.payments_rounded,
+  ),
   plans('plans', 'Plans', 'Subscription Plans', Icons.category_rounded),
 
   features('features', 'Features', 'Feature Registry', Icons.list_alt_rounded),
   featureOverrides(
-      'overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
+    'overrides',
+    'Overrides',
+    'Feature Overrides',
+    Icons.tune_rounded,
+  ),
 
   auditLogs(
-      'audit_logs', 'Audit Logs', 'Activity Logs', Icons.receipt_long_rounded),
+    'audit_logs',
+    'Audit Logs',
+    'Activity Logs',
+    Icons.receipt_long_rounded,
+  ),
+  platformHealth(
+    'health',
+    'System Health',
+    'Platform Performance',
+    Icons.health_and_safety_rounded,
+  ),
   settings('settings', 'Settings', 'Platform Settings', Icons.settings_rounded);
 
   const _SuperAdminNav(this.id, this.label, this.title, this.icon);
@@ -135,33 +168,38 @@ enum _SuperAdminNav {
       SidebarItemData(id: id, label: label, icon: icon);
 
   static List<SidebarSectionData> get sections => [
-        SidebarSectionData(
-          title: 'Overview',
-          items: [dashboard, analytics].map((e) => e.toSidebarItem()).toList(),
-        ),
-        SidebarSectionData(
-          title: 'Management',
-          items: [institutes, users, notifications]
-              .map((e) => e.toSidebarItem())
-              .toList(),
-        ),
-        SidebarSectionData(
-          title: 'Billing',
-          items: [subscriptions, payments, plans]
-              .map((e) => e.toSidebarItem())
-              .toList(),
-        ),
-        SidebarSectionData(
-          title: 'Configuration',
-          items: [features, featureOverrides]
-              .map((e) => e.toSidebarItem())
-              .toList(),
-        ),
-        SidebarSectionData(
-          title: 'System',
-          items: [auditLogs, settings].map((e) => e.toSidebarItem()).toList(),
-        ),
-      ];
+    SidebarSectionData(
+      title: 'Overview',
+      items: [dashboard, analytics].map((e) => e.toSidebarItem()).toList(),
+    ),
+    SidebarSectionData(
+      title: 'Management',
+      items: [
+        institutes,
+        users,
+        notifications,
+      ].map((e) => e.toSidebarItem()).toList(),
+    ),
+    SidebarSectionData(
+      title: 'Billing',
+      items: [
+        subscriptions,
+        payments,
+        plans,
+      ].map((e) => e.toSidebarItem()).toList(),
+    ),
+    SidebarSectionData(
+      title: 'Configuration',
+      items: [
+        features,
+        featureOverrides,
+      ].map((e) => e.toSidebarItem()).toList(),
+    ),
+    SidebarSectionData(
+      title: 'System',
+      items: [auditLogs, settings].map((e) => e.toSidebarItem()).toList(),
+    ),
+  ];
 
   static _SuperAdminNav byId(String id) =>
       _SuperAdminNav.values.firstWhere((e) => e.id == id);
@@ -227,10 +265,7 @@ class _DashboardHomeBodyStatefulState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppAnimatedSlide(
-                    delayIndex: 0,
-                    child: _HeaderRow(),
-                  ),
+                  const AppAnimatedSlide(delayIndex: 0, child: _HeaderRow()),
                   const SizedBox(height: 32),
                   AppAnimatedSlide(
                     delayIndex: 1,
@@ -261,8 +296,9 @@ class _DashboardHomeBodyStatefulState
                       children: [
                         Expanded(
                           flex: 3,
-                          child:
-                              _RevenueChart(values: controller.revenueHistory),
+                          child: _RevenueChart(
+                            values: controller.revenueHistory,
+                          ),
                         ),
                         SizedBox(
                           width: size == ScreenSize.compact ? 0 : 24,
@@ -300,8 +336,9 @@ class _DashboardHomeBodyStatefulState
                       children: [
                         Expanded(
                           flex: 2,
-                          child:
-                              _ActivityList(items: controller.recentActivity),
+                          child: _ActivityList(
+                            items: controller.recentActivity,
+                          ),
                         ),
                         SizedBox(
                           width: size == ScreenSize.compact ? 0 : 24,
@@ -341,17 +378,17 @@ class _HeaderRow extends StatelessWidget {
               Text(
                 'Super Admin Dashboard',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.2,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.2,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Manage institutes, subscriptions, and platform-wide configurations.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -432,10 +469,10 @@ class _RevenueChart extends StatelessWidget {
               Text(
                 'MONTHLY REVENUE',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
               ),
               const Spacer(),
               Container(
@@ -450,10 +487,10 @@ class _RevenueChart extends StatelessWidget {
                 child: Text(
                   'LIVE',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: cs.primary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 9,
-                      ),
+                    color: cs.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 9,
+                  ),
                 ),
               ),
             ],
@@ -494,10 +531,10 @@ class _GrowthChart extends StatelessWidget {
           Text(
             'INSTITUTE GROWTH',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.0,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 28),
           SizedBox(height: 280, child: _MockBarChart(values: values)),
@@ -769,10 +806,10 @@ class _ActivityList extends StatelessWidget {
           Text(
             'RECENT ACTIVITY',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.0,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 28),
           if (items.isEmpty)
@@ -844,17 +881,17 @@ class _ActivityRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -863,10 +900,10 @@ class _ActivityRow extends StatelessWidget {
         Text(
           time.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+          ),
         ),
       ],
     );
@@ -903,10 +940,10 @@ class _PendingPaymentsTable extends StatelessWidget {
               Text(
                 'PENDING PAYMENTS',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
               ),
               const Spacer(),
               TextButton(
@@ -955,9 +992,9 @@ class _PendingPaymentsTable extends StatelessWidget {
               Text(
                 'Showing top ${items.length.clamp(0, 5)} pending payments',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const Spacer(),
               _PaginationTrigger(
@@ -995,28 +1032,28 @@ class _TableHeader extends StatelessWidget {
             child: Text(
               'INSTITUTE',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           Text(
             'AMOUNT',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(width: 24),
           Text(
             'STATUS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -1050,17 +1087,17 @@ class _TableRow extends StatelessWidget {
             child: Text(
               name,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.2,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
           Text(
             amount,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: cs.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(width: 24),
           Container(
@@ -1072,10 +1109,10 @@ class _TableRow extends StatelessWidget {
             child: Text(
               status.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10,
-                  ),
+                color: cs.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+              ),
             ),
           ),
         ],
@@ -1129,9 +1166,9 @@ class _EmptyState extends StatelessWidget {
               subtitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -1225,9 +1262,9 @@ class _NotReadyPanel extends StatelessWidget {
             Text(
               busy ? 'Loading Dashboard' : 'Connection Error',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1236,9 +1273,9 @@ class _NotReadyPanel extends StatelessWidget {
                   : 'Loading your EduCore dashboard. Please wait a moment while we fetch your platform data.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 32),
             SizedBox(

@@ -1,9 +1,7 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
-import 'package:educore/src/core/ui/widgets/app_pagination_bar.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
@@ -11,6 +9,7 @@ import 'package:educore/src/features/payments/payments_controller.dart';
 import 'package:educore/src/features/payments/widgets/payment_proof_dialog.dart';
 import 'package:educore/src/features/payments/widgets/payments_table.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:flutter/material.dart';
 
 class PaymentsView extends StatefulWidget {
@@ -65,9 +64,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                         children: [
                           Text(
                             'Payments',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.8,
@@ -76,9 +73,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                           const SizedBox(height: 6),
                           Text(
                             'Review and manage all payment transactions.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
@@ -201,90 +196,105 @@ class _PaymentsViewState extends State<PaymentsView> {
                 ),
               ),
               const SizedBox(height: 24),
-              AppAnimatedSlide(
-                delayIndex: 2,
-                child: PaymentsTable(
-                  items: controller.paged,
-                  resolveName: controller.getInstituteName,
-                  onViewProof: (payment) => PaymentProofDialog.show(
-                    context,
-                    payment: payment,
-                    instituteName: controller.getInstituteName(
-                      payment.academyId,
-                    ),
-                  ),
-                  onAction: (action) async {
-                    final p = controller.paged.firstWhere(
-                      (e) => e.id == action.paymentId,
-                    );
-
-                    switch (action.action) {
-                      case PaymentMenuAction.viewDetails:
-                        if (!context.mounted) return;
-                        PaymentProofDialog.show(
-                          context,
-                          payment: p,
-                          instituteName: controller.getInstituteName(
-                            p.academyId,
-                          ),
-                        );
-                        break;
-                      case PaymentMenuAction.approve:
-                        final ok = await _confirm(
-                          context,
-                          title: 'Approve payment?',
-                          message:
-                              'This will mark the payment as approved and unlock subscription flow.',
-                          confirmLabel: 'Approve',
-                          confirmColor: const Color(0xFF16A34A),
-                        );
-                        if (ok) controller.approve(action.paymentId);
-                        break;
-                      case PaymentMenuAction.reject:
-                        final ok = await _confirm(
-                          context,
-                          title: 'Reject payment?',
-                          message:
-                              'This will mark the payment as rejected. The institute can resubmit proof.',
-                          confirmLabel: 'Reject',
-                          confirmColor: const Color(0xFFB91C1C),
-                        );
-                        if (ok) controller.reject(action.paymentId);
-                        break;
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              AppAnimatedSlide(
-                delayIndex: 3,
+              AppLoadingOverlay(
+                isLoading: controller.busy,
+                message: 'Processing Transactions',
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    AppPaginationBar(
-                      total: controller.totalCount,
-                      page: controller.page,
-                      pageSize: controller.pageSize,
-                      onPrev: controller.prevPage,
-                      onNext: controller.nextPage,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.lock_outline_rounded,
-                            color: cs.primary, size: 14),
-                        const SizedBox(width: 8),
-                        Text(
-                          'SECURITY: Financial transitions are immutable once approved. Peer review recommended for large amounts.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(
-                                color: cs.onSurfaceVariant,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                              ),
+                    AppAnimatedSlide(
+                      delayIndex: 2,
+                      child: PaymentsTable(
+                        items: controller.list,
+                        resolveName: controller.getInstituteName,
+                        onViewProof: (payment) => PaymentProofDialog.show(
+                          context,
+                          payment: payment,
+                          instituteName: controller.getInstituteName(
+                            payment.academyId,
+                          ),
                         ),
-                      ],
+                        onAction: (action) async {
+                          final p = controller.list.firstWhere(
+                            (e) => e.id == action.paymentId,
+                          );
+
+                          switch (action.action) {
+                            case PaymentMenuAction.viewDetails:
+                              if (!context.mounted) return;
+                              PaymentProofDialog.show(
+                                context,
+                                payment: p,
+                                instituteName: controller.getInstituteName(
+                                  p.academyId,
+                                ),
+                              );
+                              break;
+                            case PaymentMenuAction.approve:
+                              final ok = await _confirm(
+                                context,
+                                title: 'Approve payment?',
+                                message:
+                                    'This will mark the payment as approved and unlock subscription flow.',
+                                confirmLabel: 'Approve',
+                                confirmColor: const Color(0xFF16A34A),
+                              );
+                              if (ok) controller.approve(action.paymentId);
+                              break;
+                            case PaymentMenuAction.reject:
+                              final ok = await _confirm(
+                                context,
+                                title: 'Reject payment?',
+                                message:
+                                    'This will mark the payment as rejected. The institute can resubmit proof.',
+                                confirmLabel: 'Reject',
+                                confirmColor: const Color(0xFFB91C1C),
+                              );
+                              if (ok) controller.reject(action.paymentId);
+                              break;
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    AppAnimatedSlide(
+                      delayIndex: 3,
+                      child: Column(
+                        children: [
+                          if (controller.hasMore)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 24),
+                              child: AppPrimaryButton(
+                                width: 200,
+                                busy: controller.isLoadingMore,
+                                onPressed: controller.loadMore,
+                                label: 'Load More Records',
+                                icon: Icons.expand_more_rounded,
+                              ),
+                            ),
+                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lock_outline_rounded,
+                                color: cs.primary,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'SECURITY: Financial transitions are immutable once approved. Peer review recommended for large amounts.',
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

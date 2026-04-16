@@ -1,4 +1,5 @@
 import 'package:educore/src/features/users/models/app_user.dart';
+import 'package:educore/src/core/models/app_user.dart' as core_models;
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
@@ -15,6 +16,7 @@ import 'package:educore/src/features/users/widgets/user_details_panel.dart';
 import 'package:educore/src/features/users/widgets/edit_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/users_table.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:flutter/material.dart';
 
 class UsersView extends StatefulWidget {
@@ -47,7 +49,12 @@ class _UsersViewState extends State<UsersView> {
         updated.id,
         name: updated.name,
         phone: updated.phone,
-        role: updated.role,
+        role: switch (updated.role) {
+          AppUserRole.superAdmin => core_models.AppUserRole.superAdmin,
+          AppUserRole.instituteAdmin => core_models.AppUserRole.instituteAdmin,
+          AppUserRole.staff => core_models.AppUserRole.staff,
+          AppUserRole.teacher => core_models.AppUserRole.teacher,
+        },
         instituteId: updated.instituteId,
       );
       if (!context.mounted) return;
@@ -352,80 +359,90 @@ class _UsersViewState extends State<UsersView> {
                     child: AppKpiGrid(columns: kpiCols, items: kpis),
                   ),
                   const SizedBox(height: 24),
-                  AppAnimatedSlide(
-                    delayIndex: 2,
-                    child: UsersTable(
-                      items: controller.paged,
-                      onOpenUser: (user) {
-                        UserDetailsPanel.show(
-                          context,
-                          user: user,
-                          onToggleBlocked: () =>
-                              controller.toggleBlocked(user.id),
-                          onEdit: () => _handleEdit(context, user),
-                        );
-                      },
-                      onAction: (action) async {
-                        switch (action.action) {
-                          case UserMenuAction.editUser:
-                            final user = controller.filtered.firstWhere(
-                              (e) => e.id == action.userId,
-                            );
-                            _handleEdit(context, user);
-                            break;
-                          case UserMenuAction.viewProfile:
-                            final user = controller.filtered.firstWhere(
-                              (e) => e.id == action.userId,
-                            );
-                            UserDetailsPanel.show(
-                              context,
-                              user: user,
-                              onToggleBlocked: () =>
-                                  controller.toggleBlocked(action.userId),
-                              onEdit: () => _handleEdit(context, user),
-                            );
-                            break;
-                          case UserMenuAction.viewInstitute:
-                            break;
-                          case UserMenuAction.toggleBlocked:
-                            controller.toggleBlocked(action.userId);
-                            break;
-                          case UserMenuAction.resetPassword:
-                            break;
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  AppAnimatedSlide(
-                    delayIndex: 3,
+                  AppLoadingOverlay(
+                    isLoading: controller.busy && controller.ready,
+                    message: 'Syncing User Records',
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        AppPaginationBar(
-                          total: controller.totalCount,
-                          page: controller.page,
-                          pageSize: controller.pageSize,
-                          onPrev: controller.prevPage,
-                          onNext: controller.nextPage,
+                        AppAnimatedSlide(
+                          delayIndex: 2,
+                          child: UsersTable(
+                            items: controller.list,
+                            onOpenUser: (user) {
+                              UserDetailsPanel.show(
+                                context,
+                                user: user,
+                                onToggleBlocked: () =>
+                                    controller.toggleBlocked(user.id),
+                                onEdit: () => _handleEdit(context, user),
+                              );
+                            },
+                            onAction: (action) async {
+                              final user = controller.filtered.firstWhere(
+                                (e) => e.id == action.userId,
+                              );
+                              switch (action.action) {
+                                case UserMenuAction.editUser:
+                                  _handleEdit(context, user);
+                                  break;
+                                case UserMenuAction.viewProfile:
+                                  UserDetailsPanel.show(
+                                    context,
+                                    user: user,
+                                    onToggleBlocked: () =>
+                                        controller.toggleBlocked(action.userId),
+                                    onEdit: () => _handleEdit(context, user),
+                                  );
+                                  break;
+                                case UserMenuAction.viewInstitute:
+                                  break;
+                                case UserMenuAction.toggleBlocked:
+                                  controller.toggleBlocked(action.userId);
+                                  break;
+                                case UserMenuAction.resetPassword:
+                                  break;
+                              }
+                            },
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(Icons.shield_outlined,
-                                color: cs.primary, size: 14),
-                            const SizedBox(width: 8),
-                            Text(
-                              'SECURITY: All authentication events and access modifications are logged for auditing.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
+                        const SizedBox(height: 20),
+                        AppAnimatedSlide(
+                          delayIndex: 3,
+                          child: Column(
+                            children: [
+                                if (controller.hasMore)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 24),
+                                    child: AppPrimaryButton(
+                                      width: 200,
+                                      busy: controller.isLoadingMore,
+                                      onPressed: controller.loadMore,
+                                      label: 'Load More Users',
+                                      icon: Icons.expand_more_rounded,
+                                    ),
                                   ),
-                            ),
-                          ],
+                                const SizedBox(height: 24),
+                                Row(
+                                  children: [
+                                    Icon(Icons.shield_outlined,
+                                        color: cs.primary, size: 14),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'DATA SCALE: Currently showing ${controller.totalCount} active records. Records are fetched in optimized batches for performance.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: cs.onSurfaceVariant,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.5,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

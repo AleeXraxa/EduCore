@@ -1,9 +1,12 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
+import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/audit/audit_logs_controller.dart';
 import 'package:educore/src/features/audit/models/audit_log.dart';
 import 'package:educore/src/features/audit/widgets/audit_logs_table.dart';
+import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
+import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:flutter/material.dart';
 
 class AuditLogsView extends StatefulWidget {
@@ -24,26 +27,59 @@ class _AuditLogsViewState extends State<AuditLogsView> {
 
   @override
   Widget build(BuildContext context) {
-    return ControllerBuilder(
+    return ControllerBuilder<AuditLogsController>(
       controller: _controller,
       builder: (context, controller, child) {
-        return Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(controller: controller),
-                const SizedBox(height: 32),
-                _Filters(controller: controller),
-                const SizedBox(height: 24),
-                if (controller.isLoading)
-                  const Expanded(child: Center(child: CircularProgressIndicator()))
-                else
-                  Expanded(child: AuditLogsTable(logs: controller.logs)),
-              ],
-            ),
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final screen = screenSizeForWidth(constraints.maxWidth);
+            final horizontalPadding = screen == ScreenSize.compact ? 16.0 : 32.0;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 32,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppAnimatedSlide(
+                    child: _Header(controller: controller),
+                  ),
+                  const SizedBox(height: 32),
+                  AppAnimatedSlide(
+                    delayIndex: 1,
+                    child: _Filters(controller: controller),
+                  ),
+                  const SizedBox(height: 24),
+                  AppLoadingOverlay(
+                    isLoading: controller.busy && controller.ready,
+                    message: 'Fetching Logs',
+                    child: Column(
+                      children: [
+                        AppAnimatedSlide(
+                          delayIndex: 2,
+                          child: AuditLogsTable(logs: controller.logs),
+                        ),
+                        if (controller.hasMore)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: FilledButton.icon(
+                              onPressed: controller.isLoadingMore ? null : controller.loadMore,
+                              icon: controller.isLoadingMore 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.expand_more_rounded),
+                              label: const Text('Load More Audit History'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -98,13 +134,8 @@ class _Filters extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant),
-      ),
       child: Row(
         children: [
           Expanded(
@@ -123,7 +154,8 @@ class _Filters extends StatelessWidget {
               label: 'Severity',
               items: [null, ...AuditSeverity.values],
               value: controller.selectedSeverity,
-              itemLabel: (s) => s == null ? 'All Severities' : s.name.toUpperCase(),
+              itemLabel: (s) =>
+                  s == null ? 'All Severities' : s.name.toUpperCase(),
               onChanged: (val) => controller.setSeverity(val),
               compact: true,
             ),
@@ -150,11 +182,16 @@ class _Filters extends StatelessWidget {
                       hintText: 'Search by Academy ID...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       filled: true,
-                      fillColor: cs.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      border: OutlineInputBorder(
-                        borderRadius: AppRadii.r12,
+                      fillColor: cs.surfaceContainerLow,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: cs.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: cs.primary, width: 1.5),
                       ),
                     ),
                   ),

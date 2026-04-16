@@ -54,6 +54,35 @@ class PaymentRecord {
       createdBy: data['createdBy'] as String?,
     );
   }
+  PaymentRecord copyWith({
+    String? id,
+    String? academyId,
+    String? planId,
+    int? amountPkr,
+    PaymentMethod? method,
+    PaymentReviewStatus? status,
+    DateTime? createdAt,
+    DateTime? reviewedAt,
+    String? reviewedBy,
+    String? proofRef,
+    String? transactionId,
+    String? createdBy,
+  }) {
+    return PaymentRecord(
+      id: id ?? this.id,
+      academyId: academyId ?? this.academyId,
+      planId: planId ?? this.planId,
+      amountPkr: amountPkr ?? this.amountPkr,
+      method: method ?? this.method,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      reviewedBy: reviewedBy ?? this.reviewedBy,
+      proofRef: proofRef ?? this.proofRef,
+      transactionId: transactionId ?? this.transactionId,
+      createdBy: createdBy ?? this.createdBy,
+    );
+  }
 }
 
 int _asInt(Object? value) {

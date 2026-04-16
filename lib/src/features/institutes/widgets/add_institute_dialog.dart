@@ -1,5 +1,4 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -178,7 +177,10 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                     label: 'Institute Name',
                                     hintText: 'e.g. Green Valley Academy',
                                     prefixIcon: Icons.apartment_rounded,
-                                    validator: (v) => Validators.validateText(v, label: 'Institute Name'),
+                                    validator: (v) => Validators.validateText(
+                                      v,
+                                      label: 'Institute Name',
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -188,7 +190,10 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                     label: 'Primary Contact',
                                     hintText: 'e.g. Ahsan Khan',
                                     prefixIcon: Icons.person_rounded,
-                                    validator: (v) => Validators.validateText(v, label: 'Primary Contact'),
+                                    validator: (v) => Validators.validateText(
+                                      v,
+                                      label: 'Primary Contact',
+                                    ),
                                   ),
                                 ),
                               ],
@@ -210,7 +215,8 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                         label: 'Official Email',
                                         hintText: 'owner@institute.com',
                                         prefixIcon: Icons.email_rounded,
-                                        keyboardType: TextInputType.emailAddress,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
                                         validator: Validators.validateEmail,
                                       ),
                                     ),
@@ -234,7 +240,10 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                   hintText: 'Physical address of the institute',
                                   minLines: 2,
                                   maxLines: 3,
-                                  validator: (v) => Validators.validateText(v, label: 'Address'),
+                                  validator: (v) => Validators.validateText(
+                                    v,
+                                    label: 'Address',
+                                  ),
                                 ),
                               ],
                             ),
@@ -252,7 +261,8 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                     controller: _adminEmail,
                                     label: 'Admin Email',
                                     hintText: 'admin@institute.com',
-                                    prefixIcon: Icons.admin_panel_settings_rounded,
+                                    prefixIcon:
+                                        Icons.admin_panel_settings_rounded,
                                     keyboardType: TextInputType.emailAddress,
                                     validator: Validators.validateEmail,
                                   ),

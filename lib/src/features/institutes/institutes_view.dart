@@ -1,7 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
-import 'package:educore/src/core/ui/widgets/app_pagination_bar.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -11,6 +10,7 @@ import 'package:educore/src/features/institutes/widgets/add_institute_dialog.dar
 import 'package:educore/src/features/institutes/widgets/institute_details_panel.dart';
 import 'package:educore/src/features/institutes/widgets/edit_institute_dialog.dart';
 import 'package:educore/src/features/institutes/widgets/institutes_table.dart';
+import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:flutter/material.dart';
 
 class InstitutesView extends StatefulWidget {
@@ -72,6 +72,7 @@ class _InstitutesViewState extends State<InstitutesView> {
                     final draft = await AddInstituteDialog.show(context);
                     if (draft == null) return;
                     try {
+                      if (!context.mounted) return;
                       AppDialogs.showLoading(
                         context,
                         message: 'Creating academy...',
@@ -106,114 +107,123 @@ class _InstitutesViewState extends State<InstitutesView> {
                 ),
               ),
               const SizedBox(height: 32),
-              AppAnimatedSlide(
-                delayIndex: 1,
-                child: InstitutesTable(
-                  items: controller.paged,
-                  planLabel: controller.planLabel,
-                  onAction: (action) async {
-                    switch (action.action) {
-                      case InstituteMenuAction.block:
-                      case InstituteMenuAction.unblock:
-                        controller.toggleBlocked(action.instituteId);
-                        break;
-                      case InstituteMenuAction.view:
-                        final institute = controller.paged.firstWhere(
-                          (e) => e.id == action.instituteId,
-                        );
-                        InstituteDetailsPanel.show(
-                          context,
-                          institute: institute,
-                          planLabel: controller.planLabel(institute.planId),
-                          onToggleBlocked: () =>
-                              controller.toggleBlocked(action.instituteId),
-                        );
-                        break;
-                      case InstituteMenuAction.edit:
-                        final institute = controller.paged.firstWhere(
-                          (e) => e.id == action.instituteId,
-                        );
-                        final endDate = await controller.getSubscriptionEndDate(
-                          institute.id,
-                        );
-                        if (!context.mounted) return;
-                        final draft = await EditInstituteDialog.show(
-                          context,
-                          institute: institute,
-                          plans: controller.plans,
-                          initialEndDate: endDate,
-                        );
-                        if (draft == null) return;
-                        try {
-                          AppDialogs.showLoading(
-                            context,
-                            message: 'Updating institute...',
-                          );
-                          await controller.updateInstitute(
-                            academyId: institute.id,
-                            name: draft.name,
-                            ownerName: draft.ownerName,
-                            email: draft.email,
-                            phone: draft.phone,
-                            address: draft.address,
-                            planId: draft.planId,
-                            status: draft.status,
-                            endDate: draft.endDate,
-                          );
-                          if (!context.mounted) return;
-                          AppDialogs.hide(context);
-                          AppDialogs.showSuccess(
-                            context,
-                            title: 'Profile Updated',
-                            message:
-                                'Academy profile for "${draft.name}" has been saved successfully.',
-                          );
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          AppDialogs.hide(context);
-                          AppDialogs.showError(
-                            context,
-                            title: 'Update Failed',
-                            message: e.toString(),
-                          );
-                        }
-                        break;
-                      case InstituteMenuAction.delete:
-                        break;
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              AppAnimatedSlide(
-                delayIndex: 2,
+              AppLoadingOverlay(
+                isLoading: controller.busy && controller.ready,
+                message: 'Syncing Academies',
                 child: Column(
                   children: [
-                    AppPaginationBar(
-                      total: controller.totalCount,
-                      page: controller.page,
-                      pageSize: controller.pageSize,
-                      onPrev: controller.prevPage,
-                      onNext: controller.nextPage,
+                    AppAnimatedSlide(
+                      delayIndex: 1,
+                      child: InstitutesTable(
+                        items: controller.list,
+                        planLabel: controller.planLabel,
+                        onAction: (action) async {
+                          final institute = controller.list.firstWhere(
+                            (e) => e.id == action.instituteId,
+                          );
+                          switch (action.action) {
+                            case InstituteMenuAction.block:
+                            case InstituteMenuAction.unblock:
+                              controller.toggleBlocked(action.instituteId);
+                              break;
+                            case InstituteMenuAction.view:
+                              InstituteDetailsPanel.show(
+                                context,
+                                institute: institute,
+                                planLabel:
+                                    controller.planLabel(institute.planId),
+                                onToggleBlocked: () => controller
+                                    .toggleBlocked(action.instituteId),
+                              );
+                              break;
+                            case InstituteMenuAction.edit:
+                              final endDate = await controller
+                                  .getSubscriptionEndDate(institute.id);
+                              if (!context.mounted) return;
+                              final draft = await EditInstituteDialog.show(
+                                context,
+                                institute: institute,
+                                plans: controller.plans,
+                                initialEndDate: endDate,
+                              );
+                              if (draft == null) return;
+                              try {
+                                if (!context.mounted) return;
+                                AppDialogs.showLoading(context,
+                                    message: 'Saving changes...');
+                                await controller.updateInstitute(
+                                  academyId: institute.id,
+                                  name: draft.name,
+                                  ownerName: draft.ownerName,
+                                  email: draft.email,
+                                  phone: draft.phone,
+                                  address: draft.address,
+                                  planId: draft.planId,
+                                  status: draft.status,
+                                  endDate: draft.endDate,
+                                );
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+                                AppDialogs.showSuccess(
+                                  context,
+                                  title: 'Profile Updated',
+                                  message:
+                                      '${draft.name} record has been synchronized.',
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+                                AppDialogs.showError(
+                                  context,
+                                  title: 'Save Failed',
+                                  message: e.toString(),
+                                );
+                              }
+                              break;
+                            case InstituteMenuAction.delete:
+                              break;
+                          }
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.auto_awesome_rounded,
-                            color: cs.primary, size: 14),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tip: Search for institutes by name, email, or owner.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(
-                                color: cs.onSurfaceVariant,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
+                    const SizedBox(height: 20),
+                    AppAnimatedSlide(
+                      delayIndex: 2,
+                      child: Column(
+                        children: [
+                                  if (controller.hasMore)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 24),
+                                      child: AppPrimaryButton(
+                                        width: 200,
+                                        busy: controller.isLoadingMore,
+                                        onPressed: controller.loadMore,
+                                        label: 'Load More Institutes',
+                                        icon: Icons.expand_more_rounded,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 24),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded,
+                                  color: cs.primary, size: 14),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Tip: Search for institutes by name, email, or owner.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
                               ),
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

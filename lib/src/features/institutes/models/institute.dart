@@ -47,4 +47,30 @@ class Institute {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
+
+  Institute copyWith({
+    String? id,
+    String? name,
+    String? ownerName,
+    String? email,
+    String? phone,
+    String? address,
+    String? planId,
+    AcademyStatus? status,
+    int? studentsCount,
+    DateTime? createdAt,
+  }) {
+    return Institute(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      ownerName: ownerName ?? this.ownerName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      planId: planId ?? this.planId,
+      status: status ?? this.status,
+      studentsCount: studentsCount ?? this.studentsCount,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

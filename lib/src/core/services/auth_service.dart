@@ -59,12 +59,7 @@ class AuthService extends ChangeNotifier {
       }
 
       // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
-      final roleStr = appUser.role.toString().toLowerCase();
-      final isPlatformAdmin =
-          roleStr.contains('superadmin') ||
-          roleStr.contains('super_admin') ||
-          appUser.academyId.toLowerCase() == 'all' ||
-          appUser.academyId.toLowerCase() == 'global_admin';
+      final isPlatformAdmin = appUser.role == AppUserRole.superAdmin;
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
@@ -165,12 +160,7 @@ class AuthService extends ChangeNotifier {
 
       // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
       // We skip if role is Super Admin OR if the academyId indicates a global platform admin
-      final roleStr = appUser.role.toString().toLowerCase();
-      final isPlatformAdmin =
-          roleStr.contains('superadmin') ||
-          roleStr.contains('super_admin') ||
-          appUser.academyId.toLowerCase() == 'all' ||
-          appUser.academyId.toLowerCase() == 'global_admin';
+      final isPlatformAdmin = appUser.role == AppUserRole.superAdmin;
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);

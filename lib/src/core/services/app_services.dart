@@ -10,15 +10,21 @@ import 'package:educore/src/core/services/seed_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/core/services/feature_access_service.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/admin_users_service.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/admin_payments_service.dart';
-import 'package:educore/src/core/services/feature_override_service.dart';
-import 'package:educore/src/core/services/feature_access_service.dart';
-import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/notification_service.dart';
+import 'package:educore/src/core/services/feature_override_service.dart';
 import 'package:educore/src/core/services/settings_service.dart';
-import 'package:educore/src/core/services/audit_log_service.dart';
+
+import 'package:educore/src/core/repositories/user_repository.dart';
+import 'package:educore/src/core/repositories/institute_repository.dart';
+import 'package:educore/src/core/repositories/payment_repository.dart';
+import 'package:educore/src/core/repositories/audit_log_repository.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -48,14 +54,19 @@ class AppServices {
   FeatureOverrideService? featureOverrideService;
   SettingsService? settingsService;
   AuditLogService? auditLogService;
+  
+  // Repositories
+  UserRepository? userRepository;
+  InstituteRepository? instituteRepository;
+  PaymentRepository? paymentRepository;
+  AuditLogRepository? auditLogRepository;
+
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
 
   Future<void> init() async {
     if (!_coreInitialized) {
-      // TODO: Switch to `SqliteLocalDbService` once SQLite is integrated.
-      // Keep the default as a no-op to avoid breaking first-run development.
       final useSqlite = const bool.fromEnvironment(
         'EDUCORE_USE_SQLITE',
         defaultValue: false,
@@ -69,7 +80,6 @@ class AppServices {
       } catch (e) {
         prefs = NoopPrefsService();
         if (kDebugMode) {
-          // ignore: avoid_print
           print('Prefs init skipped: $e');
         }
       }
@@ -77,8 +87,6 @@ class AppServices {
       _coreInitialized = true;
     }
 
-    // Firebase can fail early during development (plugin not registered yet,
-    // partial hot-reload state, etc.). Allow retries until it's ready.
     if (firebaseReady) return;
 
     try {
@@ -97,17 +105,20 @@ class AppServices {
       planService = PlanService(firestore: firestore!);
       featureService = FeatureService(firestore: firestore!);
       subscriptionService = SubscriptionService(firestore: firestore!);
+      
       featureAccessService = FeatureAccessService(
         featureService: featureService!,
         planService: planService!,
         subscriptionService: subscriptionService!,
       );
+      
       instituteService = InstituteService(
         firestore: firestore!,
         primaryApp: firebaseApp!,
         primaryAuth: auth!,
         auditLogService: auditLogService!,
       );
+      
       adminUsersService = AdminUsersService(firestore: firestore!);
       adminSubscriptionsService = AdminSubscriptionsService(
         firestore: firestore!,
@@ -129,14 +140,18 @@ class AppServices {
         firestore: firestore!,
         auditLogService: auditLogService!,
       );
+
+      // Initialize Repositories
+      userRepository = UserRepository(firestore!);
+      instituteRepository = InstituteRepository(firestore!);
+      paymentRepository = PaymentRepository(firestore!);
+      auditLogRepository = AuditLogRepository(firestore!);
+      
       firebaseReady = true;
       firebaseInitError = null;
     } catch (e) {
       firebaseInitError = e;
-      // Allow the app to boot during early development or tests even if
-      // Firebase plugins are not available in the current runtime.
       if (kDebugMode) {
-        // ignore: avoid_print
         print('Firebase init skipped: $e');
       }
     }

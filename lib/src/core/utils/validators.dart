@@ -1,13 +1,10 @@
-import 'package:flutter/material.dart';
-
 /// A centralized validation service for the EduCore platform.
-/// 
+///
 /// This class provides standardized validation logic for all forms
 /// across the application, ensuring data consistency and a premium UX.
 abstract final class Validators {
-  
   /// Validates standard text input.
-  /// 
+  ///
   /// Rules:
   /// - Required (cannot be empty or just spaces)
   /// - Minimum 2 characters
@@ -23,7 +20,7 @@ abstract final class Validators {
   }
 
   /// Validates Pakistani mobile numbers.
-  /// 
+  ///
   /// Rules:
   /// - Must start with '03'
   /// - Exactly 11 digits
@@ -33,7 +30,7 @@ abstract final class Validators {
     if (phone.isEmpty) {
       return 'Mobile number is required';
     }
-    
+
     // Check if numeric
     if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
       return 'Enter valid mobile number (digits only)';
@@ -71,7 +68,7 @@ abstract final class Validators {
   }
 
   /// Validates password strength.
-  /// 
+  ///
   /// Rules:
   /// - Minimum 6 characters
   /// - Not empty
@@ -87,7 +84,10 @@ abstract final class Validators {
   }
 
   /// Ensures two password entries match.
-  static String? validateConfirmPassword(String? value, String originalPassword) {
+  static String? validateConfirmPassword(
+    String? value,
+    String originalPassword,
+  ) {
     if (value == null || value.isEmpty) {
       return 'Please confirm your password';
     }
@@ -124,19 +124,24 @@ abstract final class Validators {
   /// Validates date selection.
   static String? validateDate(DateTime? value, {String? label}) {
     if (value == null) {
-      return label != null ? '$label is required' : 'Please select a valid date';
+      return label != null
+          ? '$label is required'
+          : 'Please select a valid date';
     }
     return null;
   }
 
   /// High-level method to validate an entire map of data against a ruleset.
   /// Useful for service-layer enforcement.
-  static void enforce(Map<String, dynamic> data, Map<String, String? Function(dynamic)> rules) {
+  static void enforce(
+    Map<String, dynamic> data,
+    Map<String, String? Function(dynamic)> rules,
+  ) {
     for (final entry in rules.entries) {
       final key = entry.key;
       final validator = entry.value;
       final value = data[key];
-      
+
       final error = validator(value);
       if (error != null) {
         throw ArgumentError('Validation failed for $key: $error');

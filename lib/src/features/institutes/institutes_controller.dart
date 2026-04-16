@@ -1,9 +1,10 @@
 import 'dart:async';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
-import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/repositories/institute_repository.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
@@ -12,69 +13,122 @@ enum InstitutesFilter { all, pending, active, blocked }
 
 class InstitutesController extends BaseController {
   InstitutesController() {
-    _instituteService = AppServices.instance.instituteService;
+    _repository = AppServices.instance.instituteRepository;
     _planService = AppServices.instance.planService;
     _subsService = AppServices.instance.adminSubscriptionsService;
-    _attachOrInit();
+    _init();
   }
 
-  InstituteService? _instituteService;
+  InstituteRepository? _repository;
   PlanService? _planService;
   AdminSubscriptionsService? _subsService;
-  StreamSubscription<List<Academy>>? _sub;
   StreamSubscription<List<Plan>>? _planSub;
 
-  List<Institute> _all = const [];
+  final List<Institute> _all = [];
   Map<String, String> _planNameById = const {};
 
   String _query = '';
   InstitutesFilter _filter = InstitutesFilter.all;
 
-  int _page = 0;
-  final int pageSize = 20;
+  // Pagination
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  final int _pageSize = 50;
 
   List<Plan> plans = const [];
   String? errorMessage;
 
-  bool get ready => _instituteService != null;
+  bool get ready => _repository != null;
   String get query => _query;
   InstitutesFilter get filter => _filter;
-  int get page => _page;
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
+  List<Institute> get list => _all;
 
-  List<Institute> get filtered {
-    final q = _query.trim().toLowerCase();
-    Iterable<Institute> list = _all;
-
-    if (_filter != InstitutesFilter.all) {
-      final status = switch (_filter) {
-        InstitutesFilter.pending => AcademyStatus.pending,
-        InstitutesFilter.active => AcademyStatus.active,
-        InstitutesFilter.blocked => AcademyStatus.blocked,
-        InstitutesFilter.all => AcademyStatus.active,
-      };
-      list = list.where((e) => e.status == status);
-    }
-
-    if (q.isNotEmpty) {
-      list = list.where((e) {
-        return e.name.toLowerCase().contains(q) ||
-            e.ownerName.toLowerCase().contains(q) ||
-            e.email.toLowerCase().contains(q) ||
-            e.phone.toLowerCase().contains(q);
+  Future<void> _init() async {
+    if (_repository == null) {
+      await runBusy<void>(() async {
+        await AppServices.instance.init();
       });
+      _repository = AppServices.instance.instituteRepository;
+      _planService = AppServices.instance.planService;
     }
-
-    return list.toList(growable: false);
+    
+    await refresh();
+    _subscribeToPlans();
   }
 
-  int get totalCount => filtered.length;
+  Future<void> retryInit() => _init();
 
-  List<Institute> get paged {
-    final start = _page * pageSize;
-    final list = filtered;
-    if (start >= list.length) return const [];
-    final end = (start + pageSize).clamp(0, list.length);
-    return list.sublist(start, end);
+  Future<void> refresh() async {
+    _lastDoc = null;
+    _hasMore = true;
+    _all.clear();
+    
+    await runBusy<void>(() async {
+      await _fetchNextBatch();
+    });
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    try {
+      await _fetchNextBatch();
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchNextBatch() async {
+    if (_repository == null) return;
+    
+    try {
+      final statusVal = switch (_filter) {
+        InstitutesFilter.all => 'all',
+        InstitutesFilter.pending => 'pending',
+        InstitutesFilter.active => 'active',
+        InstitutesFilter.blocked => 'blocked',
+      };
+
+      final results = await _repository!.getInstitutesBatch(
+        limit: _pageSize,
+        lastDoc: _lastDoc,
+        status: statusVal,
+      );
+
+      if (results.length < _pageSize) {
+        _hasMore = false;
+      }
+
+      if (results.isNotEmpty) {
+        final lastInst = results.last;
+        final doc = await FirebaseFirestore.instance.collection('academies').doc(lastInst.id).get();
+        _lastDoc = doc;
+        _all.addAll(results);
+      }
+      notifyListeners();
+    } catch (e) {
+      _hasMore = false;
+    }
+  }
+
+  void _subscribeToPlans() {
+    final planSvc = _planService;
+    if (planSvc != null) {
+      _planSub?.cancel();
+      _planSub = planSvc.watchPlans().listen(
+        (value) {
+          plans = value;
+          _planNameById = {for (final p in value) p.id: p.name};
+          notifyListeners();
+        },
+        onError: (e) => errorMessage = e.toString(),
+      );
+    }
   }
 
   String planLabel(String planId) {
@@ -85,27 +139,14 @@ class InstitutesController extends BaseController {
 
   void setQuery(String value) {
     _query = value;
-    _page = 0;
+    // Local filtering for query is fine for smallish sets, 
+    // but in large scale this should be a server search.
     notifyListeners();
   }
 
   void setFilter(InstitutesFilter value) {
     _filter = value;
-    _page = 0;
-    notifyListeners();
-  }
-
-  void nextPage() {
-    final maxPage = ((totalCount - 1) / pageSize).floor();
-    if (_page >= maxPage) return;
-    _page += 1;
-    notifyListeners();
-  }
-
-  void prevPage() {
-    if (_page <= 0) return;
-    _page -= 1;
-    notifyListeners();
+    unawaited(refresh());
   }
 
   Future<void> createInstitute({
@@ -117,9 +158,9 @@ class InstitutesController extends BaseController {
     required String adminEmail,
     required String adminPassword,
   }) async {
-    final svc = await _ensureService();
+    if (_repository == null) return;
     await runBusy<void>(() async {
-      await svc.createInstitute(
+      await _repository!.createInstitute(
         name: name,
         ownerName: ownerName,
         email: email,
@@ -127,21 +168,25 @@ class InstitutesController extends BaseController {
         address: address,
         adminEmail: adminEmail,
         adminPassword: adminPassword,
-        planId: '',
-        endDate: null,
       );
     });
+    await refresh();
   }
 
   Future<void> toggleBlocked(String academyId) async {
-    final svc = await _ensureService();
+    if (_repository == null) return;
     final idx = _all.indexWhere((e) => e.id == academyId);
     if (idx < 0) return;
     final current = _all[idx];
     final next = current.status == AcademyStatus.blocked
         ? AcademyStatus.active
         : AcademyStatus.blocked;
-    await runBusy<void>(() => svc.setAcademyStatus(academyId, next));
+    
+    await runBusy<void>(() => _repository!.updateInstituteStatus(academyId, next.name));
+    
+    // Local sync
+    _all[idx] = current.copyWith(status: next);
+    notifyListeners();
   }
 
   Future<void> updateInstitute({
@@ -155,27 +200,28 @@ class InstitutesController extends BaseController {
     required AcademyStatus status,
     DateTime? endDate,
   }) async {
-    final svc = await _ensureService();
+    if (_repository == null) return;
     await runBusy<void>(() async {
-      await svc.updateInstitute(
-        academyId: academyId,
-        name: name,
-        ownerName: ownerName,
-        email: email,
-        phone: phone,
-        address: address,
+      await _repository!.updateInstitute(
+        academyId,
+        {
+          'name': name,
+          'ownerName': ownerName,
+          'email': email,
+          'phone': phone,
+          'address': address,
+        },
       );
 
-      await svc.setAcademyStatus(academyId, status);
+      await _repository!.updateInstituteStatus(academyId, status.name);
 
       final idx = _all.indexWhere((e) => e.id == academyId);
       final currentPlanId = idx < 0 ? '' : _all[idx].planId;
       if (planId.trim().isNotEmpty && planId.trim() != currentPlanId.trim()) {
-        await svc.setPlan(academyId, planId);
+        await _repository!.updateInstitutePlan(academyId, planId);
       }
 
-      final subs =
-          _subsService ?? AppServices.instance.adminSubscriptionsService;
+      final subs = _subsService ?? AppServices.instance.adminSubscriptionsService;
       if (subs != null) {
         await subs.updateSubscription(
           academyId,
@@ -184,6 +230,7 @@ class InstitutesController extends BaseController {
         );
       }
     });
+    await refresh();
   }
 
   Future<DateTime?> getSubscriptionEndDate(String academyId) async {
@@ -197,84 +244,9 @@ class InstitutesController extends BaseController {
     }
   }
 
-  Future<void> retryInit() => _attachOrInit();
-
   @override
   void dispose() {
-    _sub?.cancel();
     _planSub?.cancel();
     super.dispose();
-  }
-
-  Future<void> _attachOrInit() async {
-    if (_instituteService == null) {
-      await runBusy<void>(() async {
-        await AppServices.instance.init();
-      });
-      _instituteService = AppServices.instance.instituteService;
-      _planService = AppServices.instance.planService;
-      if (_instituteService == null) {
-        errorMessage = AppServices.instance.firebaseInitError?.toString();
-        notifyListeners();
-        return;
-      }
-    }
-
-    final svc = _instituteService!;
-    _sub?.cancel();
-    _sub = svc.watchAcademies().listen(
-      (value) {
-        _all = value
-            .map(
-              (a) => Institute(
-                id: a.id,
-                name: a.name,
-                ownerName: a.ownerName,
-                email: a.email,
-                phone: a.phone,
-                address: a.address,
-                planId: a.planId,
-                status: a.status,
-                studentsCount: 0,
-                createdAt: a.createdAt,
-              ),
-            )
-            .toList(growable: false);
-        errorMessage = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        errorMessage = e.toString();
-        notifyListeners();
-      },
-    );
-
-    final planSvc = _planService;
-    if (planSvc != null) {
-      _planSub?.cancel();
-      _planSub = planSvc.watchPlans().listen(
-        (value) {
-          plans = value;
-          _planNameById = {for (final p in value) p.id: p.name};
-          notifyListeners();
-        },
-        onError: (e) {
-          errorMessage = e.toString();
-          notifyListeners();
-        },
-      );
-    }
-  }
-
-  Future<InstituteService> _ensureService() async {
-    final existing = _instituteService ?? AppServices.instance.instituteService;
-    if (existing != null) {
-      _instituteService = existing;
-      return existing;
-    }
-    await _attachOrInit();
-    final svc = _instituteService ?? AppServices.instance.instituteService;
-    if (svc == null) throw StateError('Firestore is not ready.');
-    return svc;
   }
 }
