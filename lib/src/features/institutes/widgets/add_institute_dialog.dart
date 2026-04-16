@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class CreateInstituteDraft {
@@ -50,6 +51,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
   final _adminEmail = TextEditingController();
   final _adminPassword = TextEditingController();
 
+  final _formKey = GlobalKey<FormState>();
   bool _showPassword = false;
 
   @override
@@ -158,123 +160,131 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
 
               // Content
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      _AnimatedSlideIn(
-                        delay: 0,
-                        child: _GroupCard(
-                        title: 'INSTITUTE INFO',
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                controller: _name,
-                                label: 'Institute Name',
-                                  hintText: 'e.g. Green Valley Academy',
-                                  prefixIcon: Icons.apartment_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: AppTextField(
-                                  controller: _owner,
-                                  label: 'Primary Contact',
-                                  hintText: 'e.g. Ahsan Khan',
-                                  prefixIcon: Icons.person_rounded,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _AnimatedSlideIn(
-                        delay: 100,
-                        child: _GroupCard(
-                          title: 'CONTACT DETAILS',
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AppTextField(
-                                      controller: _email,
-                                      label: 'Official Email',
-                                      hintText: 'owner@institute.com',
-                                      prefixIcon: Icons.email_rounded,
-                                      keyboardType: TextInputType.emailAddress,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: AppTextField(
-                                      controller: _phone,
-                                      label: 'Phone Number',
-                                      hintText: '+92 300 1234567',
-                                      prefixIcon: Icons.phone_rounded,
-                                      keyboardType: TextInputType.phone,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              AppTextArea(
-                                controller: _address,
-                                label: 'Address',
-                                hintText:
-                                    'Physical address of the institute',
-                                minLines: 2,
-                                maxLines: 3,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _AnimatedSlideIn(
-                        delay: 200,
-                        child: _GroupCard(
-                          title: 'ADMINISTRATOR ACCOUNT',
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: AppTextField(
-                                  controller: _adminEmail,
-                                  label: 'Admin Email',
-                                  hintText: 'admin@institute.com',
-                                  prefixIcon:
-                                      Icons.admin_panel_settings_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: AppTextField(
-                                  controller: _adminPassword,
-                                  label: 'Admin Password',
-                                  hintText: '••••••••',
-                                  prefixIcon: Icons.lock_rounded,
-                                  obscureText: !_showPassword,
-                                  suffix: IconButton(
-                                    onPressed: () => setState(
-                                      () => _showPassword = !_showPassword,
-                                    ),
-                                    icon: Icon(
-                                      _showPassword
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                      size: 20,
-                                    ),
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        _AnimatedSlideIn(
+                          delay: 0,
+                          child: _GroupCard(
+                            title: 'INSTITUTE INFO',
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _name,
+                                    label: 'Institute Name',
+                                    hintText: 'e.g. Green Valley Academy',
+                                    prefixIcon: Icons.apartment_rounded,
+                                    validator: (v) => Validators.validateText(v, label: 'Institute Name'),
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _owner,
+                                    label: 'Primary Contact',
+                                    hintText: 'e.g. Ahsan Khan',
+                                    prefixIcon: Icons.person_rounded,
+                                    validator: (v) => Validators.validateText(v, label: 'Primary Contact'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        _AnimatedSlideIn(
+                          delay: 100,
+                          child: _GroupCard(
+                            title: 'CONTACT DETAILS',
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: AppTextField(
+                                        controller: _email,
+                                        label: 'Official Email',
+                                        hintText: 'owner@institute.com',
+                                        prefixIcon: Icons.email_rounded,
+                                        keyboardType: TextInputType.emailAddress,
+                                        validator: Validators.validateEmail,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: AppTextField(
+                                        controller: _phone,
+                                        label: 'Phone Number',
+                                        hintText: '03001234567',
+                                        prefixIcon: Icons.phone_rounded,
+                                        keyboardType: TextInputType.phone,
+                                        validator: Validators.validatePhone,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                AppTextArea(
+                                  controller: _address,
+                                  label: 'Address',
+                                  hintText: 'Physical address of the institute',
+                                  minLines: 2,
+                                  maxLines: 3,
+                                  validator: (v) => Validators.validateText(v, label: 'Address'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _AnimatedSlideIn(
+                          delay: 200,
+                          child: _GroupCard(
+                            title: 'ADMINISTRATOR ACCOUNT',
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _adminEmail,
+                                    label: 'Admin Email',
+                                    hintText: 'admin@institute.com',
+                                    prefixIcon: Icons.admin_panel_settings_rounded,
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: Validators.validateEmail,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _adminPassword,
+                                    label: 'Admin Password',
+                                    hintText: '••••••••',
+                                    prefixIcon: Icons.lock_rounded,
+                                    obscureText: !_showPassword,
+                                    validator: Validators.validatePassword,
+                                    suffix: IconButton(
+                                      onPressed: () => setState(
+                                        () => _showPassword = !_showPassword,
+                                      ),
+                                      icon: Icon(
+                                        _showPassword
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_rounded,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -337,6 +347,10 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
   }
 
   void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     final name = _name.text.trim();
     final owner = _owner.text.trim();
     final email = _email.text.trim();
@@ -345,19 +359,6 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
 
     final adminEmail = _adminEmail.text.trim();
     final adminPassword = _adminPassword.text;
-
-    if (name.isEmpty ||
-        owner.isEmpty ||
-        email.isEmpty ||
-        adminEmail.isEmpty ||
-        adminPassword.trim().isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Validation Error',
-        message: 'Please verify all required operational fields before proceeding.',
-      );
-      return;
-    }
 
     Navigator.of(context).pop(
       CreateInstituteDraft(

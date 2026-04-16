@@ -2,8 +2,8 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class EditUserDialog extends StatefulWidget {
@@ -47,6 +47,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
 
   late AppUserRole _role = widget.user.role;
   late String _instituteId = widget.user.instituteId;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -56,17 +57,12 @@ class _EditUserDialogState extends State<EditUserDialog> {
   }
 
   void _submit() {
-    final name = _name.text.trim();
-    final phone = _phone.text.trim();
-
-    if (name.isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Form Incomplete',
-        message: 'The full name field is required to update the user account.',
-      );
+    if (_formKey.currentState?.validate() != true) {
       return;
     }
+
+    final name = _name.text.trim();
+    final phone = _phone.text.trim();
 
     final instituteId =
         _role == AppUserRole.superAdmin ? 'all' : _instituteId.trim();
@@ -115,10 +111,12 @@ class _EditUserDialogState extends State<EditUserDialog> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                child: Column(
-                  children: [
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+                  child: Column(
+                    children: [
                     _AnimatedSlideIn(
                       delayIndex: 0,
                       child: _GroupCard(
@@ -132,6 +130,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
                                 hintText: 'e.g. Sara Ali',
                                 prefixIcon: Icons.person_rounded,
                                 textInputAction: TextInputAction.next,
+                                validator: (v) => Validators.validateText(v, label: 'Full Name'),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -139,10 +138,11 @@ class _EditUserDialogState extends State<EditUserDialog> {
                               child: AppTextField(
                                 controller: _phone,
                                 label: 'Phone number',
-                                hintText: '+92 300 1234567',
+                                hintText: '03001234567',
                                 prefixIcon: Icons.phone_iphone_rounded,
                                 keyboardType: TextInputType.phone,
                                 textInputAction: TextInputAction.next,
+                                validator: Validators.validatePhone,
                               ),
                             ),
                           ],
@@ -224,6 +224,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   ],
                 ),
               ),
+            ),
             ),
           ],
         ),

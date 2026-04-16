@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_button.dart';
 import 'package:educore/src/core/ui/widgets/app_section_header.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class LoginFormCard extends StatelessWidget {
@@ -56,6 +57,7 @@ class LoginFormCard extends StatelessWidget {
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.username, AutofillHints.email],
               textInputAction: TextInputAction.next,
+              validator: Validators.validateEmail,
             ),
             const SizedBox(height: 12),
             AppTextField(
@@ -75,6 +77,7 @@ class LoginFormCard extends StatelessWidget {
                       : Icons.visibility_off_outlined,
                 ),
               ),
+              validator: Validators.validatePassword,
               onSubmitted: (_) => onSignIn(),
             ),
             const SizedBox(height: 12),

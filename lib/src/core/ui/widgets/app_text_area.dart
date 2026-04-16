@@ -10,6 +10,7 @@ class AppTextArea extends StatelessWidget {
     this.enabled = true,
     this.minLines = 4,
     this.maxLines = 8,
+    this.validator,
   });
 
   final TextEditingController controller;
@@ -18,16 +19,18 @@ class AppTextArea extends StatelessWidget {
   final bool enabled;
   final int minLines;
   final int maxLines;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return TextField(
+    return TextFormField(
       controller: controller,
       enabled: enabled,
       minLines: minLines,
       maxLines: maxLines,
+      validator: validator,
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
@@ -43,6 +46,18 @@ class AppTextArea extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadii.r12,
           borderSide: BorderSide(color: cs.primary, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadii.r12,
+          borderSide: BorderSide(color: cs.error, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppRadii.r12,
+          borderSide: BorderSide(color: cs.error, width: 1.2),
+        ),
+        errorStyle: TextStyle(
+          color: cs.error,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

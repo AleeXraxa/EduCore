@@ -8,6 +8,7 @@ import 'package:educore/src/core/ui/widgets/auth_split_layout.dart';
 import 'package:educore/src/features/login/login_controller.dart';
 import 'package:educore/src/features/login/widgets/login_form_card.dart';
 import 'package:educore/src/features/login/widgets/login_marketing_panel.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class LoginView extends StatefulWidget {
@@ -20,6 +21,7 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView>
     with SingleTickerProviderStateMixin {
   late final LoginController _controller;
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool _obscurePassword = true;
@@ -73,18 +75,21 @@ class _LoginViewState extends State<LoginView>
                       ),
                       right: SlideTransition(
                         position: _rightSlide,
-                        child: LoginFormCard(
-                          email: _email,
-                          password: _password,
-                          busy: controller.busy,
-                          obscurePassword: _obscurePassword,
-                          onTogglePassword: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
+                        child: Form(
+                          key: _formKey,
+                          child: LoginFormCard(
+                            email: _email,
+                            password: _password,
+                            busy: controller.busy,
+                            obscurePassword: _obscurePassword,
+                            onTogglePassword: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                            rememberMe: _rememberMe,
+                            onRememberChanged: (value) =>
+                                setState(() => _rememberMe = value),
+                            onSignIn: _onSignIn,
                           ),
-                          rememberMe: _rememberMe,
-                          onRememberChanged: (value) =>
-                              setState(() => _rememberMe = value),
-                          onSignIn: _onSignIn,
                         ),
                       ),
                     ),
@@ -99,6 +104,8 @@ class _LoginViewState extends State<LoginView>
   }
 
   Future<void> _onSignIn() async {
+    if (_formKey.currentState?.validate() != true) return;
+
     try {
       await _controller.signIn(
         email: _email.text.trim(),

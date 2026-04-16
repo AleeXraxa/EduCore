@@ -16,6 +16,7 @@ class AppTextField extends StatefulWidget {
     this.keyboardType,
     this.onSubmitted,
     this.onChanged,
+    this.validator,
     this.autofillHints,
   });
 
@@ -31,6 +32,7 @@ class AppTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
   final List<String>? autofillHints;
 
   @override
@@ -68,14 +70,15 @@ class _AppTextFieldState extends State<AppTextField> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return TextField(
+    return TextFormField(
       controller: _controller,
       enabled: widget.enabled,
       obscureText: widget.obscureText,
       textInputAction: widget.textInputAction,
       keyboardType: widget.keyboardType,
-      onSubmitted: widget.onSubmitted,
+      onFieldSubmitted: widget.onSubmitted,
       onChanged: widget.onChanged,
+      validator: widget.validator,
       autofillHints: widget.autofillHints,
       decoration: InputDecoration(
         labelText: widget.label,
@@ -93,6 +96,18 @@ class _AppTextFieldState extends State<AppTextField> {
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadii.r12,
           borderSide: BorderSide(color: cs.primary, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadii.r12,
+          borderSide: BorderSide(color: cs.error, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppRadii.r12,
+          borderSide: BorderSide(color: cs.error, width: 1.2),
+        ),
+        errorStyle: TextStyle(
+          color: cs.error,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

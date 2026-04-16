@@ -1,12 +1,12 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class EditInstituteDraft {
@@ -75,6 +75,8 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
   AcademyStatus _status = AcademyStatus.active;
   DateTime? _endDate;
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -106,24 +108,16 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
   }
 
   void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     final name = _name.text.trim();
     final owner = _owner.text.trim();
     final email = _email.text.trim();
     final phone = _phone.text.trim();
     final address = _address.text.trim();
     final planId = _plan?.id ?? widget.institute.planId;
-
-    if (name.isEmpty ||
-        owner.isEmpty ||
-        email.isEmpty ||
-        planId.trim().isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Incomplete Details',
-        message: 'Please fill all required highlighted fields to save changes.',
-      );
-      return;
-    }
 
     Navigator.of(context).pop(
       EditInstituteDraft(
@@ -164,10 +158,12 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                child: Column(
-                  children: [
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+                  child: Column(
+                    children: [
                     _AnimatedSlideIn(
                       delayIndex: 0,
                       child: _GroupCard(
@@ -175,21 +171,23 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: AppTextField(
-                                controller: _name,
-                                label: 'Institute Name',
-                                hintText: 'e.g. Green Valley Academy',
-                                prefixIcon: Icons.apartment_rounded,
-                              ),
+                                child: AppTextField(
+                                  controller: _name,
+                                  label: 'Institute Name',
+                                  hintText: 'e.g. Green Valley Academy',
+                                  prefixIcon: Icons.apartment_rounded,
+                                  validator: (v) => Validators.validateText(v, label: 'Institute Name'),
+                                ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
-                              child: AppTextField(
-                                controller: _owner,
-                                label: 'Primary Contact',
-                                hintText: 'e.g. Ahsan Khan',
-                                prefixIcon: Icons.person_rounded,
-                              ),
+                                child: AppTextField(
+                                  controller: _owner,
+                                  label: 'Primary Contact',
+                                  hintText: 'e.g. Ahsan Khan',
+                                  prefixIcon: Icons.person_rounded,
+                                  validator: (v) => Validators.validateText(v, label: 'Primary Contact'),
+                                ),
                             ),
                           ],
                         ),
@@ -203,23 +201,25 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: AppTextField(
-                                controller: _email,
-                                label: 'Email Address',
-                                hintText: 'admin@institute.com',
-                                prefixIcon: Icons.alternate_email_rounded,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
+                                child: AppTextField(
+                                  controller: _email,
+                                  label: 'Email Address',
+                                  hintText: 'admin@institute.com',
+                                  prefixIcon: Icons.alternate_email_rounded,
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: Validators.validateEmail,
+                                ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
-                              child: AppTextField(
-                                controller: _phone,
-                                label: 'Phone Number',
-                                hintText: '+92 300 1234567',
-                                prefixIcon: Icons.phone_iphone_rounded,
-                                keyboardType: TextInputType.phone,
-                              ),
+                                child: AppTextField(
+                                  controller: _phone,
+                                  label: 'Phone Number',
+                                  hintText: '03001234567',
+                                  prefixIcon: Icons.phone_iphone_rounded,
+                                  keyboardType: TextInputType.phone,
+                                  validator: Validators.validatePhone,
+                                ),
                             ),
                           ],
                         ),
@@ -230,13 +230,14 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                       delayIndex: 2,
                       child: _GroupCard(
                         title: 'LOCATION',
-                        child: AppTextArea(
-                          controller: _address,
-                          label: 'Full Address',
-                          hintText: 'Enter institute address...',
-                          minLines: 2,
-                          maxLines: 4,
-                        ),
+                          child: AppTextArea(
+                            controller: _address,
+                            label: 'Full Address',
+                            hintText: 'Enter institute address...',
+                            minLines: 2,
+                            maxLines: 4,
+                            validator: (v) => Validators.validateText(v, label: 'Address'),
+                          ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -261,11 +262,16 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                                     prefixIcon: Icons.security_rounded,
                                     itemLabel: (s) => switch (s) {
                                       AcademyStatus.active => 'Active Status',
-                                      AcademyStatus.pending => 'Pending Approval',
-                                      AcademyStatus.blocked => 'Account Suspended',
+                                      AcademyStatus.pending =>
+                                        'Pending Approval',
+                                      AcademyStatus.blocked =>
+                                        'Account Suspended',
                                     },
                                     onChanged: (v) =>
                                         setState(() => _status = v ?? _status),
+                                    validator: (v) => v == null
+                                        ? 'Status is required'
+                                        : null,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -277,13 +283,15 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                                     itemLabel: (p) => p.name,
                                     onChanged: (v) => setState(() {
                                       _plan = v;
-                                      _endDate ??=
-                                          DateTime.now().add(const Duration(days: 30));
+                                      _endDate ??= DateTime.now()
+                                          .add(const Duration(days: 30));
                                     }),
                                     hintText: activePlans.isEmpty
                                         ? 'No tiers available'
                                         : 'Select tier',
                                     prefixIcon: Icons.workspace_premium_rounded,
+                                    validator: (v) =>
+                                        v == null ? 'Plan is required' : null,
                                   ),
                                 ),
                               ],
@@ -318,6 +326,7 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
                   ],
                 ),
               ),
+            ),
             ),
             _Footer(
               onCancel: () => Navigator.of(context).pop(),

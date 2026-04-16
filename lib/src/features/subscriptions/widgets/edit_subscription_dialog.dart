@@ -61,6 +61,7 @@ class EditSubscriptionDialog extends StatefulWidget {
 }
 
 class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
+  final _formKey = GlobalKey<FormState>();
   late String _planId;
   late SubscriptionStatus _status;
   late DateTime _expiryDate;
@@ -84,8 +85,8 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: Theme.of(context).colorScheme.primary,
-            ),
+                  primary: Theme.of(context).colorScheme.primary,
+                ),
           ),
           child: child!,
         );
@@ -99,7 +100,6 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final size = MediaQuery.sizeOf(context);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -107,121 +107,133 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
       shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(
-              title: 'Update Subscription',
-              subtitle: widget.subscription.instituteName,
-              onClose: () => Navigator.of(context).pop(),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  children: [
-                    _AnimatedSlideIn(
-                      delayIndex: 0,
-                      child: _GroupCard(
-                        title: 'SUBSCRIPTION DETAILS',
-                        child: Column(
-                          children: [
-                            AppDropdown<String>(
-                              label: 'Subscription Plan',
-                              value: _planId,
-                              items: widget.plans.map((e) => e.id).toList(),
-                              itemLabel: (id) => widget.plans
-                                  .firstWhere((e) => e.id == id)
-                                  .name,
-                              onChanged: (v) {
-                                if (v != null) setState(() => _planId = v);
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            AppDropdown<SubscriptionStatus>(
-                              label: 'Subscription Status',
-                              value: _status,
-                              items: SubscriptionStatus.values,
-                              itemLabel: (s) => switch (s) {
-                                SubscriptionStatus.active =>
-                                  'Active',
-                                SubscriptionStatus.pendingApproval =>
-                                  'Pending Approval',
-                                SubscriptionStatus.expired =>
-                                  'Expired / Overdue',
-                                SubscriptionStatus.canceled =>
-                                  'Canceled / Suspended',
-                              },
-                              onChanged: (v) {
-                                if (v != null) setState(() => _status = v);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnimatedSlideIn(
-                      delayIndex: 1,
-                      child: _GroupCard(
-                        title: 'EXPIRY DATE',
-                        child: _DateTile(
-                          label: 'Service expiry date',
-                          value: _expiryDate,
-                          onTap: _pickDate,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _AnimatedSlideIn(
-                      delayIndex: 2,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withValues(alpha: 0.05),
-                          borderRadius: AppRadii.r16,
-                          border: Border.all(
-                            color: cs.primary.withValues(alpha: 0.1),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                title: 'Update Subscription',
+                subtitle: widget.subscription.instituteName,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    children: [
+                      _AnimatedSlideIn(
+                        delayIndex: 0,
+                        child: _GroupCard(
+                          title: 'SUBSCRIPTION DETAILS',
+                          child: Column(
+                            children: [
+                              AppDropdown<String>(
+                                label: 'Subscription Plan',
+                                value: _planId,
+                                items: widget.plans.map((e) => e.id).toList(),
+                                itemLabel: (id) => widget.plans
+                                    .firstWhere((e) => e.id == id)
+                                    .name,
+                                onChanged: (v) {
+                                  if (v != null) setState(() => _planId = v);
+                                },
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'Please select a plan'
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+                              AppDropdown<SubscriptionStatus>(
+                                label: 'Subscription Status',
+                                value: _status,
+                                items: SubscriptionStatus.values,
+                                itemLabel: (s) => switch (s) {
+                                  SubscriptionStatus.active => 'Active',
+                                  SubscriptionStatus.pendingApproval =>
+                                    'Pending Approval',
+                                  SubscriptionStatus.expired =>
+                                    'Expired / Overdue',
+                                  SubscriptionStatus.canceled =>
+                                    'Canceled / Suspended',
+                                },
+                                onChanged: (v) {
+                                  if (v != null) setState(() => _status = v);
+                                },
+                                validator: (v) => v == null
+                                    ? 'Please select a status'
+                                    : null,
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: cs.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Changes to plan, status, or expiry date take effect immediately for this institute.',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                          ],
+                      ),
+                      const SizedBox(height: 12),
+                      _AnimatedSlideIn(
+                        delayIndex: 1,
+                        child: _GroupCard(
+                          title: 'EXPIRY DATE',
+                          child: _DateTile(
+                            label: 'Service expiry date',
+                            value: _expiryDate,
+                            onTap: _pickDate,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      _AnimatedSlideIn(
+                        delayIndex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.05),
+                            borderRadius: AppRadii.r16,
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: cs.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Changes to plan, status, or expiry date take effect immediately for this institute.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _Footer(
-              saving: _saving,
-              onCancel: () => Navigator.of(context).pop(),
-              onSave: () async {
-                setState(() => _saving = true);
-                final nav = Navigator.of(context);
-                await widget.onSave(_planId, _status, _expiryDate);
-                if (mounted) nav.pop();
-              },
-            ),
-          ],
+              _Footer(
+                saving: _saving,
+                onCancel: () => Navigator.of(context).pop(),
+                onSave: () async {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    setState(() => _saving = true);
+                    final nav = Navigator.of(context);
+                    await widget.onSave(_planId, _status, _expiryDate);
+                    if (mounted) nav.pop();
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

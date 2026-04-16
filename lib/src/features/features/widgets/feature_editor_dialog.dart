@@ -1,10 +1,10 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class FeatureEditorDialog extends StatefulWidget {
@@ -41,6 +41,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
   late final TextEditingController _order;
   late String _group;
   bool _isActive = true;
+  final _formKey = GlobalKey<FormState>();
 
   bool get _editing => widget.initial != null;
 
@@ -90,10 +91,12 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  children: [
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    children: [
                     _AnimatedSlideIn(
                       delayIndex: 0,
                       child: _GroupCard(
@@ -105,6 +108,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                               label: 'Feature Key',
                               hintText: 'e.g. library_module',
                               prefixIcon: Icons.key_rounded,
+                              validator: Validators.validateFeatureKey,
                             ),
                             const SizedBox(height: 12),
                             AppTextField(
@@ -112,6 +116,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                               label: 'Display Name',
                               hintText: 'e.g. Library Management',
                               prefixIcon: Icons.text_fields_rounded,
+                              validator: (v) => Validators.validateText(v, label: 'Display name'),
                             ),
                           ],
                         ),
@@ -153,6 +158,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                                     hintText: '0',
                                     prefixIcon: Icons.format_list_numbered_rounded,
                                     keyboardType: TextInputType.number,
+                                    validator: (v) => Validators.validateNumeric(v, label: 'Weight'),
                                   ),
                                 ),
                               ],
@@ -224,6 +230,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                 ),
               ),
             ),
+            ),
             _Footer(
               editing: _editing,
               onCancel: () => Navigator.of(context).pop(),
@@ -236,30 +243,15 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
   }
 
   void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     final key = _key.text.trim();
     final label = _label.text.trim();
     final description = _description.text.trim();
     final icon = _icon.text.trim();
     final order = int.tryParse(_order.text.trim()) ?? 0;
-
-    if (key.isEmpty || label.isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Validation Error',
-        message: 'Feature key and display label are required.',
-      );
-      return;
-    }
-
-    final keyRegex = RegExp(r'^[a-z0-9_]+$');
-    if (!keyRegex.hasMatch(key)) {
-      AppDialogs.showError(
-        context,
-        title: 'Invalid Key Format',
-        message: 'Keys must lowercase alphanumeric characters and underscores only.',
-      );
-      return;
-    }
 
     final feature = FeatureFlag(
       id: widget.initial?.id ?? '',

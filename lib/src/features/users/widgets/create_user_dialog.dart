@@ -2,8 +2,8 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class CreateUserDialog extends StatefulWidget {
@@ -43,6 +43,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   AppUserRole _role = AppUserRole.staff;
   String _instituteId = 'gv';
   AppUserStatus _status = AppUserStatus.active;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -60,18 +61,13 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   }
 
   void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     final name = _name.text.trim();
     final email = _email.text.trim();
     final phone = _phone.text.trim();
-
-    if (name.isEmpty || email.isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Form Incomplete',
-        message: 'The full name and email address fields are required to create a new user account.',
-      );
-      return;
-    }
 
     final instituteId =
         _role == AppUserRole.superAdmin ? 'all' : _instituteId.trim();
@@ -120,10 +116,12 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-                child: Column(
-                  children: [
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+                  child: Column(
+                    children: [
                     _AnimatedSlideIn(
                       delayIndex: 0,
                       child: _GroupCard(
@@ -137,6 +135,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                                 hintText: 'e.g. Sara Ali',
                                 prefixIcon: Icons.person_rounded,
                                 textInputAction: TextInputAction.next,
+                                validator: (v) => Validators.validateText(v, label: 'Full Name'),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -144,10 +143,11 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                               child: AppTextField(
                                 controller: _phone,
                                 label: 'Phone number',
-                                hintText: '+92 300 1234567',
+                                hintText: '03001234567',
                                 prefixIcon: Icons.phone_iphone_rounded,
                                 keyboardType: TextInputType.phone,
                                 textInputAction: TextInputAction.next,
+                                validator: Validators.validatePhone,
                               ),
                             ),
                           ],
@@ -171,6 +171,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                                     prefixIcon: Icons.alternate_email_rounded,
                                     keyboardType: TextInputType.emailAddress,
                                     textInputAction: TextInputAction.next,
+                                    validator: Validators.validateEmail,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -292,6 +293,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   ],
                 ),
               ),
+            ),
             ),
             _Footer(
               onCancel: () => Navigator.of(context).pop(),

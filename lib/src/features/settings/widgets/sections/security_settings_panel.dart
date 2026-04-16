@@ -4,6 +4,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class SecuritySettingsPanel extends StatefulWidget {
@@ -19,6 +20,7 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
   final _current = TextEditingController();
   final _new = TextEditingController();
   final _confirm = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -62,14 +64,17 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
                     ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
+              Form(
+                key: _formKey,
+                child: Row(
+                  children: [
                   Expanded(
                     child: AppTextField(
                       controller: _current,
                       label: 'Current Password',
                       obscureText: true,
                       prefixIcon: Icons.lock_outline_rounded,
+                      validator: Validators.validatePassword,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -79,6 +84,7 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
                       label: 'New Password',
                       obscureText: true,
                       prefixIcon: Icons.key_rounded,
+                      validator: Validators.validatePassword,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -88,15 +94,21 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
                       label: 'Confirm New Password',
                       obscureText: true,
                       prefixIcon: Icons.verified_user_rounded,
+                      validator: (v) => Validators.validateConfirmPassword(v, _new.text),
                     ),
                   ),
                 ],
               ),
+            ),
               const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
                 child: AppPrimaryButton(
                   onPressed: () {
+                    if (_formKey.currentState?.validate() != true) {
+                      return;
+                    }
+
                     AppDialogs.showSuccess(
                       context,
                       title: 'Password Updated',

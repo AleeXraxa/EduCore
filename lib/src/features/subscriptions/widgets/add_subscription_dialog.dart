@@ -31,6 +31,7 @@ class AddSubscriptionDialog extends StatefulWidget {
 }
 
 class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
+  final _formKey = GlobalKey<FormState>();
   String? _selectedAcademyId;
   String? _selectedPlanId;
   int _durationMonths = 1;
@@ -53,122 +54,131 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
       shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Header(
-              title: 'New Subscription',
-              subtitle: 'Assign a plan to an institute.',
-              onClose: () => Navigator.of(context).pop(),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  children: [
-                    _AnimatedSlideIn(
-                      delayIndex: 0,
-                      child: _GroupCard(
-                        title: 'SELECT INSTITUTE',
-                        child: AppDropdown<String>(
-                          label: 'Institute',
-                          items: widget.academies.map((a) => a.id).toList(),
-                          value: _selectedAcademyId,
-                          hintText: 'Select an institute',
-                          prefixIcon: Icons.apartment_rounded,
-                          itemLabel: (id) => widget.academies
-                              .firstWhere((a) => a.id == id)
-                              .name,
-                          onChanged: (v) =>
-                              setState(() => _selectedAcademyId = v),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnimatedSlideIn(
-                      delayIndex: 1,
-                      child: _GroupCard(
-                        title: 'PLAN & DURATION',
-                        child: Column(
-                          children: [
-                            AppDropdown<String>(
-                              label: 'Subscription Plan',
-                              items: widget.plans.map((p) => p.id).toList(),
-                              value: _selectedPlanId,
-                              prefixIcon: Icons.workspace_premium_rounded,
-                              itemLabel: (id) {
-                                final p = widget.plans.firstWhere(
-                                  (p) => p.id == id,
-                                );
-                                return '${p.name} (PKR ${p.price.round()}/mo)';
-                              },
-                              onChanged: (v) =>
-                                  setState(() => _selectedPlanId = v),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _DurationChip(
-                                    label: '1 Month',
-                                    selected: _durationMonths == 1,
-                                    onTap: () =>
-                                        setState(() => _durationMonths = 1),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _DurationChip(
-                                    label: '3 Months',
-                                    selected: _durationMonths == 3,
-                                    onTap: () =>
-                                        setState(() => _durationMonths = 3),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _DurationChip(
-                                    label: '1 Year',
-                                    selected: _durationMonths == 12,
-                                    onTap: () =>
-                                        setState(() => _durationMonths = 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_selectedPlanId != null)
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(
+                title: 'New Subscription',
+                subtitle: 'Assign a plan to an institute.',
+                onClose: () => Navigator.of(context).pop(),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    children: [
                       _AnimatedSlideIn(
-                        delayIndex: 2,
-                        child: _TotalSummary(
-                          plan: widget.plans.firstWhere(
-                            (p) => p.id == _selectedPlanId,
+                        delayIndex: 0,
+                        child: _GroupCard(
+                          title: 'SELECT INSTITUTE',
+                          child: AppDropdown<String>(
+                            label: 'Institute',
+                            items: widget.academies.map((a) => a.id).toList(),
+                            value: _selectedAcademyId,
+                            hintText: 'Select an institute',
+                            prefixIcon: Icons.apartment_rounded,
+                            itemLabel: (id) => widget.academies
+                                .firstWhere((a) => a.id == id)
+                                .name,
+                            onChanged: (v) =>
+                                setState(() => _selectedAcademyId = v),
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Please select an institute'
+                                : null,
                           ),
-                          durationMonths: _durationMonths,
                         ),
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      _AnimatedSlideIn(
+                        delayIndex: 1,
+                        child: _GroupCard(
+                          title: 'PLAN & DURATION',
+                          child: Column(
+                            children: [
+                              AppDropdown<String>(
+                                label: 'Subscription Plan',
+                                items: widget.plans.map((p) => p.id).toList(),
+                                value: _selectedPlanId,
+                                prefixIcon: Icons.workspace_premium_rounded,
+                                itemLabel: (id) {
+                                  final p = widget.plans.firstWhere(
+                                    (p) => p.id == id,
+                                  );
+                                  return '${p.name} (PKR ${p.price.round()}/mo)';
+                                },
+                                onChanged: (v) =>
+                                    setState(() => _selectedPlanId = v),
+                                validator: (v) => v == null || v.isEmpty
+                                    ? 'Please select a plan'
+                                    : null,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _DurationChip(
+                                      label: '1 Month',
+                                      selected: _durationMonths == 1,
+                                      onTap: () =>
+                                          setState(() => _durationMonths = 1),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _DurationChip(
+                                      label: '3 Months',
+                                      selected: _durationMonths == 3,
+                                      onTap: () =>
+                                          setState(() => _durationMonths = 3),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _DurationChip(
+                                      label: '1 Year',
+                                      selected: _durationMonths == 12,
+                                      onTap: () =>
+                                          setState(() => _durationMonths = 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_selectedPlanId != null)
+                        _AnimatedSlideIn(
+                          delayIndex: 2,
+                          child: _TotalSummary(
+                            plan: widget.plans.firstWhere(
+                              (p) => p.id == _selectedPlanId,
+                            ),
+                            durationMonths: _durationMonths,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _Footer(
-              onCancel: () => Navigator.of(context).pop(),
-              onSave: _selectedAcademyId == null || _selectedPlanId == null
-                  ? null
-                  : () {
-                      Navigator.pop(context, (
-                        academyId: _selectedAcademyId!,
-                        planId: _selectedPlanId!,
-                        durationMonths: _durationMonths,
-                      ));
-                    },
-            ),
-          ],
+              _Footer(
+                onCancel: () => Navigator.of(context).pop(),
+                onSave: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    Navigator.pop(context, (
+                      academyId: _selectedAcademyId!,
+                      planId: _selectedPlanId!,
+                      durationMonths: _durationMonths,
+                    ));
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

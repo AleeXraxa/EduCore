@@ -5,6 +5,7 @@ import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class PlanEditorDialog extends StatefulWidget {
@@ -49,6 +50,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
   final _newLimitValue = TextEditingController();
 
   bool _isActive = true;
+  final _formKey = GlobalKey<FormState>();
 
   bool get _editing => widget.initial != null;
 
@@ -100,19 +102,14 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
   }
 
   void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
     final name = _name.text.trim();
     final price = num.tryParse(_price.text.trim()) ?? 0;
     final description = _description.text.trim();
     final duration = int.tryParse(_duration.text.trim()) ?? 30;
-
-    if (name.isEmpty) {
-      AppDialogs.showError(
-        context,
-        title: 'Label Required',
-        message: 'Please provide a public label for this subscription tier.',
-      );
-      return;
-    }
 
     final cleanedFeatures =
         _features.where((k) => k.trim().isNotEmpty).toList(growable: false);
@@ -139,7 +136,6 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final grouped = _groupFeatures(widget.availableFeatures);
     final limitKeys = _limits.keys.toList(growable: false)..sort();
 
@@ -159,10 +155,12 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  children: [
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    children: [
                     _AnimatedSlideIn(
                       delayIndex: 0,
                       child: _GroupCard(
@@ -178,6 +176,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                     label: 'Label',
                                     hintText: 'e.g. Enterprise Plus',
                                     prefixIcon: Icons.workspace_premium_rounded,
+                                    validator: (v) => Validators.validateText(v, label: 'Plan label'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -188,6 +187,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                     hintText: '0.00',
                                     prefixIcon: Icons.payments_rounded,
                                     keyboardType: TextInputType.number,
+                                    validator: (v) => Validators.validateNumeric(v, label: 'Price'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -198,6 +198,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                     hintText: '365',
                                     prefixIcon: Icons.calendar_month_rounded,
                                     keyboardType: TextInputType.number,
+                                    validator: (v) => Validators.validateNumeric(v, label: 'Duration'),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -232,7 +233,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                   shrinkWrap: true,
                                   padding: const EdgeInsets.symmetric(vertical: 4),
                                   itemCount: grouped.length,
-                                  separatorBuilder: (_, __) =>
+                                  separatorBuilder: (_, _) =>
                                       const SizedBox(height: 12),
                                   itemBuilder: (context, index) {
                                     final entry = grouped[index];
@@ -312,7 +313,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                                 child: ListView.separated(
                                   shrinkWrap: true,
                                   itemCount: limitKeys.length,
-                                  separatorBuilder: (_, __) =>
+                                  separatorBuilder: (_, _) =>
                                       const SizedBox(height: 8),
                                   itemBuilder: (context, index) {
                                     final k = limitKeys[index];
@@ -336,6 +337,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
                   ],
                 ),
               ),
+            ),
             ),
             _Footer(
               editing: _editing,
