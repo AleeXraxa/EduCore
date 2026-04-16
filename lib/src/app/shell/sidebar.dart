@@ -36,10 +36,11 @@ class Sidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border(
-            right: BorderSide(
-          color: cs.outlineVariant.withValues(alpha: 0.5),
-          width: 1,
-        )),
+          right: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -49,62 +50,88 @@ class Sidebar extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            _BrandRow(collapsed: collapsed, onToggle: onToggle),
-            const SizedBox(height: 32),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+        child: StreamBuilder<Set<String>>(
+          stream: AppServices.instance.featureAccessService?.accessStream,
+          initialData: AppServices.instance.featureAccessService
+              ?.getAllowedFeatures()
+              .toSet(),
+          builder: (context, snapshot) {
+            return Column(
+              children: [
+                _BrandRow(collapsed: collapsed, onToggle: onToggle),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (int i = 0; i < sections.length; i++) ...[
+                            if (sections[i].items.any(
+                              (item) =>
+                                  item.requiredFeature == null ||
+                                  (AppServices.instance.featureAccessService
+                                          ?.canAccess(item.requiredFeature!) ??
+                                      true),
+                            )) ...[
+                              _SectionHeader(
+                                title: sections[i].title,
+                                collapsed: collapsed,
+                              ),
+                              const SizedBox(height: 8),
+                              for (final item in sections[i].items)
+                                if (item.requiredFeature == null ||
+                                    (AppServices.instance.featureAccessService
+                                            ?.canAccess(
+                                              item.requiredFeature!,
+                                            ) ??
+                                        true))
+                                  _NavItem(
+                                    collapsed: collapsed,
+                                    icon: item.icon,
+                                    label: item.label,
+                                    selected: selectedId == item.id,
+                                    onTap: () => onSelect?.call(item.id),
+                                  ),
+                              if (i < sections.length - 1)
+                                const SizedBox(height: 24)
+                              else
+                                const SizedBox(height: 16),
+                            ],
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (int i = 0; i < sections.length; i++) ...[
-                        _SectionHeader(
-                          title: sections[i].title,
-                          collapsed: collapsed,
-                        ),
-                        const SizedBox(height: 8),
-                        for (final item in sections[i].items)
-                          _NavItem(
-                            collapsed: collapsed,
-                            icon: item.icon,
-                            label: item.label,
-                            selected: selectedId == item.id,
-                            onTap: () => onSelect?.call(item.id),
-                          ),
-                        if (i < sections.length - 1)
-                          const SizedBox(height: 24)
-                        else
-                          const SizedBox(height: 16),
+                      if (bottomItems.isNotEmpty) ...[
+                        for (final item in bottomItems)
+                          if (item.requiredFeature == null ||
+                              (AppServices.instance.featureAccessService
+                                      ?.canAccess(item.requiredFeature!) ??
+                                  true))
+                            _NavItem(
+                              collapsed: collapsed,
+                              icon: item.icon,
+                              label: item.label,
+                              selected: selectedId == item.id,
+                              onTap: () => onSelect?.call(item.id),
+                            ),
+                        const SizedBox(height: 12),
                       ],
+                      _AccountSection(collapsed: collapsed),
                     ],
                   ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
-                children: [
-                   if (bottomItems.isNotEmpty) ...[
-                    for (final item in bottomItems)
-                      _NavItem(
-                        collapsed: collapsed,
-                        icon: item.icon,
-                        label: item.label,
-                        selected: selectedId == item.id,
-                        onTap: () => onSelect?.call(item.id),
-                      ),
-                    const SizedBox(height: 12),
-                  ],
-                  _AccountSection(collapsed: collapsed),
-                ],
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -219,19 +246,28 @@ class _AccountSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: collapsed ? Colors.transparent : cs.surfaceContainerLow.withValues(alpha: 0.3),
+        color: collapsed
+            ? Colors.transparent
+            : cs.surfaceContainerLow.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: collapsed ? Colors.transparent : cs.outlineVariant.withValues(alpha: 0.5),
+          color: collapsed
+              ? Colors.transparent
+              : cs.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: collapsed ? 0 : 12,
+              vertical: 8,
+            ),
             child: Row(
-              mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              mainAxisAlignment: collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
               children: [
                 _Avatar(collapsed: collapsed, name: displayName),
                 if (!collapsed) ...[
@@ -245,7 +281,8 @@ class _AccountSection extends StatelessWidget {
                           displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: cs.onSurface,
                               ),
@@ -255,7 +292,8 @@ class _AccountSection extends StatelessWidget {
                             displayEmail,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
                                   color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -319,9 +357,9 @@ class _AccountSection extends StatelessWidget {
             ],
           ),
           titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
           content: const Text(
             'Are you sure you want to log out of your account?',
           ),
@@ -343,8 +381,13 @@ class _AccountSection extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
               child: const Text(
                 'Logout Now',
@@ -360,7 +403,9 @@ class _AccountSection extends StatelessWidget {
       if (!context.mounted) return;
       await AppServices.instance.authService?.signOut();
       if (!context.mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
     }
   }
 }
@@ -593,11 +638,11 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              fontSize: 10,
-            ),
+          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
+          fontSize: 10,
+        ),
       ),
     );
   }

@@ -1,30 +1,19 @@
 import 'dart:async';
-
-import 'package:educore/src/core/models/subscription_access.dart';
+import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
+import 'package:educore/src/core/models/subscription_access.dart';
 
-class EffectiveFeatureAccess {
-  const EffectiveFeatureAccess({
-    required this.academyId,
-    required this.planId,
-    required this.status,
-    required this.allowedKeys,
-    required this.blockedKeys,
-  });
-
-  final String academyId;
-  final String planId;
-  final SubscriptionAccessStatus status;
-  final Set<String> allowedKeys;
-  final Set<String> blockedKeys;
-
-  bool has(String key) => allowedKeys.contains(key);
-}
-
+/// [FeatureAccessService] Decision-making system for EduCore features.
+/// 
+/// Priority Logic:
+/// 1. Overrides (Disabled) -> DENY
+/// 2. Overrides (Enabled) -> ALLOW
+/// 3. Plan default features -> ALLOW
+/// 4. Else -> DENY
 class FeatureAccessService {
   FeatureAccessService({
     required FeatureService featureService,
@@ -38,103 +27,143 @@ class FeatureAccessService {
   final PlanService _planService;
   final SubscriptionService _subscriptionService;
 
-  Stream<EffectiveFeatureAccess> watchEffectiveAccess(String academyId) {
-    final controller = StreamController<EffectiveFeatureAccess>();
+  // Cache
+  String? _currentAcademyId;
+  bool _isSuperAdmin = false;
+  Set<String> _allowedFeatures = {};
+  bool _initialized = false;
+  
+  // Re-broadcast for UI reactivity
+  final StreamController<Set<String>> _accessStream = StreamController<Set<String>>.broadcast();
+  Stream<Set<String>> get accessStream => _accessStream.stream;
 
-    List<FeatureFlag> registry = const [];
-    SubscriptionAccess? subscription;
-    Plan? plan;
+  bool get isInitialized => _initialized;
 
-    StreamSubscription? featureSub;
-    StreamSubscription? subscriptionSub;
-    StreamSubscription? planSub;
+  /// Explicitly sets the super admin status.
+  /// This can be used to enable the bypass immediately before full initialization.
+  void setSuperAdmin(bool value) {
+    _isSuperAdmin = value;
+    if (value) {
+      _accessStream.add(_allowedFeatures);
+    }
+  }
 
-    void emit() {
-      final planId = subscription?.planId ?? '';
-      final status = subscription?.status ?? SubscriptionAccessStatus.pending;
+  /// Initializes access control for a specific academy.
+  /// Fetches subscription, plan, and overrides once and caches them.
+  Future<void> init(String academyId, {bool isSuperAdmin = false}) async {
+    _currentAcademyId = academyId;
+    _isSuperAdmin = isSuperAdmin;
+    await _load();
+    _initialized = true;
+    _accessStream.add(_allowedFeatures);
+  }
 
-      final registryActive = registry
-          .where((f) => f.isActive)
-          .map((f) => f.key)
-          .toSet();
+  /// Synchronous access check.
+  bool canAccess(String featureKey) {
+    if (_isSuperAdmin) {
+      debugPrint('FeatureAccess: $featureKey ALLOWED (Super Admin Bypass)');
+      return true;
+    }
+    
+    if (!_initialized) {
+      debugPrint('Warning: FeatureAccessService not initialized. Defaulting to FALSE for $featureKey');
+      return false;
+    }
+    
+    final allowed = _allowedFeatures.contains(featureKey);
+    debugPrint('FeatureAccess: $featureKey -> ${allowed ? 'ALLOWED' : 'DENIED'}');
+    return allowed;
+  }
 
-      final baseFeatures = <String>{};
-      if (subscription != null && subscription!.assignedFeatures.isNotEmpty) {
-        baseFeatures.addAll(subscription!.assignedFeatures);
-      } else if (plan != null) {
-        baseFeatures.addAll(plan!.features);
+  /// Returns the current list of allowed feature keys.
+  List<String> getAllowedFeatures() => _allowedFeatures.toList();
+
+  /// Forces a reload from source.
+  Future<void> refresh() async {
+    if (_currentAcademyId != null) {
+      await _load();
+      _accessStream.add(_allowedFeatures);
+    }
+  }
+
+  Future<void> _load() async {
+    try {
+      // 1. Load Registry (Always needed to know what features exist)
+      final registry = await _featureService.watchFeatures().first;
+      final activeInRegistry = registry.where((f) => f.isActive).map((f) => f.key).toSet();
+
+      // OPTION: Super Admin bypass
+      if (_isSuperAdmin) {
+        _allowedFeatures = activeInRegistry;
+        debugPrint('FeatureAccess: Super Admin identified. All active features allowed.');
+        return;
       }
 
+      if (_currentAcademyId == null || _currentAcademyId!.isEmpty) {
+        _allowedFeatures = {};
+        return;
+      }
+
+      // 2. Load Subscription & Overrides
+      final subscription = await _subscriptionService.watchSubscription(_currentAcademyId!).first;
+      
+      // 3. Load Plan Default Features
+      Set<String> planFeatures = {};
+      if (subscription?.planId != null && subscription!.planId.isNotEmpty) {
+        final plan = await _planService.getPlan(subscription.planId);
+        if (plan != null) {
+          planFeatures = plan.features.toSet();
+        }
+      }
+
+      // 4. Calculate Effective Access
       final allowed = <String>{};
       final overrides = subscription?.overrides;
 
-      for (final key in registryActive) {
-        // Priority: disabled > enabled > plan
+      for (final key in activeInRegistry) {
+        // Priority 1: disabled override
         if (overrides != null && overrides.isDisabled(key)) {
-          // Blocked by override
-          continue;
+          continue; 
         }
 
+        // Priority 2: enabled override
         if (overrides != null && overrides.isEnabled(key)) {
-          // Allowed by override
           allowed.add(key);
           continue;
         }
 
-        if (baseFeatures.contains(key)) {
-          // Allowed by plan
+        // Priority 3: plan default
+        if (planFeatures.contains(key)) {
           allowed.add(key);
         }
       }
 
-      final blocked = registryActive.difference(allowed);
-
-      controller.add(
-        EffectiveFeatureAccess(
-          academyId: academyId,
-          planId: planId,
-          status: status,
-          allowedKeys: allowed,
-          blockedKeys: blocked,
-        ),
-      );
+      _allowedFeatures = allowed;
+      debugPrint('FeatureAccess initialized for $_currentAcademyId: $_allowedFeatures');
+    } catch (e) {
+      debugPrint('Error loading feature access: $e');
+      _allowedFeatures = {};
     }
+  }
 
-    featureSub = _featureService.watchFeatures().listen((value) {
-      registry = value;
-      emit();
-    });
+  /// Helper to check multiple features (logic: ALL must be present)
+  bool canAccessAll(List<String> keys) => keys.every(canAccess);
 
-    subscriptionSub =
-        _subscriptionService.watchSubscription(academyId).listen((value) {
-      subscription = value;
-      final nextPlanId = value?.planId;
-      if (nextPlanId == null || nextPlanId.isEmpty) {
-        planSub?.cancel();
-        plan = null;
-        emit();
-        return;
-      }
+  /// Helper to check multiple features (logic: ANY must be present)
+  bool canAccessAny(List<String> keys) => keys.any(canAccess);
 
-      if (plan?.id == nextPlanId) {
-        emit();
-        return;
-      }
-
-      planSub?.cancel();
-      planSub = _planService.watchPlan(nextPlanId).listen((p) {
-        plan = p;
-        emit();
-      });
-    });
-
-    controller.onCancel = () async {
-      await featureSub?.cancel();
-      await subscriptionSub?.cancel();
-      await planSub?.cancel();
-    };
-
-    return controller.stream;
+  /// Watches effective access for a specific academy.
+  /// This is used for real-time UI updates (e.g. in FeatureAccessController).
+  Stream<EffectiveFeatureAccess> watchEffectiveAccess(String academyId) {
+    // If we're already initialized for this academy, start with current state
+    return accessStream.map((keys) => EffectiveFeatureAccess(keys));
   }
 }
 
+/// Represents the calculated feature permissions at a specific point in time.
+class EffectiveFeatureAccess {
+  EffectiveFeatureAccess(this.allowed);
+  final Set<String> allowed;
+
+  bool has(String key) => allowed.contains(key);
+}

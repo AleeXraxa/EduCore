@@ -106,6 +106,7 @@ enum _SuperAdminNav {
     'Analytics',
     'Platform Analytics',
     Icons.trending_up_rounded,
+    featureKey: 'system_analytics',
   ),
 
   institutes(
@@ -113,13 +114,21 @@ enum _SuperAdminNav {
     'Institutes',
     'Institute Management',
     Icons.apartment_rounded,
+    featureKey: 'system_institutes',
   ),
-  users('users', 'Users', 'User Management', Icons.people_alt_rounded),
+  users(
+    'users',
+    'Users',
+    'User Management',
+    Icons.people_alt_rounded,
+    featureKey: 'system_users',
+  ),
   notifications(
     'notifications',
     'Notifications',
     'Platform Notifications',
     Icons.notifications_active_rounded,
+    featureKey: 'system_notifications',
   ),
 
   subscriptions(
@@ -127,21 +136,36 @@ enum _SuperAdminNav {
     'Subscriptions',
     'Subscription Management',
     Icons.verified_rounded,
+    featureKey: 'system_billing',
   ),
   payments(
     'payments',
     'Payments',
     'Payment Verification',
     Icons.payments_rounded,
+    featureKey: 'system_payments',
   ),
-  plans('plans', 'Plans', 'Subscription Plans', Icons.category_rounded),
+  plans(
+    'plans',
+    'Plans',
+    'Subscription Plans',
+    Icons.category_rounded,
+    featureKey: 'system_plans',
+  ),
 
-  features('features', 'Features', 'Feature Registry', Icons.list_alt_rounded),
+  features(
+    'features',
+    'Features',
+    'Feature Registry',
+    Icons.list_alt_rounded,
+    featureKey: 'system_features',
+  ),
   featureOverrides(
     'overrides',
     'Overrides',
     'Feature Overrides',
     Icons.tune_rounded,
+    featureKey: 'system_overrides',
   ),
 
   auditLogs(
@@ -149,23 +173,32 @@ enum _SuperAdminNav {
     'Audit Logs',
     'Activity Logs',
     Icons.receipt_long_rounded,
+    featureKey: 'system_audit',
   ),
   platformHealth(
     'health',
     'System Health',
     'Platform Performance',
     Icons.health_and_safety_rounded,
+    featureKey: 'system_health',
   ),
-  settings('settings', 'Settings', 'Platform Settings', Icons.settings_rounded);
+  settings(
+    'settings',
+    'Settings',
+    'Platform Settings',
+    Icons.settings_rounded,
+    featureKey: 'system_settings',
+  );
 
-  const _SuperAdminNav(this.id, this.label, this.title, this.icon);
+  const _SuperAdminNav(this.id, this.label, this.title, this.icon, {this.featureKey});
   final String id;
   final String label;
   final String title;
   final IconData icon;
+  final String? featureKey;
 
   SidebarItemData toSidebarItem() =>
-      SidebarItemData(id: id, label: label, icon: icon);
+      SidebarItemData(id: id, label: label, icon: icon, requiredFeature: featureKey);
 
   static List<SidebarSectionData> get sections => [
     SidebarSectionData(

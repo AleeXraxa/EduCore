@@ -17,6 +17,7 @@ import 'package:educore/src/features/users/widgets/edit_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/users_table.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
+import 'package:educore/src/core/mixins/feature_guard.dart';
 import 'package:flutter/material.dart';
 
 class UsersView extends StatefulWidget {
@@ -26,14 +27,18 @@ class UsersView extends StatefulWidget {
   State<UsersView> createState() => _UsersViewState();
 }
 
-class _UsersViewState extends State<UsersView> {
+class _UsersViewState extends State<UsersView> with FeatureGuard {
   late final UsersController _controller;
   final _search = TextEditingController();
   UsersRoleFilter _role = UsersRoleFilter.all;
   UsersStatusFilter _status = UsersStatusFilter.all;
   String _instituteId = 'all';
 
+  static const _featureKey = 'user_management';
+
   Future<void> _handleEdit(BuildContext context, AppUser user) async {
+    if (!checkAccess(_featureKey, context: context)) return;
+    
     final updated = await EditUserDialog.show(
       context,
       user: user,
@@ -240,6 +245,8 @@ class _UsersViewState extends State<UsersView> {
                   AppPrimaryButton(
                     width: stacked ? double.infinity : 180,
                     onPressed: () async {
+                      if (!checkAccess(_featureKey, context: context)) return;
+
                       final created = await CreateUserDialog.show(
                         context,
                         instituteIds: controller.institutes,

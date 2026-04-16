@@ -63,6 +63,7 @@ class AuthService extends ChangeNotifier {
 
       // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
       final isPlatformAdmin = appUser.role == AppUserRole.superAdmin;
+      AppServices.instance.featureAccessService?.setSuperAdmin(isPlatformAdmin);
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
@@ -76,6 +77,12 @@ class AuthService extends ChangeNotifier {
 
       // Step 5: Build Session Context
       _session = buildSessionContext(appUser);
+      
+      // Step 6: Initialize Feature Access Middleware
+      await AppServices.instance.featureAccessService?.init(
+        appUser.academyId,
+        isSuperAdmin: isPlatformAdmin,
+      );
       
       // Persist sign-in state for auto-login on startup
       if (rememberMe) {
@@ -185,6 +192,7 @@ class AuthService extends ChangeNotifier {
       // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
       // We skip if role is Super Admin OR if the academyId indicates a global platform admin
       final isPlatformAdmin = appUser.role == AppUserRole.superAdmin;
+      AppServices.instance.featureAccessService?.setSuperAdmin(isPlatformAdmin);
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
@@ -192,6 +200,13 @@ class AuthService extends ChangeNotifier {
       }
 
       _session = buildSessionContext(appUser);
+
+      // Re-initialize Feature Access Middleware on refresh
+      await AppServices.instance.featureAccessService?.init(
+        appUser.academyId,
+        isSuperAdmin: isPlatformAdmin,
+      );
+
       notifyListeners();
     } catch (e) {
       debugPrint('Security Re-validation failed: $e');

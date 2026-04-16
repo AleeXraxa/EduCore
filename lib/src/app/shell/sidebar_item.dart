@@ -6,11 +6,16 @@ class SidebarItemData {
     required this.id,
     required this.label,
     required this.icon,
+    this.requiredFeature,
   });
 
   final String id;
   final String label;
   final IconData icon;
+  
+  /// The feature key required to see/access this item.
+  /// If null, it is always visible (system core).
+  final String? requiredFeature;
 }
 
 @immutable
