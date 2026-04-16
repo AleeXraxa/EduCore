@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
-import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
@@ -79,7 +78,7 @@ class Sidebar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
                 children: [
-                  if (bottomItems.isNotEmpty) ...[
+                   if (bottomItems.isNotEmpty) ...[
                     for (final item in bottomItems)
                       _NavItem(
                         collapsed: collapsed,
@@ -89,20 +88,8 @@ class Sidebar extends StatelessWidget {
                         onTap: () => onSelect?.call(item.id),
                       ),
                     const SizedBox(height: 12),
-                    Divider(
-                      color: cs.outlineVariant.withValues(alpha: 0.5),
-                      height: 1,
-                    ),
-                    const SizedBox(height: 12),
                   ],
-                  _NavItem(
-                    collapsed: collapsed,
-                    icon: Icons.logout_rounded,
-                    label: 'Logout',
-                    selected: false,
-                    danger: true,
-                    onTap: () => unawaited(_onLogout(context)),
-                  ),
+                  _AccountSection(collapsed: collapsed),
                 ],
               ),
             ),
@@ -110,92 +97,6 @@ class Sidebar extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _onLogout(BuildContext context) async {
-    final cs = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: cs.surface,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.power_settings_new_rounded,
-                  color: Color(0xFFDC2626),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Text('Logout'),
-            ],
-          ),
-          titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-          content: const Text(
-            'Are you sure you want to log out of your account?',
-          ),
-          actionsPadding: const EdgeInsets.all(20),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Logout',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) return;
-
-    final authService = AppServices.instance.authService;
-    if (authService == null) return;
-
-    try {
-      await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
-      await authService.signOut();
-      if (!context.mounted) return;
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
-    } catch (_) {}
   }
 }
 
@@ -284,6 +185,202 @@ class _BrandRow extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.collapsed});
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: collapsed ? Colors.transparent : cs.surfaceContainerLow.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: collapsed ? Colors.transparent : cs.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              children: [
+                _Avatar(collapsed: collapsed),
+                if (!collapsed) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Super Admin',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: cs.onSurface,
+                              ),
+                        ),
+                        Text(
+                          'admin@educore.com',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (!collapsed) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Divider(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+                height: 1,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+          _NavItem(
+            collapsed: collapsed,
+            icon: Icons.logout_rounded,
+            label: 'Logout',
+            selected: false,
+            danger: true,
+            onTap: () => unawaited(_onLogout(context)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onLogout(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: cs.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.power_settings_new_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Text('Logout'),
+            ],
+          ),
+          titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+          ),
+          actionsPadding: const EdgeInsets.all(20),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Stay Logged In',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text(
+                'Logout Now',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      if (!context.mounted) return;
+      await AppServices.instance.authService?.signOut();
+      if (!context.mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    }
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.collapsed});
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final size = collapsed ? 36.0 : 40.0;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [cs.primary, cs.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        'A',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: collapsed ? 14 : 16,
+        ),
       ),
     );
   }

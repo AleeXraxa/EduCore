@@ -5,7 +5,7 @@ import 'package:educore/src/features/users/widgets/user_role_badge.dart';
 import 'package:educore/src/features/users/widgets/user_status_badge.dart';
 import 'package:flutter/material.dart';
 
-enum UserMenuAction { viewProfile, viewInstitute, toggleBlocked, resetPassword }
+enum UserMenuAction { editUser, viewProfile, viewInstitute, toggleBlocked, resetPassword }
 
 @immutable
 class UserRowAction {
@@ -105,18 +105,11 @@ class _TableHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Expanded(flex: 20, child: Text('USER INFO')),
-            const Expanded(flex: 18, child: Text('CONTACT INFO')),
-            const Expanded(flex: 14, child: Text('ROLE')),
-            const Expanded(flex: 18, child: Text('INSTITUTE')),
-            const Expanded(flex: 10, child: Text('STATUS')),
-            const Expanded(
-              flex: 12,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text('LAST ACTIVE'),
-              ),
-            ),
+            const Expanded(flex: 24, child: Text('USER INFO')),
+            const Expanded(flex: 22, child: Text('CONTACT INFO')),
+            const Expanded(flex: 16, child: Text('ROLE')),
+            const Expanded(flex: 24, child: Text('INSTITUTE')),
+            const Expanded(flex: 14, child: Text('STATUS')),
             const SizedBox(width: 48),
           ],
         ),
@@ -175,11 +168,11 @@ class _TableRowState extends State<_TableRow> {
           child: Row(
             children: [
               Expanded(
-                flex: 20,
+                flex: 24,
                 child: _UserCell(name: item.name, email: item.email),
               ),
               Expanded(
-                flex: 18,
+                flex: 22,
                 child: _PrimaryCell(
                   title: item.email,
                   subtitle: item.phone.isEmpty ? 'N/A' : item.phone,
@@ -187,14 +180,14 @@ class _TableRowState extends State<_TableRow> {
                 ),
               ),
               Expanded(
-                flex: 14,
+                flex: 16,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: UserRoleBadge(role: item.role),
                 ),
               ),
               Expanded(
-                flex: 18,
+                flex: 24,
                 child: _PrimaryCell(
                   title: item.instituteName,
                   subtitle: item.instituteId == 'all'
@@ -204,24 +197,10 @@ class _TableRowState extends State<_TableRow> {
                 ),
               ),
               Expanded(
-                flex: 10,
+                flex: 14,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: UserStatusBadge(status: item.status),
-                ),
-              ),
-              Expanded(
-                flex: 12,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    _fmtLastLogin(item.lastLoginAt),
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
                 ),
               ),
               SizedBox(
@@ -393,15 +372,23 @@ class _RowMenu extends StatelessWidget {
       itemBuilder: (context) => [
         PopupMenuItem<UserMenuAction>(
           enabled: false,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          height: 0,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
             'USER ACTIONS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: cs.primary,
               fontWeight: FontWeight.w900,
-              letterSpacing: 1.0,
+              letterSpacing: 1.2,
             ),
+          ),
+        ),
+        PopupMenuItem(
+          value: UserMenuAction.editUser,
+          height: 48,
+          padding: EdgeInsets.zero,
+          child: const _MenuRow(
+            icon: Icons.edit_note_rounded,
+            label: 'Edit Account',
           ),
         ),
         PopupMenuItem(
@@ -587,13 +574,7 @@ class _EmptyTable extends StatelessWidget {
   }
 }
 
-String _fmtLastLogin(DateTime? value) {
-  if (value == null) return 'NEVER';
-  final d = DateTime.now().difference(value);
-  if (d.inMinutes < 60) return '${d.inMinutes}M AGO';
-  if (d.inHours < 24) return '${d.inHours}H AGO';
-  return '${d.inDays}D AGO';
-}
+
 
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));

@@ -66,10 +66,6 @@ class Topbar extends StatelessWidget {
             tooltip: 'Help Center',
             onTap: () {},
           ),
-          const SizedBox(width: 20),
-          const VerticalDivider(width: 1, indent: 20, endIndent: 20),
-          const SizedBox(width: 20),
-          _ProfileChip(),
         ],
       ),
     );
@@ -232,96 +228,4 @@ class _TopbarIconState extends State<_TopbarIcon> {
   }
 }
 
-class _ProfileChip extends StatefulWidget {
-  @override
-  State<_ProfileChip> createState() => _ProfileChipState();
-}
 
-class _ProfileChipState extends State<_ProfileChip> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: _hovered
-              ? cs.onSurface.withValues(alpha: 0.04)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _hovered ? cs.outlineVariant : Colors.transparent,
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [cs.primary, cs.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: cs.primary.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'A',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (MediaQuery.of(context).size.width > 1200)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Super Admin',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  Text(
-                    'admin@educore.com',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 20,
-              color: cs.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -10,6 +10,7 @@ class UserDetailsPanel {
     BuildContext context, {
     required AppUser user,
     required VoidCallback onToggleBlocked,
+    required VoidCallback onEdit,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -21,6 +22,7 @@ class UserDetailsPanel {
         return _UserDetailsDialog(
           user: user,
           onToggleBlocked: onToggleBlocked,
+          onEdit: onEdit,
         );
       },
       transitionBuilder: (context, anim, secondary, child) {
@@ -42,10 +44,12 @@ class _UserDetailsDialog extends StatelessWidget {
   const _UserDetailsDialog({
     required this.user,
     required this.onToggleBlocked,
+    required this.onEdit,
   });
 
   final AppUser user;
   final VoidCallback onToggleBlocked;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +96,11 @@ class _UserDetailsDialog extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.max,
                   children: [
-                    _Header(user: user, onClose: () => Navigator.of(context).pop()),
+                    _Header(
+                      user: user,
+                      onEdit: onEdit,
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
@@ -159,8 +167,13 @@ class _UserDetailsDialog extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.user, required this.onClose});
+  const _Header({
+    required this.user,
+    required this.onEdit,
+    required this.onClose,
+  });
   final AppUser user;
+  final VoidCallback onEdit;
   final VoidCallback onClose;
 
   @override
@@ -225,6 +238,20 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          Material(
+            color: cs.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onEdit();
+              },
+              icon: const Icon(Icons.edit_rounded, size: 20),
+              color: cs.primary,
+              tooltip: 'Edit Profile',
+            ),
+          ),
+          const SizedBox(width: 8),
           Material(
             color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),

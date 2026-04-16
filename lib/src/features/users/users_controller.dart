@@ -209,6 +209,50 @@ class UsersController extends BaseController {
     notifyListeners();
   }
 
+  Future<void> updateUser(
+    String userId, {
+    required String name,
+    required String phone,
+    required AppUserRole role,
+    required String instituteId,
+  }) async {
+    final idx = _all.indexWhere((e) => e.id == userId);
+    if (idx >= 0) {
+      final current = _all[idx];
+      _all[idx] = AppUser(
+        id: current.id,
+        name: name,
+        email: current.email,
+        phone: phone,
+        role: role,
+        instituteId: instituteId,
+        instituteName: role == AppUserRole.superAdmin
+            ? 'EduCore Platform'
+            : (_academyById[instituteId]?.name ?? instituteId),
+        status: current.status,
+        lastLoginAt: current.lastLoginAt,
+      );
+      notifyListeners();
+    }
+
+    final svc = _service ?? AppServices.instance.adminUsersService;
+    if (svc == null) return;
+
+    final roleStr = switch (role) {
+      AppUserRole.superAdmin => 'superAdmin',
+      AppUserRole.instituteAdmin => 'instituteAdmin',
+      AppUserRole.staff => 'staff',
+      AppUserRole.teacher => 'teacher',
+    };
+
+    await svc.updateUser(userId, {
+      'name': name,
+      'phone': phone,
+      'role': roleStr,
+      'academyId': instituteId,
+    });
+  }
+
   Future<void> _attachOrInit() async {
     if (_service != null) {
       _attach(_service!);

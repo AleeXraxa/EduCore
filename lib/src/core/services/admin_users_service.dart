@@ -32,4 +32,11 @@ class AdminUsersService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  Future<void> updateUser(String uid, Map<String, dynamic> data) async {
+    await _col.doc(uid).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }

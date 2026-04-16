@@ -1,3 +1,4 @@
+import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
@@ -8,6 +9,7 @@ import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/users/users_controller.dart';
 import 'package:educore/src/features/users/widgets/create_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/user_details_panel.dart';
+import 'package:educore/src/features/users/widgets/edit_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/users_table.dart';
 import 'package:flutter/material.dart';
 
@@ -294,13 +296,70 @@ class _UsersViewState extends State<UsersView> {
                           delayIndex: 2,
                           child: UsersTable(
                     items: controller.paged,
-                    onOpenUser: (user) => UserDetailsPanel.show(
-                      context,
-                      user: user,
-                      onToggleBlocked: () => controller.toggleBlocked(user.id),
-                    ),
-                    onAction: (action) {
+                    onOpenUser: (user) {
+                      void handleEdit(AppUser user) async {
+                        final updated = await EditUserDialog.show(
+                          context,
+                          user: user,
+                          instituteIds: controller.institutes,
+                          instituteLabelForId: controller.instituteNameForId,
+                        );
+                        if (updated == null) return;
+                        await controller.updateUser(
+                          updated.id,
+                          name: updated.name,
+                          phone: updated.phone,
+                          role: updated.role,
+                          instituteId: updated.instituteId,
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Account updated: ${updated.name}'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+
+                      UserDetailsPanel.show(
+                        context,
+                        user: user,
+                        onToggleBlocked: () => controller.toggleBlocked(user.id),
+                        onEdit: () => handleEdit(user),
+                      );
+                    },
+                    onAction: (action) async {
+                      void handleEdit(AppUser user) async {
+                        final updated = await EditUserDialog.show(
+                          context,
+                          user: user,
+                          instituteIds: controller.institutes,
+                          instituteLabelForId: controller.instituteNameForId,
+                        );
+                        if (updated == null) return;
+                        await controller.updateUser(
+                          updated.id,
+                          name: updated.name,
+                          phone: updated.phone,
+                          role: updated.role,
+                          instituteId: updated.instituteId,
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Account updated: ${updated.name}'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+
                       switch (action.action) {
+                        case UserMenuAction.editUser:
+                          final user = controller.filtered.firstWhere(
+                            (e) => e.id == action.userId,
+                          );
+                          handleEdit(user);
+                          break;
                         case UserMenuAction.viewProfile:
                           final user = controller.filtered.firstWhere(
                             (e) => e.id == action.userId,
@@ -310,6 +369,7 @@ class _UsersViewState extends State<UsersView> {
                             user: user,
                             onToggleBlocked: () =>
                                 controller.toggleBlocked(action.userId),
+                            onEdit: () => handleEdit(user),
                           );
                           break;
                         case UserMenuAction.viewInstitute:
