@@ -13,6 +13,7 @@ import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/core/services/admin_users_service.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
 import 'package:educore/src/core/services/admin_payments_service.dart';
+import 'package:educore/src/core/services/feature_override_service.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/notification_service.dart';
@@ -44,6 +45,7 @@ class AppServices {
   AdminSubscriptionsService? adminSubscriptionsService;
   AdminPaymentsService? adminPaymentsService;
   NotificationService? notificationService;
+  FeatureOverrideService? featureOverrideService;
   SettingsService? settingsService;
   bool firebaseReady = false;
   Object? firebaseInitError;
@@ -109,6 +111,7 @@ class AppServices {
         firestore: firestore!,
         auth: auth!,
       );
+      featureOverrideService = FeatureOverrideService(firestore: firestore!);
       settingsService = SettingsService(firestore: firestore!);
       firebaseReady = true;
       firebaseInitError = null;

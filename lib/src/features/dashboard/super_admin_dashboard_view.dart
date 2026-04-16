@@ -9,6 +9,7 @@ import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/features/dashboard/dashboard_controller.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
 import 'package:educore/src/features/features/features_view.dart';
+import 'package:educore/src/features/features/overrides_view.dart';
 import 'package:educore/src/features/institutes/institutes_view.dart';
 import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/payments/payments_view.dart';
@@ -75,6 +76,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.users => const UsersView(),
             _SuperAdminNav.notifications => const NotificationsView(),
             _SuperAdminNav.features => const FeaturesView(),
+            _SuperAdminNav.featureOverrides => const FeatureOverridesView(),
             _SuperAdminNav.plans => const PlansView(),
             _SuperAdminNav.settings => const SettingsView(),
           },
@@ -102,7 +104,8 @@ enum _SuperAdminNav {
     'Notifications',
     Icons.notifications_active_rounded,
   ),
-  features('features', 'Features', 'Feature Management', Icons.tune_rounded),
+  features('features', 'Registry', 'Feature Registry', Icons.list_alt_rounded),
+  featureOverrides('overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
   plans('plans', 'Plans', 'Plans', Icons.layers_rounded),
   settings('settings', 'Settings', 'Settings', Icons.settings_rounded);
 

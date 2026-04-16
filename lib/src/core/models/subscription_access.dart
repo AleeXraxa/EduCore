@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/features/features/models/feature_overrides.dart';
 import 'package:flutter/foundation.dart';
 
 enum SubscriptionAccessStatus { active, expired, pending, canceled }
@@ -10,7 +11,7 @@ class SubscriptionAccess {
     required this.planId,
     required this.status,
     required this.assignedFeatures,
-    required this.overriddenFeatures,
+    this.overrides = const FeatureOverrides(),
     this.updatedAt,
   });
 
@@ -18,7 +19,7 @@ class SubscriptionAccess {
   final String planId;
   final SubscriptionAccessStatus status;
   final List<String> assignedFeatures;
-  final Map<String, bool> overriddenFeatures;
+  final FeatureOverrides overrides;
   final DateTime? updatedAt;
 
   static SubscriptionAccess fromDoc(
@@ -30,8 +31,7 @@ class SubscriptionAccess {
       planId: (data['planId'] as String?) ?? '',
       status: _statusFrom(data['status'] as String?),
       assignedFeatures: _listString(data['assignedFeatures']),
-      overriddenFeatures:
-          _mapBool(data['overriddenFeatures'] ?? data['overrides']),
+      overrides: _mapOverrides(data['overrides']),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -54,11 +54,9 @@ List<String> _listString(Object? value) {
   return const <String>[];
 }
 
-Map<String, bool> _mapBool(Object? value) {
+FeatureOverrides _mapOverrides(Object? value) {
   if (value is Map) {
-    return value.map(
-      (k, v) => MapEntry(k.toString(), v == true),
-    );
+    return FeatureOverrides.fromMap(value.cast<String, dynamic>());
   }
-  return const <String, bool>{};
+  return const FeatureOverrides();
 }

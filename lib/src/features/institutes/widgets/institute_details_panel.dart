@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/models/subscription_record.dart';

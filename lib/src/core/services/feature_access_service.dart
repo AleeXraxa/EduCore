@@ -65,16 +65,28 @@ class FeatureAccessService {
         baseFeatures.addAll(plan!.features);
       }
 
-      final overrides = subscription?.overriddenFeatures ?? const <String, bool>{};
-      for (final entry in overrides.entries) {
-        if (entry.value == true) {
-          baseFeatures.add(entry.key);
-        } else {
-          baseFeatures.remove(entry.key);
+      final allowed = <String>{};
+      final overrides = subscription?.overrides;
+
+      for (final key in registryActive) {
+        // Priority: disabled > enabled > plan
+        if (overrides != null && overrides.isDisabled(key)) {
+          // Blocked by override
+          continue;
+        }
+
+        if (overrides != null && overrides.isEnabled(key)) {
+          // Allowed by override
+          allowed.add(key);
+          continue;
+        }
+
+        if (baseFeatures.contains(key)) {
+          // Allowed by plan
+          allowed.add(key);
         }
       }
 
-      final allowed = baseFeatures.intersection(registryActive);
       final blocked = registryActive.difference(allowed);
 
       controller.add(

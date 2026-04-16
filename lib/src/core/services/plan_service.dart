@@ -123,6 +123,12 @@ class PlanService {
   Stream<Plan> watchPlan(String planId) {
     return _col.doc(planId).snapshots().map(Plan.fromDoc);
   }
+
+  Future<Plan?> getPlan(String planId) async {
+    final doc = await _col.doc(planId).get();
+    if (!doc.exists) return null;
+    return Plan.fromDoc(doc);
+  }
 }
 
 List<String> _cleanFeatureKeys(List<String> input) {
