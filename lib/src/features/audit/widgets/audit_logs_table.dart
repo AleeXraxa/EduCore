@@ -3,6 +3,7 @@ import 'package:educore/src/features/audit/models/audit_log.dart';
 import 'package:educore/src/features/audit/widgets/audit_log_details_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 
 class AuditLogsTable extends StatelessWidget {
   const AuditLogsTable({super.key, required this.logs});
@@ -74,7 +75,26 @@ class AuditLogsTable extends StatelessWidget {
                      ),
                    ),
                 ),
-                DataCell(Text(log.uid, style: const TextStyle(fontSize: 12))),
+                DataCell(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        log.userName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Text(
+                        log.uid.substring(0, min(8, log.uid.length)).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 DataCell(Text(log.academyId ?? 'GLOBAL', style: const TextStyle(fontSize: 12))),
                 DataCell(_SeverityBadge(log.severity)),
                 DataCell(

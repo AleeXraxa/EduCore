@@ -37,7 +37,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
 
     return AppShell(
       title: current.title,
-      sidebarItems: _SuperAdminNav.items,
+      sections: _SuperAdminNav.sections,
       selectedSidebarId: _selected,
       onSelectSidebar: (id) => setState(() => _selected = id),
       body: AnimatedSwitcher(
@@ -89,26 +89,30 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
 }
 
 enum _SuperAdminNav {
-  dashboard('dashboard', 'Dashboard', 'Super Admin', Icons.dashboard_rounded),
-  institutes('institutes', 'Institutes', 'Institutes', Icons.apartment_rounded),
-  subscriptions(
-    'subscriptions',
-    'Subscriptions',
-    'Subscriptions',
-    Icons.verified_rounded,
-  ),
-  payments('payments', 'Payments', 'Payments', Icons.payments_rounded),
-  analytics('analytics', 'Analytics', 'Analytics', Icons.trending_up_rounded),
-  users('users', 'Users', 'Users', Icons.people_alt_rounded),
+  dashboard('dashboard', 'Dashboard', 'Super Admin Overview', Icons.dashboard_rounded),
+  analytics('analytics', 'Analytics', 'Platform Analytics', Icons.trending_up_rounded),
+
+  institutes('institutes', 'Institutes', 'Institute Management', Icons.apartment_rounded),
+  users('users', 'Users', 'User Management', Icons.people_alt_rounded),
   notifications(
     'notifications',
     'Notifications',
-    'Notifications',
+    'Platform Notifications',
     Icons.notifications_active_rounded,
   ),
-  features('features', 'Registry', 'Feature Registry', Icons.list_alt_rounded),
-  featureOverrides('overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
+
+  subscriptions(
+    'subscriptions',
+    'Subscriptions',
+    'Subscription Management',
+    Icons.verified_rounded,
+  ),
+  payments('payments', 'Payments', 'Payment Verification', Icons.payments_rounded),
   plans('plans', 'Plans', 'Subscription Plans', Icons.category_rounded),
+
+  features('features', 'Features', 'Feature Registry', Icons.list_alt_rounded),
+  featureOverrides('overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
+
   auditLogs('audit_logs', 'Audit Logs', 'Activity Logs', Icons.receipt_long_rounded),
   settings('settings', 'Settings', 'Platform Settings', Icons.settings_rounded);
 
@@ -118,9 +122,37 @@ enum _SuperAdminNav {
   final String title;
   final IconData icon;
 
-  static List<SidebarItemData> get items => _SuperAdminNav.values
-      .map((e) => SidebarItemData(id: e.id, label: e.label, icon: e.icon))
-      .toList(growable: false);
+  SidebarItemData toSidebarItem() =>
+      SidebarItemData(id: id, label: label, icon: icon);
+
+  static List<SidebarSectionData> get sections => [
+        SidebarSectionData(
+          title: 'Overview',
+          items: [dashboard, analytics].map((e) => e.toSidebarItem()).toList(),
+        ),
+        SidebarSectionData(
+          title: 'Management',
+          items: [institutes, users, notifications]
+              .map((e) => e.toSidebarItem())
+              .toList(),
+        ),
+        SidebarSectionData(
+          title: 'Billing',
+          items: [subscriptions, payments, plans]
+              .map((e) => e.toSidebarItem())
+              .toList(),
+        ),
+        SidebarSectionData(
+          title: 'Configuration',
+          items: [features, featureOverrides]
+              .map((e) => e.toSidebarItem())
+              .toList(),
+        ),
+        SidebarSectionData(
+          title: 'System',
+          items: [auditLogs, settings].map((e) => e.toSidebarItem()).toList(),
+        ),
+      ];
 
   static _SuperAdminNav byId(String id) =>
       _SuperAdminNav.values.firstWhere((e) => e.id == id);

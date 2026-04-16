@@ -32,6 +32,7 @@ class AuditLog {
     required this.module,
     this.academyId,
     required this.uid,
+    required this.userName,
     required this.role,
     this.targetDoc,
     this.before,
@@ -46,6 +47,7 @@ class AuditLog {
   final String module;
   final String? academyId;
   final String uid;
+  final String userName;
   final String role;
   final String? targetDoc;
   final Map<String, dynamic>? before;
@@ -62,6 +64,7 @@ class AuditLog {
       module: data['module'] ?? '',
       academyId: data['academyId'],
       uid: data['uid'] ?? '',
+      userName: data['userName'] ?? 'Unknown User',
       role: data['role'] ?? '',
       targetDoc: data['targetDoc'],
       before: data['before'],
@@ -78,6 +81,7 @@ class AuditLog {
       'module': module,
       'academyId': academyId,
       'uid': uid,
+      'userName': userName,
       'role': role,
       'targetDoc': targetDoc,
       'before': before,

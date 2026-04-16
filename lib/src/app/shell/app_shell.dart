@@ -8,7 +8,7 @@ class AppShell extends StatefulWidget {
     super.key,
     required this.body,
     required this.title,
-    this.sidebarItems = const [],
+    this.sections = const [],
     this.selectedSidebarId,
     this.onSelectSidebar,
     this.bottomItems = const [],
@@ -16,7 +16,7 @@ class AppShell extends StatefulWidget {
 
   final Widget body;
   final String title;
-  final List<SidebarItemData> sidebarItems;
+  final List<SidebarSectionData> sections;
   final String? selectedSidebarId;
   final ValueChanged<String>? onSelectSidebar;
   final List<SidebarItemData> bottomItems;
@@ -36,7 +36,7 @@ class _AppShellState extends State<AppShell> {
           Sidebar(
             collapsed: _collapsed,
             onToggle: () => setState(() => _collapsed = !_collapsed),
-            items: widget.sidebarItems,
+            sections: widget.sections,
             selectedId: widget.selectedSidebarId,
             onSelect: widget.onSelectSidebar,
             bottomItems: widget.bottomItems,

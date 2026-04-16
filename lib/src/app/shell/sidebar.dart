@@ -11,7 +11,7 @@ class Sidebar extends StatelessWidget {
     super.key,
     required this.collapsed,
     required this.onToggle,
-    this.items = const [],
+    this.sections = const [],
     this.selectedId,
     this.onSelect,
     this.bottomItems = const [],
@@ -19,7 +19,7 @@ class Sidebar extends StatelessWidget {
 
   final bool collapsed;
   final VoidCallback onToggle;
-  final List<SidebarItemData> items;
+  final List<SidebarSectionData> sections;
   final String? selectedId;
   final ValueChanged<String>? onSelect;
   final List<SidebarItemData> bottomItems;
@@ -36,11 +36,10 @@ class Sidebar extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border(
-          right: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.5),
-            width: 1,
-          ),
-        ),
+            right: BorderSide(
+          color: cs.outlineVariant.withValues(alpha: 0.5),
+          width: 1,
+        )),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -60,15 +59,27 @@ class Sidebar extends StatelessWidget {
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (final item in items)
-                        _NavItem(
+                      for (int i = 0; i < sections.length; i++) ...[
+                        _SectionHeader(
+                          title: sections[i].title,
                           collapsed: collapsed,
-                          icon: item.icon,
-                          label: item.label,
-                          selected: selectedId == item.id,
-                          onTap: () => onSelect?.call(item.id),
                         ),
+                        const SizedBox(height: 8),
+                        for (final item in sections[i].items)
+                          _NavItem(
+                            collapsed: collapsed,
+                            icon: item.icon,
+                            label: item.label,
+                            selected: selectedId == item.id,
+                            onTap: () => onSelect?.call(item.id),
+                          ),
+                        if (i < sections.length - 1)
+                          const SizedBox(height: 24)
+                        else
+                          const SizedBox(height: 16),
+                      ],
                     ],
                   ),
                 ),
@@ -539,6 +550,36 @@ class _NavItemState extends State<_NavItem>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.collapsed});
+  final String title;
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (collapsed) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Divider(height: 1),
+      );
+    }
+
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              fontSize: 10,
+            ),
       ),
     );
   }

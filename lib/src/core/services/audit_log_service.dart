@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/audit/models/audit_log.dart';
 import 'dart:developer' as dev;
 
@@ -14,6 +15,7 @@ class AuditLogService {
     required String module,
     String? academyId,
     required String uid,
+    String? userName,
     required String role,
     String? targetDoc,
     Map<String, dynamic>? before,
@@ -22,11 +24,16 @@ class AuditLogService {
     AuditSeverity severity = AuditSeverity.low,
   }) async {
     try {
+      // Resolve name from session if not provided
+      final session = AppServices.instance.authService?.session;
+      final resolvedName = userName ?? session?.user.name ?? 'System User';
+
       final log = {
         'action': action,
         'module': module,
         'academyId': academyId,
         'uid': uid,
+        'userName': resolvedName,
         'role': role,
         'targetDoc': targetDoc,
         'before': before,
@@ -39,7 +46,11 @@ class AuditLogService {
       await _collection.add(log);
       dev.log('Audit log created: $action', name: 'AuditLogService');
     } catch (e) {
-      dev.log('Error creating audit log: $e', name: 'AuditLogService', error: e);
+      dev.log(
+        'Error creating audit log: $e',
+        name: 'AuditLogService',
+        error: e,
+      );
     }
   }
 
@@ -51,12 +62,16 @@ class AuditLogService {
     String? academyId,
     AuditSeverity? severity,
   }) {
-    Query query = _collection.orderBy('timestamp', descending: true).limit(limit);
+    Query query = _collection
+        .orderBy('timestamp', descending: true)
+        .limit(limit);
 
     if (module != null) query = query.where('module', isEqualTo: module);
     if (action != null) query = query.where('action', isEqualTo: action);
-    if (academyId != null) query = query.where('academyId', isEqualTo: academyId);
-    if (severity != null) query = query.where('severity', isEqualTo: severity.name);
+    if (academyId != null)
+      query = query.where('academyId', isEqualTo: academyId);
+    if (severity != null)
+      query = query.where('severity', isEqualTo: severity.name);
 
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => AuditLog.fromFirestore(doc)).toList();

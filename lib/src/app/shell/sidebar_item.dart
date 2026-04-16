@@ -13,3 +13,13 @@ class SidebarItemData {
   final IconData icon;
 }
 
+@immutable
+class SidebarSectionData {
+  const SidebarSectionData({
+    required this.title,
+    required this.items,
+  });
+
+  final String title;
+  final List<SidebarItemData> items;
+}
