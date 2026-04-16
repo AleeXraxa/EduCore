@@ -1,118 +1,95 @@
-import 'package:educore/src/core/mvc/base_controller.dart';
-import 'package:educore/src/features/notifications/models/admin_notification.dart';
+import 'dart:async';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/features/notifications/models/app_notification.dart';
+import 'package:flutter/material.dart';
 
-class NotificationsController extends BaseController {
-  final List<AdminNotification> _history = <AdminNotification>[];
-  List<AdminNotification> get history => List.unmodifiable(_history);
-
-  final List<String> institutes = const [
-    'Green Valley Academy',
-    'City School – North Campus',
-    'Apex Institute',
-    'Sunrise School',
-    'Beacon Academy',
-    'NextGen Institute',
-  ];
-
+class NotificationsController extends ChangeNotifier {
   NotificationsController() {
-    _seedMock();
+    _init();
   }
 
-  Future<void> send({
+  final _service = AppServices.instance.notificationService;
+  final _instituteService = AppServices.instance.instituteService;
+
+  List<AppNotification> _notifications = [];
+  List<AppNotification> get notifications => _notifications;
+
+  List<Academy> _academies = [];
+  List<Academy> get academies => _academies;
+
+  bool _isLoading = true;
+  bool get isLoading => _isLoading;
+
+  bool _isSending = false;
+  bool get isSending => _isSending;
+
+  StreamSubscription? _notificationsSub;
+  StreamSubscription? _academiesSub;
+
+  void _init() {
+    _notificationsSub = _service?.watchNotifications().listen((data) {
+      _notifications = data;
+      _isLoading = false;
+      notifyListeners();
+    });
+
+    _academiesSub = _instituteService?.watchAcademies().listen((data) {
+      _academies = data;
+      notifyListeners();
+    });
+  }
+
+  Future<void> sendBroadcast({
     required String title,
     required String message,
-    required AdminNotificationType type,
-    required AdminNotificationAudience audience,
-    required List<String> targets,
-    DateTime? scheduledFor,
   }) async {
-    await runBusy<void>(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 220));
-      final now = DateTime.now();
-      final status = scheduledFor == null
-          ? AdminNotificationStatus.sent
-          : AdminNotificationStatus.scheduled;
-      _history.insert(
-        0,
-        AdminNotification(
-          id: now.microsecondsSinceEpoch.toString(),
-          title: title,
-          message: message,
-          type: type,
-          audience: audience,
-          targets: audience == AdminNotificationAudience.allInstitutes
-              ? const []
-              : List<String>.unmodifiable(targets),
-          status: status,
-          createdAt: now,
-          scheduledFor: scheduledFor,
-        ),
+    if (_isSending) return;
+    _setSending(true);
+    try {
+      await _service?.sendBroadcastNotification(title: title, message: message);
+    } finally {
+      _setSending(false);
+    }
+  }
+
+  Future<void> sendTargeted({
+    required String academyId,
+    required String academyName,
+    required String title,
+    required String message,
+  }) async {
+    if (_isSending) return;
+    _setSending(true);
+    try {
+      await _service?.sendTargetedNotification(
+        academyId: academyId,
+        academyName: academyName,
+        title: title,
+        message: message,
       );
-    });
+    } finally {
+      _setSending(false);
+    }
+  }
+
+  Future<void> triggerExpiryReminders() async {
+    await _service?.sendExpiryReminders();
+  }
+
+  Future<void> deleteNotification(String id) async {
+    await _service?.deleteNotification(id);
+  }
+
+  void _setSending(bool val) {
+    _isSending = val;
     notifyListeners();
   }
 
-  void delete(String id) {
-    _history.removeWhere((e) => e.id == id);
-    notifyListeners();
-  }
-
-  void resend(String id) {
-    final idx = _history.indexWhere((e) => e.id == id);
-    if (idx < 0) return;
-    final cur = _history[idx];
-    final now = DateTime.now();
-    _history[idx] = AdminNotification(
-      id: cur.id,
-      title: cur.title,
-      message: cur.message,
-      type: cur.type,
-      audience: cur.audience,
-      targets: cur.targets,
-      status: AdminNotificationStatus.sent,
-      createdAt: now,
-    );
-    notifyListeners();
-  }
-
-  void _seedMock() {
-    final now = DateTime.now();
-    _history.addAll([
-      AdminNotification(
-        id: 'n1',
-        title: 'Maintenance window',
-        message:
-            'We will perform scheduled maintenance tonight. Some services may be intermittently unavailable.',
-        type: AdminNotificationType.alert,
-        audience: AdminNotificationAudience.allInstitutes,
-        targets: const [],
-        status: AdminNotificationStatus.sent,
-        createdAt: now.subtract(const Duration(hours: 6)),
-      ),
-      AdminNotification(
-        id: 'n2',
-        title: 'Subscription renewal reminder',
-        message:
-            'Your subscription is expiring soon. Please submit payment proof to avoid access restrictions.',
-        type: AdminNotificationType.reminder,
-        audience: AdminNotificationAudience.specificInstitutes,
-        targets: const ['Green Valley Academy', 'Sunrise School'],
-        status: AdminNotificationStatus.scheduled,
-        createdAt: now.subtract(const Duration(days: 1)),
-        scheduledFor: now.add(const Duration(hours: 12)),
-      ),
-      AdminNotification(
-        id: 'n3',
-        title: 'New feature: Monthly stats',
-        message:
-            'You can now view pre-aggregated monthly stats in the dashboard for faster insights.',
-        type: AdminNotificationType.announcement,
-        audience: AdminNotificationAudience.allInstitutes,
-        targets: const [],
-        status: AdminNotificationStatus.sent,
-        createdAt: now.subtract(const Duration(days: 3)),
-      ),
-    ]);
+  @override
+  void dispose() {
+    _notificationsSub?.cancel();
+    _academiesSub?.cancel();
+    super.dispose();
   }
 }
-
