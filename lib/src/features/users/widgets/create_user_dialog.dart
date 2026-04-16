@@ -41,7 +41,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   final _phone = TextEditingController();
 
   AppUserRole _role = AppUserRole.staff;
-  String _instituteId = 'gv';
+  String _instituteId = '';
   AppUserStatus _status = AppUserStatus.active;
   final _formKey = GlobalKey<FormState>();
 
@@ -215,7 +215,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                                     label: 'Institute',
                                     items: instituteIds,
                                     value:
-                                        instituteEnabled ? _instituteId : null,
+                                        (instituteEnabled && instituteIds.contains(_instituteId)) ? _instituteId : null,
                                     enabled: instituteEnabled,
                                     hintText:
                                         instituteEnabled

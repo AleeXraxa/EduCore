@@ -3,7 +3,11 @@ import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/login/seed/super_admin_seed.dart';
 
 class LoginController extends BaseController {
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({
+    required String email,
+    required String password,
+    bool rememberMe = false,
+  }) async {
     await runBusy<void>(() async {
       final authService = AppServices.instance.authService;
       if (authService == null) {
@@ -12,6 +16,7 @@ class LoginController extends BaseController {
       await authService.login(
         email: email,
         password: password,
+        rememberMe: rememberMe,
       );
     });
   }

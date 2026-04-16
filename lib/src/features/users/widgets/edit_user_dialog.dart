@@ -190,11 +190,11 @@ class _EditUserDialogState extends State<EditUserDialog> {
                                 label: 'Assigned Institute',
                                 hintText: 'Select institute...',
                                 items: instituteIds,
-                                value: _instituteId == 'all'
-                                    ? (instituteIds.isNotEmpty
+                                value: instituteIds.contains(_instituteId)
+                                    ? _instituteId
+                                    : (instituteIds.isNotEmpty
                                         ? instituteIds.first
-                                        : null)
-                                    : _instituteId,
+                                        : null),
                                 prefixIcon: Icons.apartment_rounded,
                                 itemLabel: widget.instituteLabelForId,
                                 onChanged: (v) =>

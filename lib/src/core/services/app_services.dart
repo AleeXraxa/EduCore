@@ -143,8 +143,17 @@ class AppServices {
 
       // Initialize Repositories
       userRepository = UserRepository(firestore!);
-      instituteRepository = InstituteRepository(firestore!);
-      paymentRepository = PaymentRepository(firestore!);
+      
+      final instService = instituteService;
+      if (instService != null) {
+        instituteRepository =
+            InstituteRepository(firestore!, service: instService);
+      }
+      
+      if (adminPaymentsService != null) {
+        paymentRepository =
+            PaymentRepository(firestore!, service: adminPaymentsService!);
+      }
       auditLogRepository = AuditLogRepository(firestore!);
       
       firebaseReady = true;

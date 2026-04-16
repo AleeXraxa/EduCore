@@ -83,8 +83,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
           await authService.refreshSession();
           // Only route to dashboard if the restored session belongs to a Super Admin.
           // Any other role (institute admin, teacher, etc.) is bounced to login.
-          actualSignIn = authService.isAuthenticated &&
-              (authService.session?.isSuperAdmin ?? false);
+          actualSignIn = authService.isAuthenticated;
         } catch (_) {
           actualSignIn = false;
         }

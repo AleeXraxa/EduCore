@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 
 /// [InstituteRepository] manages the lifecycle and metadata of academies (tenants).
 class InstituteRepository {
-  InstituteRepository(this._firestore);
+  InstituteRepository(this._firestore, {required InstituteService service})
+      : _instituteService = service;
   final FirebaseFirestore _firestore;
+  final InstituteService _instituteService;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('academies');
@@ -58,9 +61,19 @@ class InstituteRepository {
     required String address,
     required String adminEmail,
     required String adminPassword,
+    String planId = 'free_tier',
   }) async {
-    // Note: Complex auth creation still lives in InstituteService for now.
-    // In a full DAL refactor, we would move the Firestore parts here.
+    // Delegate complex creation logic (Auth + Firestore Batch) to InstituteService
+    await _instituteService.createInstitute(
+      name: name,
+      ownerName: ownerName,
+      email: email,
+      phone: phone,
+      address: address,
+      adminEmail: adminEmail,
+      adminPassword: adminPassword,
+      planId: planId,
+    );
   }
 
   /// Fetches a single academy.

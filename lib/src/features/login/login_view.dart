@@ -2,7 +2,6 @@ import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/core/services/auth_exceptions.dart';
 import 'package:educore/src/features/login/seed/super_admin_seed.dart';
 import 'package:flutter/foundation.dart';
-import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
@@ -152,6 +151,7 @@ class _LoginViewState extends State<LoginView>
       await _controller.signIn(
         email: _email.text.trim(),
         password: _password.text,
+        rememberMe: _rememberMe,
       );
 
       // Role guard: this shell is exclusively for Super Admins. If a valid
@@ -171,9 +171,6 @@ class _LoginViewState extends State<LoginView>
         return;
       }
 
-      // Persist the signed-in flag so the splash screen can route to the
-      // dashboard on next app restart without waiting on the Firebase stream.
-      await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, true);
       if (!mounted) return;
       Navigator.of(
         context,

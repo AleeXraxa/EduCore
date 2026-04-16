@@ -1,7 +1,9 @@
 import 'dart:developer' as dev;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/models/app_user.dart';
 import 'package:educore/src/core/models/subscription_record.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/auth_exceptions.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/login/models/auth_session.dart';
@@ -38,6 +40,7 @@ class AuthService extends ChangeNotifier {
   Future<AuthSession> login({
     required String email,
     required String password,
+    bool rememberMe = false,
   }) async {
     try {
       // Step 1: Firebase Authentication
@@ -73,6 +76,14 @@ class AuthService extends ChangeNotifier {
 
       // Step 5: Build Session Context
       _session = buildSessionContext(appUser);
+      
+      // Persist sign-in state for auto-login on startup
+      if (rememberMe) {
+        await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, true);
+      } else {
+        await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
+      }
+      
       notifyListeners();
 
       return _session!;
@@ -144,10 +155,23 @@ class AuthService extends ChangeNotifier {
   /// Periodically re-validates the current session.
   /// Used on app start or during long sessions to enforce gating.
   Future<void> refreshSession() async {
-    final user = _auth.currentUser;
+    User? user = _auth.currentUser;
+    
+    // If user is null, Firebase might still be restoring the session.
+    // We wait for the first authenticated state change with a timeout.
     if (user == null) {
-      _session = null;
-      notifyListeners();
+      try {
+        user = await _auth.authStateChanges().where((u) => u != null).first.timeout(
+          const Duration(milliseconds: 1500),
+          onTimeout: () => null,
+        );
+      } catch (_) {
+        user = null;
+      }
+    }
+
+    if (user == null) {
+      await signOut();
       return;
     }
 
@@ -171,7 +195,15 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Security Re-validation failed: $e');
-      await signOut();
+      // If the error is a definitive security/existence failure, wipe the session.
+      // If it's a transient error (like network down), we don't call signOut() 
+      // so as not to clear the PrefsKeys.signedIn flag.
+      if (e is AuthException || e is FirebaseAuthException) {
+        await signOut();
+      } else {
+        _session = null;
+        notifyListeners();
+      }
     }
   }
 
@@ -179,6 +211,10 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     _session = null;
+    
+    // Clear persistence
+    await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
+    
     notifyListeners();
   }
 

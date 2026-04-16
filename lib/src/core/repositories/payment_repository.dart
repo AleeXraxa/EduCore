@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/payment_record.dart';
+import 'package:educore/src/core/services/admin_payments_service.dart';
 
 /// [PaymentRepository] handles financial transactions and verification workflows.
 ///
 /// Implements pagination to ensure the finance dashboard remains responsive
 /// even with long-term transaction history.
 class PaymentRepository {
-  PaymentRepository(this._firestore);
+  PaymentRepository(this._firestore, {required AdminPaymentsService service})
+      : _service = service;
   final FirebaseFirestore _firestore;
+  final AdminPaymentsService _service;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('payments');
@@ -50,11 +53,31 @@ class PaymentRepository {
     required String reviewerUid,
     Map<String, dynamic>? extra,
   }) async {
-    await _collection.doc(paymentId).update({
-      'status': status,
-      'reviewerUid': reviewerUid,
-      'reviewedAt': FieldValue.serverTimestamp(),
-      if (extra != null) ...extra,
-    });
+    if (status == 'approved') {
+      final snap = await _collection.doc(paymentId).get();
+      final data = snap.data();
+      if (data == null) throw StateError('Payment not found');
+
+      final academyId = data['academyId'] as String? ?? '';
+      final planId = data['planId'] as String? ?? extra?['planId'] as String? ?? 'free_tier';
+      final duration = extra?['durationMonths'] as int? ?? 1;
+
+      await _service.approvePayment(
+        paymentId: paymentId,
+        academyId: academyId,
+        planId: planId,
+        durationMonths: duration,
+        reviewerUid: reviewerUid,
+      );
+    } else if (status == 'rejected') {
+      await _service.rejectPayment(paymentId, reviewerUid);
+    } else {
+      await _collection.doc(paymentId).update({
+        'status': status,
+        'reviewerUid': reviewerUid,
+        'reviewedAt': FieldValue.serverTimestamp(),
+        if (extra != null) ...extra,
+      });
+    }
   }
 }
