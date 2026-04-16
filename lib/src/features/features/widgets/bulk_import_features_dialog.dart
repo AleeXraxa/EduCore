@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:flutter/services.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -299,11 +300,10 @@ class _BulkImportFeaturesDialogState
   void _downloadTemplate() {
     final content = _template();
     // Desktop-friendly: copy to clipboard for easy paste into Excel/Sheets.
-    Clipboard.setData(ClipboardData(text: content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Template copied to clipboard. Paste into Excel/Sheets.'),
-      ),
+    AppDialogs.showSuccess(
+      context,
+      title: 'Template Copied',
+      message: 'The CSV template has been copied to your clipboard. You can now paste it into Excel or Google Sheets.',
     );
   }
 }

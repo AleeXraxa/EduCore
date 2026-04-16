@@ -1,5 +1,6 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/hover_scale.dart';
 import 'package:educore/src/features/settings/models/settings_models.dart';
@@ -128,13 +129,14 @@ class _SettingsViewState extends State<SettingsView> {
                             icon: Icons.save_rounded,
                             busy: controller.busy,
                             onPressed: () async {
+                              AppDialogs.showLoading(context, message: 'Syncing settings...');
                               await controller.save();
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Settings saved'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
+                              AppDialogs.hide(context);
+                              AppDialogs.showSuccess(
+                                context,
+                                title: 'Settings Saved',
+                                message: 'Your configuration preferences have been successfully updated and synced across the platform.',
                               );
                             },
                           ),

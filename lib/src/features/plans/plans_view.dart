@@ -8,6 +8,8 @@ import 'package:educore/src/features/plans/plans_controller.dart';
 import 'package:educore/src/features/plans/widgets/feature_toggle_dialog.dart';
 import 'package:educore/src/features/plans/widgets/plan_editor_dialog.dart';
 import 'package:educore/src/features/plans/widgets/plan_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:flutter/material.dart';
 
 class PlansView extends StatefulWidget {
@@ -130,18 +132,23 @@ class _PlansViewState extends State<PlansView> {
                             );
                             if (created == null) return;
                             try {
+                              AppDialogs.showLoading(context, message: 'Creating plan...');
                               await controller.createPlan(created);
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Plan created: ${created.name}'),
-                                ),
+                              AppDialogs.hide(context);
+                              AppDialogs.showSuccess(
+                                context,
+                                title: 'Plan Created',
+                                message: 'The plan "${created.name}" is now available for institutes.',
                               );
                             } catch (e) {
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(
+                              AppDialogs.hide(context);
+                              AppDialogs.showError(
                                 context,
-                              ).showSnackBar(SnackBar(content: Text('$e')));
+                                title: 'Failed to Create Plan',
+                                message: e.toString(),
+                              );
                             }
                           },
                         ),
@@ -179,18 +186,23 @@ class _PlansViewState extends State<PlansView> {
                         );
                         if (updated == null) return;
                         try {
+                          AppDialogs.showLoading(context, message: 'Updating plan...');
                           await controller.updatePlan(updated);
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Plan updated: ${updated.name}'),
-                            ),
+                          AppDialogs.hide(context);
+                          AppDialogs.showSuccess(
+                            context,
+                            title: 'Plan Updated',
+                            message: 'Changes to "${updated.name}" have been saved successfully.',
                           );
                         } catch (e) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(
+                          AppDialogs.hide(context);
+                          AppDialogs.showError(
                             context,
-                          ).showSnackBar(SnackBar(content: Text('$e')));
+                            title: 'Update Failed',
+                            message: e.toString(),
+                          );
                         }
                       },
                       onFeatures: (plan) => FeatureToggleDialog.show(
@@ -345,7 +357,11 @@ class _PlansGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return _EmptyState();
+      return const AppEmptyState(
+        title: 'No plans yet',
+        description: 'Create your first plan to define pricing and feature access.',
+        icon: Icons.layers_rounded,
+      );
     }
 
     const gap = 12.0;
@@ -723,50 +739,6 @@ class _LimitRow extends StatelessWidget {
             style: Theme.of(
               context,
             ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 44, horizontal: 20),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r16,
-        border: Border.all(color: cs.outlineVariant),
-        boxShadow: AppShadows.soft(Colors.black),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(Icons.layers_rounded, color: cs.primary, size: 26),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No plans yet',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Create your first plan to define pricing and feature access.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),

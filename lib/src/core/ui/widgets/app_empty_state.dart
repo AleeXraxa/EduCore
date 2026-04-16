@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 
 class AppEmptyState extends StatelessWidget {
@@ -33,32 +32,25 @@ class AppEmptyState extends StatelessWidget {
                 color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 48,
-                color: cs.onSurfaceVariant,
-              ),
+              child: Icon(icon, size: 48, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 32),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 32), action!],
           ],
         ),
       ),

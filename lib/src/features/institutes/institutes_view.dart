@@ -1,5 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/hover_scale.dart';
@@ -67,11 +68,13 @@ class _InstitutesViewState extends State<InstitutesView> {
                   },
                   onSearchChanged: controller.setQuery,
                   onAdd: () async {
-                    final draft = await AddInstituteDialog.show(
-                      context,
-                    );
+                    final draft = await AddInstituteDialog.show(context);
                     if (draft == null) return;
                     try {
+                      AppDialogs.showLoading(
+                        context,
+                        message: 'Creating academy...',
+                      );
                       await controller.createInstitute(
                         name: draft.name,
                         ownerName: draft.ownerName,
@@ -82,19 +85,20 @@ class _InstitutesViewState extends State<InstitutesView> {
                         adminPassword: draft.adminPassword,
                       );
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Institute created: ${draft.name}'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      AppDialogs.hide(context);
+                      AppDialogs.showSuccess(
+                        context,
+                        title: 'Academy Created',
+                        message:
+                            '${draft.name} has been successfully registered on the platform.',
                       );
                     } catch (e) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('$e'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      AppDialogs.hide(context);
+                      AppDialogs.showError(
+                        context,
+                        title: 'Creation Failed',
+                        message: e.toString(),
                       );
                     }
                   },
@@ -128,8 +132,9 @@ class _InstitutesViewState extends State<InstitutesView> {
                         final institute = controller.paged.firstWhere(
                           (e) => e.id == action.instituteId,
                         );
-                        final endDate =
-                            await controller.getSubscriptionEndDate(institute.id);
+                        final endDate = await controller.getSubscriptionEndDate(
+                          institute.id,
+                        );
                         if (!context.mounted) return;
                         final draft = await EditInstituteDialog.show(
                           context,
@@ -139,6 +144,10 @@ class _InstitutesViewState extends State<InstitutesView> {
                         );
                         if (draft == null) return;
                         try {
+                          AppDialogs.showLoading(
+                            context,
+                            message: 'Updating institute...',
+                          );
                           await controller.updateInstitute(
                             academyId: institute.id,
                             name: draft.name,
@@ -151,19 +160,20 @@ class _InstitutesViewState extends State<InstitutesView> {
                             endDate: draft.endDate,
                           );
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Institute profile updated: ${draft.name}'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          AppDialogs.hide(context);
+                          AppDialogs.showSuccess(
+                            context,
+                            title: 'Profile Updated',
+                            message:
+                                'Academy profile for "${draft.name}" has been saved successfully.',
                           );
                         } catch (e) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('$e'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          AppDialogs.hide(context);
+                          AppDialogs.showError(
+                            context,
+                            title: 'Update Failed',
+                            message: e.toString(),
                           );
                         }
                         break;
@@ -189,10 +199,10 @@ class _InstitutesViewState extends State<InstitutesView> {
                   Text(
                     'Tip: Search for institutes by name, email, or owner.',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
@@ -233,16 +243,16 @@ class _Header extends StatelessWidget {
               Text(
                 'Institutes',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.4,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Manage all registered institutes on EduCore.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -329,9 +339,9 @@ class _PaginationBar extends StatelessWidget {
         Text(
           '$start–$end of $total',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const Spacer(),
         _PagerIcon(
@@ -443,8 +453,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase...' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -452,8 +462,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Institutes require Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

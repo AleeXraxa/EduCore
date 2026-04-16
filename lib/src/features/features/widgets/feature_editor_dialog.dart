@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
@@ -242,22 +243,20 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
     final order = int.tryParse(_order.text.trim()) ?? 0;
 
     if (key.isEmpty || label.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Key and label are required.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppDialogs.showError(
+        context,
+        title: 'Validation Error',
+        message: 'Feature key and display label are required.',
       );
       return;
     }
 
     final keyRegex = RegExp(r'^[a-z0-9_]+$');
     if (!keyRegex.hasMatch(key)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Key must be lowercase and use underscores only.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppDialogs.showError(
+        context,
+        title: 'Invalid Key Format',
+        message: 'Keys must lowercase alphanumeric characters and underscores only.',
       );
       return;
     }

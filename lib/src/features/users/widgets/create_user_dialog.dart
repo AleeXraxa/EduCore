@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
@@ -64,11 +65,10 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     final phone = _phone.text.trim();
 
     if (name.isEmpty || email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill required fields.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppDialogs.showError(
+        context,
+        title: 'Form Incomplete',
+        message: 'The full name and email address fields are required to create a new user account.',
       );
       return;
     }

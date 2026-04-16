@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
@@ -83,8 +84,10 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     final rawValue = _newLimitValue.text.trim();
     final parsed = num.tryParse(rawValue);
     if (parsed == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Limit value must be a number.')),
+      AppDialogs.showError(
+        context,
+        title: 'Invalid Quota',
+        message: 'The resource limit value must be a valid numeric quantity.',
       );
       return;
     }
@@ -103,8 +106,10 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     final duration = int.tryParse(_duration.text.trim()) ?? 30;
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plan name is required.')),
+      AppDialogs.showError(
+        context,
+        title: 'Label Required',
+        message: 'Please provide a public label for this subscription tier.',
       );
       return;
     }

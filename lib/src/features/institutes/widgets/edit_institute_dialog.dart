@@ -1,5 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
@@ -116,11 +117,10 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
         owner.isEmpty ||
         email.isEmpty ||
         planId.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppDialogs.showError(
+        context,
+        title: 'Incomplete Details',
+        message: 'Please fill all required highlighted fields to save changes.',
       );
       return;
     }

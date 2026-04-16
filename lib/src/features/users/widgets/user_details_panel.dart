@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/features/users/widgets/user_role_badge.dart';
 import 'package:educore/src/features/users/widgets/user_status_badge.dart';
@@ -26,7 +27,10 @@ class UserDetailsPanel {
         );
       },
       transitionBuilder: (context, anim, secondary, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutCubic,
+        );
         final slide = Tween<Offset>(
           begin: const Offset(0.12, 0),
           end: Offset.zero,
@@ -54,7 +58,9 @@ class _UserDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final panelWidth = MediaQuery.of(context).size.width < 560 ? double.infinity : 480.0;
+    final panelWidth = MediaQuery.of(context).size.width < 560
+        ? double.infinity
+        : 480.0;
     final maxHeight = MediaQuery.of(context).size.height - 36;
 
     return Material(
@@ -64,9 +70,7 @@ class _UserDetailsDialog extends StatelessWidget {
           Positioned.fill(
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.15),
-              ),
+              child: Container(color: Colors.black.withValues(alpha: 0.15)),
             ),
           ),
           Align(
@@ -116,17 +120,28 @@ class _UserDetailsDialog extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: cs.primary.withValues(alpha: 0.05),
                                   borderRadius: AppRadii.r16,
-                                  border: Border.all(color: cs.primary.withValues(alpha: 0.1)),
+                                  border: Border.all(
+                                    color: cs.primary.withValues(alpha: 0.1),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_outline_rounded, size: 16, color: cs.primary),
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: cs.primary,
+                                    ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
                                         'Note: All changes to administrative accounts are logged for security and audit purposes.',
-                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                              color: cs.primary.withValues(alpha: 0.8),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: cs.primary.withValues(
+                                                alpha: 0.8,
+                                              ),
                                               fontWeight: FontWeight.w700,
                                               height: 1.4,
                                             ),
@@ -147,11 +162,11 @@ class _UserDetailsDialog extends StatelessWidget {
                         Navigator.of(context).pop();
                       },
                       onResetKey: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password reset email sent.'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        AppDialogs.showSuccess(
+                          context,
+                          title: 'Verification Sent',
+                          message:
+                              'A password reset link has been dispatched to the user\'s registered email address.',
                         );
                       },
                     ),
@@ -204,9 +219,9 @@ class _Header extends StatelessWidget {
               child: Text(
                 _initials(user.name),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
@@ -220,9 +235,9 @@ class _Header extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.8,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -230,10 +245,10 @@ class _Header extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ],
             ),
@@ -353,9 +368,7 @@ class _InfoGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: AppRadii.r20,
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.02),
@@ -383,10 +396,10 @@ class _InfoGrid extends StatelessWidget {
                     Text(
                       label.toUpperCase(),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     value,
@@ -418,9 +431,9 @@ class _InfoGrid extends StatelessWidget {
           label: 'Assigned Institute',
           value: Text(
             user.instituteName,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           delayIndex: 2,
         ),
@@ -429,9 +442,9 @@ class _InfoGrid extends StatelessWidget {
           label: 'Phone Number',
           value: Text(
             user.phone,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           delayIndex: 3,
         ),
@@ -440,9 +453,9 @@ class _InfoGrid extends StatelessWidget {
           label: 'Last Active',
           value: Text(
             lastLoginText(user.lastLoginAt),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           delayIndex: 4,
         ),
@@ -483,4 +496,3 @@ String _initials(String name) {
   final last = parts.length >= 2 ? parts.last[0] : '';
   return (first + last).toUpperCase();
 }
-

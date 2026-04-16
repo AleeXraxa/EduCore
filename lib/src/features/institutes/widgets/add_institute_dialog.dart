@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -350,11 +351,10 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
         email.isEmpty ||
         adminEmail.isEmpty ||
         adminPassword.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please verify all required operational fields.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      AppDialogs.showError(
+        context,
+        title: 'Validation Error',
+        message: 'Please verify all required operational fields before proceeding.',
       );
       return;
     }

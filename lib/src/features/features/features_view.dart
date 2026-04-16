@@ -1,6 +1,8 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
@@ -146,20 +148,23 @@ class _FeaturesViewState extends State<FeaturesView> {
                                     );
                                 if (created == null || created.isEmpty) return;
                                 try {
+                                  AppDialogs.showLoading(context, message: 'Importing features...');
                                   await controller.createFeaturesBulk(created);
                                   if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Imported ${created.length} features.',
-                                      ),
-                                    ),
+                                  AppDialogs.hide(context);
+                                  AppDialogs.showSuccess(
+                                    context,
+                                    title: 'Import Successful',
+                                    message: 'Synchronized ${created.length} new operational features to the platform catalog.',
                                   );
                                 } catch (e) {
                                   if (!context.mounted) return;
-                                  ScaffoldMessenger.of(
+                                  AppDialogs.hide(context);
+                                  AppDialogs.showError(
                                     context,
-                                  ).showSnackBar(SnackBar(content: Text('$e')));
+                                    title: 'Import Failed',
+                                    message: e.toString(),
+                                  );
                                 }
                               },
                         icon: Icons.upload_file_rounded,
@@ -177,20 +182,23 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 );
                                 if (created == null) return;
                                 try {
+                                  AppDialogs.showLoading(context, message: 'Adding feature...');
                                   await controller.createFeature(created);
                                   if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Feature created: ${created.label}',
-                                      ),
-                                    ),
+                                  AppDialogs.hide(context);
+                                  AppDialogs.showSuccess(
+                                    context,
+                                    title: 'Feature Deployed',
+                                    message: 'The feature "${created.label}" is now active in the system catalog.',
                                   );
                                 } catch (e) {
                                   if (!context.mounted) return;
-                                  ScaffoldMessenger.of(
+                                  AppDialogs.hide(context);
+                                  AppDialogs.showError(
                                     context,
-                                  ).showSnackBar(SnackBar(content: Text('$e')));
+                                    title: 'Deployment Failed',
+                                    message: e.toString(),
+                                  );
                                 }
                               },
                         busy: controller.busy,
@@ -299,16 +307,23 @@ class _FeaturesViewState extends State<FeaturesView> {
         );
         if (updated == null) return;
         try {
+          AppDialogs.showLoading(context, message: 'Updating feature...');
           await controller.updateFeature(updated);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Feature updated: ${updated.label}')),
+          AppDialogs.hide(context);
+          AppDialogs.showSuccess(
+            context,
+            title: 'Update Successful',
+            message: 'Internal configuration for "${updated.label}" has been synchronized across the platform.',
           );
         } catch (e) {
           if (!context.mounted) return;
-          ScaffoldMessenger.of(
+          AppDialogs.hide(context);
+          AppDialogs.showError(
             context,
-          ).showSnackBar(SnackBar(content: Text('$e')));
+            title: 'Update Failed',
+            message: e.toString(),
+          );
         }
         break;
       case FeatureMenuAction.toggle:

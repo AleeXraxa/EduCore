@@ -53,8 +53,6 @@ class AdminSubscriptionsService {
     }
     await _col.doc(academyId).update(patch);
 
-    // TODO: Ideally pass performing user's UID and Role here.
-    // For now we assume system/superadmin as this is an Admin class.
     await _audit.logAction(
       action: 'SUBSCRIPTION_UPDATED',
       module: 'subscriptions',

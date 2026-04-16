@@ -1,6 +1,7 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/features/plans_import/models/plan_import_models.dart';
 import 'package:educore/src/features/plans_import/plans_import_controller.dart';
@@ -114,10 +115,10 @@ class _PlansImportViewState extends State<PlansImportView> {
                                     : _csvTemplate;
                                 await Clipboard.setData(ClipboardData(text: template));
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Template copied to clipboard.'),
-                                  ),
+                                AppDialogs.showSuccess(
+                                  context,
+                                  title: 'Template Copied',
+                                  message: 'The plan import template has been copied to your clipboard. You can now paste your data into it.',
                                 );
                               },
                             ),
@@ -159,17 +160,22 @@ class _PlansImportViewState extends State<PlansImportView> {
                                       ? null
                                       : () async {
                                           try {
+                                            AppDialogs.showLoading(context, message: 'Importing plans...');
                                             await controller.importPlans();
                                             if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Plans imported successfully.'),
-                                              ),
+                                            AppDialogs.hide(context);
+                                            AppDialogs.showSuccess(
+                                              context,
+                                              title: 'Import Successful',
+                                              message: 'All valid plans have been successfully synchronized to the system catalog.',
                                             );
                                           } catch (e) {
                                             if (!context.mounted) return;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('$e')),
+                                            AppDialogs.hide(context);
+                                            AppDialogs.showError(
+                                              context,
+                                              title: 'Import Failed',
+                                              message: e.toString(),
                                             );
                                           }
                                         },

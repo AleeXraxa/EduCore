@@ -1,5 +1,5 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/notifications/notifications_controller.dart';
 import 'package:flutter/material.dart';
 
@@ -30,13 +30,16 @@ class _CreateNotificationDialogState extends State<CreateNotificationDialog> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_isBroadcast && _selectedAcademy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an institute')),
+      AppDialogs.showError(
+        context,
+        title: 'Target Required',
+        message: 'Please select a specific institute to receive this targeted notification.',
       );
       return;
     }
 
     try {
+      AppDialogs.showLoading(context, message: 'Sending notification...');
       if (_isBroadcast) {
         await widget.controller.sendBroadcast(
           title: _titleController.text.trim(),
@@ -50,20 +53,23 @@ class _CreateNotificationDialogState extends State<CreateNotificationDialog> {
           message: _messageController.text.trim(),
         );
       }
-      
+
       if (mounted) {
+        AppDialogs.hide(context);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notification sent successfully'),
-            backgroundColor: Colors.green,
-          ),
+        AppDialogs.showSuccess(
+          context,
+          title: 'Broadcast Sent',
+          message: 'The notification has been successfully delivered to all intended recipients.',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+        AppDialogs.hide(context);
+        AppDialogs.showError(
+          context,
+          title: 'Delivery Failed',
+          message: e.toString(),
         );
       }
     }

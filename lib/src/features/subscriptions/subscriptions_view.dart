@@ -1,6 +1,7 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
@@ -158,11 +159,29 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                           plans: controller.plans,
                         );
                         if (res != null) {
-                          await controller.addSubscription(
-                            academyId: res.academyId,
-                            planId: res.planId,
-                            durationMonths: res.durationMonths,
-                          );
+                          try {
+                            AppDialogs.showLoading(context, message: 'Creating subscription...');
+                            await controller.addSubscription(
+                              academyId: res.academyId,
+                              planId: res.planId,
+                              durationMonths: res.durationMonths,
+                            );
+                            if (!context.mounted) return;
+                            AppDialogs.hide(context);
+                            AppDialogs.showSuccess(
+                              context,
+                              title: 'Subscription Active',
+                              message: 'A new subscription has been successfully provisioned and activated.',
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            AppDialogs.hide(context);
+                            AppDialogs.showError(
+                              context,
+                              title: 'Activation Failed',
+                              message: e.toString(),
+                            );
+                          }
                         }
                       },
                       icon: Icons.add_rounded,
@@ -254,17 +273,53 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                           subscription: sub,
                           plans: controller.plans,
                           onSave: (planId, status, expiry) async {
-                            await controller.updateSubscriptionDetails(
-                              sub.id,
-                              planId: planId,
-                              status: status,
-                              expiryDate: expiry,
-                            );
+                            try {
+                              AppDialogs.showLoading(context, message: 'Updating subscription...');
+                              await controller.updateSubscriptionDetails(
+                                sub.id,
+                                planId: planId,
+                                status: status,
+                                expiryDate: expiry,
+                              );
+                              if (!context.mounted) return;
+                              AppDialogs.hide(context);
+                              AppDialogs.showSuccess(
+                                context,
+                                title: 'Changes Saved',
+                                message: 'The subscription details have been updated successfully.',
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              AppDialogs.hide(context);
+                              AppDialogs.showError(
+                                context,
+                                title: 'Update Failed',
+                                message: e.toString(),
+                              );
+                            }
                           },
                         );
                         break;
                       case SubscriptionMenuAction.approve:
-                        await controller.approve(action.subscriptionId);
+                        try {
+                          AppDialogs.showLoading(context, message: 'Approving subscription...');
+                          await controller.approve(action.subscriptionId);
+                          if (!context.mounted) return;
+                          AppDialogs.hide(context);
+                          AppDialogs.showSuccess(
+                            context,
+                            title: 'Approval Complete',
+                            message: 'The subscription has been approved and moved to active status.',
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          AppDialogs.hide(context);
+                          AppDialogs.showError(
+                            context,
+                            title: 'Operation Failed',
+                            message: e.toString(),
+                          );
+                        }
                         break;
                       case SubscriptionMenuAction.reject:
                         await controller.reject(action.subscriptionId);

@@ -11,6 +11,7 @@ import 'package:educore/src/features/users/widgets/create_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/user_details_panel.dart';
 import 'package:educore/src/features/users/widgets/edit_user_dialog.dart';
 import 'package:educore/src/features/users/widgets/users_table.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:flutter/material.dart';
 
 class UsersView extends StatefulWidget {
@@ -26,6 +27,43 @@ class _UsersViewState extends State<UsersView> {
   UsersRoleFilter _role = UsersRoleFilter.all;
   UsersStatusFilter _status = UsersStatusFilter.all;
   String _instituteId = 'all';
+
+  Future<void> _handleEdit(BuildContext context, AppUser user) async {
+    final updated = await EditUserDialog.show(
+      context,
+      user: user,
+      instituteIds: _controller.institutes,
+      instituteLabelForId: _controller.instituteNameForId,
+    );
+    if (updated == null) return;
+    if (!context.mounted) return;
+
+    try {
+      AppDialogs.showLoading(context, message: 'Updating account...');
+      await _controller.updateUser(
+        updated.id,
+        name: updated.name,
+        phone: updated.phone,
+        role: updated.role,
+        instituteId: updated.instituteId,
+      );
+      if (!context.mounted) return;
+      AppDialogs.hide(context);
+      AppDialogs.showSuccess(
+        context,
+        title: 'Profile Updated',
+        message: 'Account for "${updated.name}" has been updated successfully.',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      AppDialogs.hide(context);
+      AppDialogs.showError(
+        context,
+        title: 'Update Failed',
+        message: e.toString(),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -43,7 +81,6 @@ class _UsersViewState extends State<UsersView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
 
     return ControllerBuilder<UsersController>(
       controller: _controller,
@@ -199,75 +236,58 @@ class _UsersViewState extends State<UsersView> {
                         instituteLabelForId: controller.instituteNameForId,
                       );
                       if (created == null) return;
-                      controller.addUser(created);
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('User account created: ${created.name}'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+
+                      try {
+                        AppDialogs.showLoading(
+                          context,
+                          message: 'Creating user account...',
+                        );
+                        controller.addUser(created);
+                        if (!context.mounted) return;
+                        AppDialogs.hide(context);
+                        AppDialogs.showSuccess(
+                          context,
+                          title: 'Account Created',
+                          message:
+                              'User account for "${created.name}" has been successfully set up.',
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        AppDialogs.hide(context);
+                        AppDialogs.showError(
+                          context,
+                          title: 'Creation Failed',
+                          message: e.toString(),
+                        );
+                      }
                     },
                     icon: Icons.person_add_rounded,
                     label: 'Add New User',
                   ),
                 ],
               );
-
             }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (sideBySideToolbar)
-                          _AnimatedSlideIn(
-                            delayIndex: 0,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'User Management',
-                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: -0.8,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Manage administrative accounts and staff access across all registered institutes.',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                              color: cs.onSurfaceVariant,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 24),
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 1040),
-                                  child: filters(),
-                                ),
-                              ],
-                            ),
-                          )
-                        else ...[
-                          _AnimatedSlideIn(
-                            delayIndex: 0,
+                children: [
+                  if (sideBySideToolbar)
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'User Management',
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: -0.8,
                                       ),
@@ -275,114 +295,104 @@ class _UsersViewState extends State<UsersView> {
                                 const SizedBox(height: 6),
                                 Text(
                                   'Manage administrative accounts and staff access across all registered institutes.',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
                                         color: cs.onSurfaceVariant,
                                         fontWeight: FontWeight.w600,
                                       ),
                                 ),
-                                const SizedBox(height: 24),
-                                filters(),
                               ],
                             ),
                           ),
+                          const SizedBox(width: 24),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1040),
+                            child: filters(),
+                          ),
                         ],
-                        const SizedBox(height: 32),
-                        _AnimatedSlideIn(
-                          delayIndex: 1,
-                          child: _KpiGrid(columns: kpiCols, items: kpis),
-                        ),
-                        const SizedBox(height: 24),
-                        _AnimatedSlideIn(
-                          delayIndex: 2,
-                          child: UsersTable(
-                    items: controller.paged,
-                    onOpenUser: (user) {
-                      void handleEdit(AppUser user) async {
-                        final updated = await EditUserDialog.show(
-                          context,
-                          user: user,
-                          instituteIds: controller.institutes,
-                          instituteLabelForId: controller.instituteNameForId,
-                        );
-                        if (updated == null) return;
-                        await controller.updateUser(
-                          updated.id,
-                          name: updated.name,
-                          phone: updated.phone,
-                          role: updated.role,
-                          instituteId: updated.instituteId,
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Account updated: ${updated.name}'),
-                            behavior: SnackBarBehavior.floating,
+                      ),
+                    )
+                  else ...[
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'User Management',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.8,
+                                ),
                           ),
-                        );
-                      }
-
-                      UserDetailsPanel.show(
-                        context,
-                        user: user,
-                        onToggleBlocked: () => controller.toggleBlocked(user.id),
-                        onEdit: () => handleEdit(user),
-                      );
-                    },
-                    onAction: (action) async {
-                      void handleEdit(AppUser user) async {
-                        final updated = await EditUserDialog.show(
-                          context,
-                          user: user,
-                          instituteIds: controller.institutes,
-                          instituteLabelForId: controller.instituteNameForId,
-                        );
-                        if (updated == null) return;
-                        await controller.updateUser(
-                          updated.id,
-                          name: updated.name,
-                          phone: updated.phone,
-                          role: updated.role,
-                          instituteId: updated.instituteId,
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Account updated: ${updated.name}'),
-                            behavior: SnackBarBehavior.floating,
+                          const SizedBox(height: 6),
+                          Text(
+                            'Manage administrative accounts and staff access across all registered institutes.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
-                        );
-                      }
-
-                      switch (action.action) {
-                        case UserMenuAction.editUser:
-                          final user = controller.filtered.firstWhere(
-                            (e) => e.id == action.userId,
-                          );
-                          handleEdit(user);
-                          break;
-                        case UserMenuAction.viewProfile:
-                          final user = controller.filtered.firstWhere(
-                            (e) => e.id == action.userId,
-                          );
-                          UserDetailsPanel.show(
-                            context,
-                            user: user,
-                            onToggleBlocked: () =>
-                                controller.toggleBlocked(action.userId),
-                            onEdit: () => handleEdit(user),
-                          );
-                          break;
-                        case UserMenuAction.viewInstitute:
-                          break;
-                        case UserMenuAction.toggleBlocked:
-                          controller.toggleBlocked(action.userId);
-                          break;
-                        case UserMenuAction.resetPassword:
-                          break;
-                      }
-                    },
+                          const SizedBox(height: 24),
+                          filters(),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  _AnimatedSlideIn(
+                    delayIndex: 1,
+                    child: _KpiGrid(columns: kpiCols, items: kpis),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  _AnimatedSlideIn(
+                    delayIndex: 2,
+                    child: UsersTable(
+                      items: controller.paged,
+                      onOpenUser: (user) {
+                        UserDetailsPanel.show(
+                          context,
+                          user: user,
+                          onToggleBlocked: () =>
+                              controller.toggleBlocked(user.id),
+                          onEdit: () => _handleEdit(context, user),
+                        );
+                      },
+                      onAction: (action) async {
+                        switch (action.action) {
+                          case UserMenuAction.editUser:
+                            final user = controller.filtered.firstWhere(
+                              (e) => e.id == action.userId,
+                            );
+                            _handleEdit(context, user);
+                            break;
+                          case UserMenuAction.viewProfile:
+                            final user = controller.filtered.firstWhere(
+                              (e) => e.id == action.userId,
+                            );
+                            UserDetailsPanel.show(
+                              context,
+                              user: user,
+                              onToggleBlocked: () =>
+                                  controller.toggleBlocked(action.userId),
+                              onEdit: () => _handleEdit(context, user),
+                            );
+                            break;
+                          case UserMenuAction.viewInstitute:
+                            break;
+                          case UserMenuAction.toggleBlocked:
+                            controller.toggleBlocked(action.userId);
+                            break;
+                          case UserMenuAction.resetPassword:
+                            break;
+                        }
+                      },
+                    ),
+                  ),
 
                   const SizedBox(height: 20),
                   _PaginationBar(
@@ -410,7 +420,6 @@ class _UsersViewState extends State<UsersView> {
                 ],
               ),
             );
-
           },
         );
       },

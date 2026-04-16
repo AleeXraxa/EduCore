@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
@@ -96,11 +97,10 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
                 alignment: Alignment.centerRight,
                 child: AppPrimaryButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password updated successfully.'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    AppDialogs.showSuccess(
+                      context,
+                      title: 'Password Updated',
+                      message: 'Your security credentials have been updated successfully.',
                     );
                     _current.clear();
                     _new.clear();
