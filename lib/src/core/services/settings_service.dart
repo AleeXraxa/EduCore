@@ -3,10 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:educore/src/features/settings/models/global_settings.dart';
 
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
+
 class SettingsService {
   final FirebaseFirestore _firestore;
+  final AuditLogService _audit;
   
-  SettingsService({required FirebaseFirestore firestore}) : _firestore = firestore;
+  SettingsService({
+    required FirebaseFirestore firestore,
+    required AuditLogService auditLogService,
+  })  : _firestore = firestore,
+        _audit = auditLogService;
 
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
@@ -31,6 +39,17 @@ class SettingsService {
     await _firestore.collection('settings').doc('global').set(
       data,
       SetOptions(merge: true),
+    );
+
+    // Log Action
+    await _audit.logAction(
+      action: 'SETTINGS_UPDATED',
+      module: 'settings',
+      uid: userId ?? 'super_admin_system',
+      role: 'super_admin',
+      targetDoc: 'settings/global',
+      after: data,
+      severity: AuditSeverity.medium,
     );
   }
 

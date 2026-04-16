@@ -1,11 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/subscription_record.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
 
 class AdminSubscriptionsService {
-  AdminSubscriptionsService({required FirebaseFirestore firestore})
-    : _firestore = firestore;
+  AdminSubscriptionsService({
+    required FirebaseFirestore firestore,
+    required AuditLogService auditLogService,
+  }) : _firestore = firestore,
+       _audit = auditLogService;
 
   final FirebaseFirestore _firestore;
+  final AuditLogService _audit;
 
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection('subscriptions');
@@ -46,6 +52,19 @@ class AdminSubscriptionsService {
       patch['endDate'] = endDate == null ? null : Timestamp.fromDate(endDate);
     }
     await _col.doc(academyId).update(patch);
+
+    // TODO: Ideally pass performing user's UID and Role here.
+    // For now we assume system/superadmin as this is an Admin class.
+    await _audit.logAction(
+      action: 'SUBSCRIPTION_UPDATED',
+      module: 'subscriptions',
+      academyId: academyId,
+      uid: 'super_admin_system', // placeholder if not passed
+      role: 'super_admin',
+      targetDoc: 'subscriptions/$academyId',
+      after: patch,
+      severity: AuditSeverity.medium,
+    );
   }
 
   Future<void> extendByDays(String academyId, int days) async {
@@ -98,9 +117,18 @@ class AdminSubscriptionsService {
       'method': 'bank_transfer', // default or allow choice
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': superUid,
-      'proofRef': '',
     });
 
     await batch.commit();
+
+    await _audit.logAction(
+      action: 'SUBSCRIPTION_CREATED',
+      module: 'subscriptions',
+      academyId: academyId,
+      uid: superUid,
+      role: 'super_admin',
+      targetDoc: 'subscriptions/$academyId',
+      severity: AuditSeverity.high,
+    );
   }
 }

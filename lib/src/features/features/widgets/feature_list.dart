@@ -1,5 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
+import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:flutter/material.dart';
 
 enum FeatureMenuAction { edit, toggle, move }
@@ -38,7 +39,14 @@ class FeatureList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          if (items.isEmpty) const _EmptyState() else ..._rows(items),
+          if (items.isEmpty)
+            const AppEmptyState(
+              title: 'No Features Found',
+              description: 'System capabilities and modules will be registered here.',
+              icon: Icons.tune_rounded,
+            )
+          else
+            ..._rows(items),
         ],
       ),
     );
@@ -241,45 +249,6 @@ class _StatusPill extends StatelessWidget {
               fontWeight: FontWeight.w800,
               letterSpacing: 0.15,
             ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(Icons.tune_rounded, color: cs.primary, size: 26),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No features found',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Add your first feature to begin.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-          ),
-        ],
       ),
     );
   }

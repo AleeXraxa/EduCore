@@ -1,10 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/payment_record.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
 
 class AdminPaymentsService {
-  AdminPaymentsService({required FirebaseFirestore firestore}) : _firestore = firestore;
+  AdminPaymentsService({
+    required FirebaseFirestore firestore,
+    required AuditLogService auditLogService,
+  })  : _firestore = firestore,
+        _audit = auditLogService;
 
   final FirebaseFirestore _firestore;
+  final AuditLogService _audit;
 
   CollectionReference<Map<String, dynamic>> get _col => _firestore.collection('payments');
 
@@ -58,6 +65,17 @@ class AdminPaymentsService {
     });
 
     await batch.commit();
+
+    // 4. Log Action
+    await _audit.logAction(
+      action: 'PAYMENT_APPROVED',
+      module: 'payments',
+      academyId: academyId,
+      uid: reviewerUid,
+      role: 'super_admin',
+      targetDoc: 'payments/$paymentId',
+      severity: AuditSeverity.high,
+    );
   }
 
   Future<void> rejectPayment(String paymentId, String reviewerUid) async {
@@ -66,5 +84,15 @@ class AdminPaymentsService {
       'reviewedAt': FieldValue.serverTimestamp(),
       'reviewedBy': reviewerUid,
     });
+
+    // Log Action
+    await _audit.logAction(
+      action: 'PAYMENT_REJECTED',
+      module: 'payments',
+      uid: reviewerUid,
+      role: 'super_admin',
+      targetDoc: 'payments/$paymentId',
+      severity: AuditSeverity.high,
+    );
   }
 }

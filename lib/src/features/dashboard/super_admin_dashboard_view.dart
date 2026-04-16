@@ -17,6 +17,7 @@ import 'package:educore/src/features/plans/plans_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:educore/src/features/users/users_view.dart';
+import 'package:educore/src/features/audit/audit_logs_view.dart';
 import 'package:flutter/material.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
@@ -78,6 +79,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.features => const FeaturesView(),
             _SuperAdminNav.featureOverrides => const FeatureOverridesView(),
             _SuperAdminNav.plans => const PlansView(),
+            _SuperAdminNav.auditLogs => const AuditLogsView(),
             _SuperAdminNav.settings => const SettingsView(),
           },
         ),
@@ -106,8 +108,9 @@ enum _SuperAdminNav {
   ),
   features('features', 'Registry', 'Feature Registry', Icons.list_alt_rounded),
   featureOverrides('overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
-  plans('plans', 'Plans', 'Plans', Icons.layers_rounded),
-  settings('settings', 'Settings', 'Settings', Icons.settings_rounded);
+  plans('plans', 'Plans', 'Subscription Plans', Icons.category_rounded),
+  auditLogs('audit_logs', 'Audit Logs', 'Activity Logs', Icons.receipt_long_rounded),
+  settings('settings', 'Settings', 'Platform Settings', Icons.settings_rounded);
 
   const _SuperAdminNav(this.id, this.label, this.title, this.icon);
   final String id;

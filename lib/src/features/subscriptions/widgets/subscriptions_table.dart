@@ -2,6 +2,7 @@ import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/subscriptions/models/subscription.dart';
 import 'package:educore/src/features/subscriptions/widgets/payment_status_badge.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscription_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionsTable extends StatelessWidget {
@@ -38,7 +39,11 @@ class SubscriptionsTable extends StatelessWidget {
                       color: cs.outlineVariant.withValues(alpha: 0.75),
                     ),
                     if (items.isEmpty)
-                      const _Empty()
+                      const AppEmptyState(
+                        title: 'No Subscriptions Found',
+                        description: 'Institute subscription records and history will be listed here.',
+                        icon: Icons.receipt_long_rounded,
+                      )
                     else
                       for (var i = 0; i < items.length; i++)
                         _Row(
@@ -466,52 +471,7 @@ class _MenuRow extends StatelessWidget {
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cs.outlineVariant),
-            ),
-            child: Icon(
-              Icons.receipt_long_rounded,
-              color: cs.primary,
-              size: 26,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No subscriptions found',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Try adjusting your search or filters.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _fmtMoney(int pkr) => 'PKR ${_fmtInt(pkr)}';
+ String _fmtMoney(int pkr) => 'PKR ${_fmtInt(pkr)}';
 
 String _fmtInt(int v) {
   final s = v.toString();

@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/institutes/widgets/institute_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:flutter/material.dart';
 
 class InstitutesTable extends StatelessWidget {
@@ -48,7 +49,11 @@ class InstitutesTable extends StatelessWidget {
                   children: [
                     const _TableHeader(),
                     if (items.isEmpty)
-                      const _EmptyTable()
+                      const AppEmptyState(
+                        title: 'No Institutes Found',
+                        description: 'Registered institutes and academies will be listed here.',
+                        icon: Icons.apartment_rounded,
+                      )
                     else
                       for (var i = 0; i < items.length; i++)
                         _TableRow(
@@ -502,53 +507,6 @@ class _MenuRow extends StatelessWidget {
                     letterSpacing: -0.2,
                   ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyTable extends StatelessWidget {
-  const _EmptyTable();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(80),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.domain_disabled_rounded,
-              color: cs.primary.withValues(alpha: 0.2),
-              size: 40,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No Institutes Found',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'No institutes have been added to the platform yet.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
           ),
         ],
       ),

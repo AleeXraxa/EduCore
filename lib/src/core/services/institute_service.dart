@@ -1,10 +1,11 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/app_user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
+import 'dart:math';
 
 enum AcademyStatus {
   pending('pending'),
@@ -75,13 +76,16 @@ class InstituteService {
     required FirebaseFirestore firestore,
     required FirebaseApp primaryApp,
     required FirebaseAuth primaryAuth,
+    required AuditLogService auditLogService,
   })  : _firestore = firestore,
         _primaryApp = primaryApp,
-        _primaryAuth = primaryAuth;
+        _primaryAuth = primaryAuth,
+        _audit = auditLogService;
 
   final FirebaseFirestore _firestore;
   final FirebaseApp _primaryApp;
   final FirebaseAuth _primaryAuth;
+  final AuditLogService _audit;
 
   FirebaseAuth? _secondaryAuth;
 
@@ -207,6 +211,17 @@ class InstituteService {
 
       await batch.commit();
 
+      // Log Action
+      await _audit.logAction(
+        action: 'INSTITUTE_CREATED',
+        module: 'academies',
+        academyId: academyId,
+        uid: superUid,
+        role: 'super_admin',
+        targetDoc: 'academies/$academyId',
+        severity: AuditSeverity.high,
+      );
+
       // Keep the secondary auth clean.
       await adminAuth.signOut();
 
@@ -260,10 +275,34 @@ class InstituteService {
     if (address != null) patch['address'] = address.trim();
     if (patch.isEmpty) return;
     await _academies.doc(academyId).update(patch);
+
+    // Log Action
+    await _audit.logAction(
+      action: 'INSTITUTE_UPDATED',
+      module: 'academies',
+      academyId: academyId,
+      uid: 'super_admin_system', // TODO: pass actual uid
+      role: 'super_admin',
+      targetDoc: 'academies/$academyId',
+      after: patch,
+      severity: AuditSeverity.medium,
+    );
   }
 
   Future<void> setAcademyStatus(String academyId, AcademyStatus status) async {
     await _academies.doc(academyId).update({'status': status.value});
+
+    // Log Action
+    await _audit.logAction(
+      action: status == AcademyStatus.blocked ? 'INSTITUTE_BLOCKED' : 'INSTITUTE_STATUS_CHANGED',
+      module: 'academies',
+      academyId: academyId,
+      uid: 'super_admin_system',
+      role: 'super_admin',
+      targetDoc: 'academies/$academyId',
+      after: {'status': status.value},
+      severity: status == AcademyStatus.blocked ? AuditSeverity.high : AuditSeverity.low,
+    );
   }
 
   Future<void> setPlan(String academyId, String planId) async {

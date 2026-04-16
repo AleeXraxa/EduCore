@@ -18,7 +18,7 @@ import 'package:educore/src/core/services/feature_access_service.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/notification_service.dart';
 import 'package:educore/src/core/services/settings_service.dart';
-import 'package:educore/src/core/services/settings_service.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -47,6 +47,7 @@ class AppServices {
   NotificationService? notificationService;
   FeatureOverrideService? featureOverrideService;
   SettingsService? settingsService;
+  AuditLogService? auditLogService;
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
@@ -86,6 +87,8 @@ class AppServices {
       );
       auth = FirebaseAuth.instance;
       firestore = FirebaseFirestore.instance;
+      auditLogService = AuditLogService(firestore!);
+
       authService = AuthService(auth: auth!);
       seedService = SeedService(
         authService: authService!,
@@ -103,16 +106,29 @@ class AppServices {
         firestore: firestore!,
         primaryApp: firebaseApp!,
         primaryAuth: auth!,
+        auditLogService: auditLogService!,
       );
       adminUsersService = AdminUsersService(firestore: firestore!);
-      adminSubscriptionsService = AdminSubscriptionsService(firestore: firestore!);
-      adminPaymentsService = AdminPaymentsService(firestore: firestore!);
+      adminSubscriptionsService = AdminSubscriptionsService(
+        firestore: firestore!,
+        auditLogService: auditLogService!,
+      );
+      adminPaymentsService = AdminPaymentsService(
+        firestore: firestore!,
+        auditLogService: auditLogService!,
+      );
       notificationService = NotificationService(
         firestore: firestore!,
         auth: auth!,
       );
-      featureOverrideService = FeatureOverrideService(firestore: firestore!);
-      settingsService = SettingsService(firestore: firestore!);
+      featureOverrideService = FeatureOverrideService(
+        firestore: firestore!,
+        auditLogService: auditLogService!,
+      );
+      settingsService = SettingsService(
+        firestore: firestore!,
+        auditLogService: auditLogService!,
+      );
       firebaseReady = true;
       firebaseInitError = null;
     } catch (e) {
