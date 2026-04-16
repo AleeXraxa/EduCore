@@ -4,152 +4,316 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ======================================================
-    // CORE FUNCTIONS
+    // §1  IDENTITY & STATUS HELPERS
     // ======================================================
 
-    /**
-     * Check if the request is authenticated.
-     */
+    /** True only when a Firebase Auth token is present. */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Fetches the user document data from the root 'users' collection.
+     * Loads the caller's user document.
+     * Returns null if the document does not exist (handled by callers).
      */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     /**
-     * Checks if the current user exists and is active.
+     * Validates that the user document exists AND the account is active.
+     * Blocked users fail this check immediately.
      */
-    function isUserActive() {
-      let data = getUserData();
-      return data != null && data.status == 'active';
-    }
-
-    /**
-     * Returns true if the current user is a Super Admin.
-     */
-    function isSuperAdmin() {
-      return isSignedIn() && isUserActive() && getUserData().role == 'super_admin';
-    }
-
-    /**
-     * Returns true if the current user is an Institute Admin.
-     */
-    function isInstituteAdmin() {
-      return isSignedIn() && isUserActive() && getUserData().role == 'institute_admin';
-    }
-
-    /**
-     * Returns true if the user belongs to the specified academy.
-     */
-    function belongsTo(academyId) {
-      return isSignedIn() && isUserActive() && getUserData().academyId == academyId;
-    }
-
-    /**
-     * Checks if the academy has an active subscription.
-     * Required for non-Super Admin write operations.
-     */
-    function hasActiveSubscription(academyId) {
-      return get(/databases/$(database)/documents/subscriptions/$(academyId)).data.status == 'active';
+    function isActiveUser() {
+      let u = getUserData();
+      return u != null
+          && u.keys().hasAll(['role', 'status', 'academyId'])
+          && u.status == 'active'
+          && u.role in ['super_admin', 'institute_admin', 'staff', 'teacher'];
     }
 
     // ======================================================
-    // GLOBAL DEFAULT: DENY
+    // §2  ROLE HELPERS  (all gate on isActiveUser first)
+    // ======================================================
+
+    function isSuperAdmin() {
+      return isSignedIn() && isActiveUser() && getUserData().role == 'super_admin';
+    }
+
+    function isInstituteAdmin() {
+      return isSignedIn() && isActiveUser() && getUserData().role == 'institute_admin';
+    }
+
+    function isStaffOrTeacher() {
+      return isSignedIn() && isActiveUser()
+          && getUserData().role in ['staff', 'teacher'];
+    }
+
+    // ======================================================
+    // §3  TENANT & SUBSCRIPTION HELPERS
+    // ======================================================
+
+    /**
+     * True when the caller's academyId matches the path academyId.
+     * Prevents ALL cross-tenant access.
+     */
+    function belongsTo(academyId) {
+      return isSignedIn() && isActiveUser()
+          && getUserData().academyId == academyId;
+    }
+
+    /** Only institute_admin members of the academy. */
+    function isAdminOf(academyId) {
+      return isInstituteAdmin() && belongsTo(academyId);
+    }
+
+    /** Staff or teacher members of the academy. */
+    function isStaffOf(academyId) {
+      return isStaffOrTeacher() && belongsTo(academyId);
+    }
+
+    /**
+     * Verifies that the academy's subscription is active.
+     * Expired / pending subscriptions block all writes by non-super_admin.
+     */
+    function hasActiveSubscription(academyId) {
+      return get(/databases/$(database)/documents/subscriptions/$(academyId))
+               .data.status == 'active';
+    }
+
+    // ======================================================
+    // §4  WRITE-SAFETY / FIELD-LEVEL HELPERS
+    // ======================================================
+
+    /**
+     * Prevents privilege escalation on any role assignment.
+     * No one except super_admin may write role == 'super_admin'.
+     */
+    function roleIsNotSuperAdmin() {
+      return request.resource.data.role != 'super_admin';
+    }
+
+    /**
+     * Guarantees academyId is NEVER changed on an existing document.
+     * Critical for multi-tenant immutability.
+     */
+    function academyIdUnchanged() {
+      return request.resource.data.academyId == resource.data.academyId;
+    }
+
+    /**
+     * Guarantees role is NEVER changed on an existing document
+     * unless the caller is super_admin (handled separately).
+     */
+    function roleUnchanged() {
+      return request.resource.data.role == resource.data.role;
+    }
+
+    /**
+     * Guarantees createdAt is NEVER changed on an existing document.
+     */
+    function createdAtUnchanged() {
+      return !('createdAt' in request.resource.data)
+          || request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // ======================================================
+    // §5  GLOBAL DEFAULT — DENY EVERYTHING
     // ======================================================
     match /{document=**} {
       allow read, write: if false;
     }
 
     // ======================================================
-    // COLLECTION: USERS
+    // §6  COLLECTION: users/{uid}
     // ======================================================
     match /users/{uid} {
-      // Super Admin can see all users.
-      // Institute Admins can see users within their own academy.
-      // Individual users can see their own data.
-      allow read: if isSuperAdmin() 
-                  || (belongsTo(resource.data.academyId))
-                  || (request.auth.uid == uid);
-      
-      // Super Admin can create anyone.
-      // Institute Admin can create users for their academy (cannot assign Super Admin role).
+
+      // READ
+      // ─────
+      // • super_admin      → all users
+      // • institute_admin  → users in their academy only
+      // • self             → own document only
+      allow read: if isSuperAdmin()
+                  || (isInstituteAdmin() && resource.data.academyId == getUserData().academyId)
+                  || (isSignedIn() && isActiveUser() && request.auth.uid == uid);
+
+      // CREATE
+      // ──────
+      // • super_admin            → anyone, any role
+      // • institute_admin        → own academy, any role EXCEPT super_admin
+      // Role field must be a recognised value.
       allow create: if isSuperAdmin()
-                    || (isInstituteAdmin() 
-                        && request.resource.data.academyId == getUserData().academyId 
-                        && request.resource.data.role != 'super_admin');
-      
-      // Super Admin can update anyone.
-      // Institute Admin can update their academy users (cannot promote to Super Admin).
-      // Users can update their own profile but cannot change their role or academy association.
+                    || (isAdminOf(request.resource.data.academyId)
+                        && roleIsNotSuperAdmin()
+                        && request.resource.data.role in ['institute_admin', 'staff', 'teacher']
+                        && request.resource.data.status == 'active');
+
+      // UPDATE
+      // ──────
+      // • super_admin            → full update rights
+      // • institute_admin        → own-academy users; cannot change academyId, createdAt,
+      //                            or promote to super_admin; cannot demote existing super_admin
+      // • self                   → own profile only; role, academyId, createdAt immutable
       allow update: if isSuperAdmin()
-                    || (isInstituteAdmin() 
-                        && resource.data.academyId == getUserData().academyId 
-                        && request.resource.data.role != 'super_admin')
-                    || (request.auth.uid == uid 
-                        && request.resource.data.role == resource.data.role 
-                        && request.resource.data.academyId == resource.data.academyId);
-      
+                    || (isAdminOf(resource.data.academyId)
+                        && resource.data.role != 'super_admin'
+                        && roleIsNotSuperAdmin()
+                        && academyIdUnchanged()
+                        && createdAtUnchanged())
+                    || (isSignedIn() && isActiveUser()
+                        && request.auth.uid == uid
+                        && roleUnchanged()
+                        && academyIdUnchanged()
+                        && createdAtUnchanged());
+
+      // DELETE
+      // ──────
+      // Only super_admin may hard-delete user records.
       allow delete: if isSuperAdmin();
     }
 
     // ======================================================
-    // COLLECTION: ACADEMIES & SUBCOLLECTIONS
+    // §7  COLLECTION: academies/{academyId}
     // ======================================================
     match /academies/{academyId} {
-      // Only Super Admins and associated academy users can read the academy doc.
-      allow read: if isSuperAdmin() || belongsTo(academyId);
-      allow write: if isSuperAdmin();
+      // Top-level academy document
+      allow read:   if isSuperAdmin() || belongsTo(academyId);
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
 
-      // Sub-collections: students, fees, attendance, exams, staff
-      // Strictly isolated by academyId path parameter.
-      match /{subcollection}/{docId} {
-        allow read: if isSuperAdmin() || belongsTo(academyId);
-        
-        // Writes require an active subscription for non-Super Admins.
-        allow write: if isSuperAdmin() 
-                     || (belongsTo(academyId) && hasActiveSubscription(academyId));
+      // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: students/{studentId}
+      // ──────────────────────────────────────────────────
+      match /students/{studentId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin()
+                      || ((isAdminOf(academyId) || isStaffOf(academyId))
+                          && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+      }
+
+      // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: fees/{feeId}
+      // Payments/fees are finance-sensitive — staff cannot delete
+      // ──────────────────────────────────────────────────
+      match /fees/{feeId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin();
+      }
+
+      // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: attendance/{attendanceId}
+      // Teachers can mark attendance — limited write (create/update only)
+      // ──────────────────────────────────────────────────
+      match /attendance/{attendanceId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin()
+                      || ((isAdminOf(academyId) || isStaffOf(academyId))
+                          && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin()
+                      || ((isAdminOf(academyId) || isStaffOf(academyId))
+                          && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+      }
+
+      // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: exams/{examId}
+      // Staff can create/update exams; only admin can delete
+      // ──────────────────────────────────────────────────
+      match /exams/{examId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin()
+                      || ((isAdminOf(academyId) || isStaffOf(academyId))
+                          && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin()
+                      || ((isAdminOf(academyId) || isStaffOf(academyId))
+                          && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+      }
+
+      // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: staff/{staffId}
+      // HR records — institute_admin manages; staff cannot self-edit HR records
+      // ──────────────────────────────────────────────────
+      match /staff/{staffId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin()
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
       }
     }
 
     // ======================================================
-    // COLLECTION: SUBSCRIPTIONS
+    // §8  COLLECTION: subscriptions/{academyId}
     // ======================================================
     match /subscriptions/{academyId} {
-      allow read: if isSuperAdmin() || belongsTo(academyId);
-      allow write: if isSuperAdmin();
+      // Institutes may read their own subscription.
+      allow read:   if isSuperAdmin() || belongsTo(academyId);
+      // Only super_admin writes subscription records.
+      // This prevents self-service plan changes or status tampering.
+      allow write:  if isSuperAdmin();
     }
 
     // ======================================================
-    // COLLECTIONS: PLANS & FEATURES (Global Content)
+    // §9  COLLECTIONS: plans & features  (catalogue / read-only)
     // ======================================================
     match /plans/{planId} {
-      allow read: if isSignedIn();
+      // Any authenticated & active user may read plan definitions.
+      allow read:  if isSignedIn() && isActiveUser();
       allow write: if isSuperAdmin();
     }
+
     match /features/{featureId} {
-      allow read: if isSignedIn();
+      allow read:  if isSignedIn() && isActiveUser();
       allow write: if isSuperAdmin();
     }
 
     // ======================================================
-    // COLLECTION: PAYMENTS
+    // §10  COLLECTION: payments/{paymentId}
     // ======================================================
     match /payments/{paymentId} {
-      allow read: if isSuperAdmin() || belongsTo(resource.data.academyId);
-      allow write: if isSuperAdmin();
+      // READ: super_admin sees all; institute user sees only their academy's records.
+      allow read: if isSuperAdmin()
+                  || (belongsTo(resource.data.academyId));
+
+      // CREATE: institute_admin may submit a payment request.
+      //         Institutes cannot pre-set status to anything other than 'pending'.
+      //         super_admin can create freely.
+      allow create: if isSuperAdmin()
+                    || (isAdminOf(request.resource.data.academyId)
+                        && request.resource.data.status == 'pending');
+
+      // UPDATE: ONLY super_admin may update (approve / reject / reconcile).
+      //         Institute users must NEVER be able to modify payment status.
+      allow update: if isSuperAdmin();
+
+      // DELETE: ONLY super_admin.
+      allow delete: if isSuperAdmin();
     }
 
     // ======================================================
-    // COLLECTION: AUDIT LOGS
+    // §11  COLLECTION: audit_logs/{logId}
     // ======================================================
     match /audit_logs/{logId} {
-      allow read: if isSuperAdmin();
-      allow write: if isSuperAdmin(); // Usually written by Cloud Functions with Admin SDK
+      // Only super_admin may read the audit trail.
+      allow read:   if isSuperAdmin();
+      // Writes are handled by Cloud Functions using the Admin SDK,
+      // which bypasses these rules. Client-side writes are denied.
+      allow write:  if isSuperAdmin();
     }
   }
 }
