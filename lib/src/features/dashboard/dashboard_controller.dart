@@ -110,6 +110,43 @@ class DashboardController extends BaseController {
     );
   }
 
+  List<double> get revenueHistory {
+    if (_subscriptions.isEmpty && _payments.isEmpty) return const [0, 0, 0, 0, 0, 0];
+    
+    // Simple 6-month historical view
+    final now = DateTime.now();
+    final months = List.generate(6, (i) => DateTime(now.year, now.month - i, 1)).reversed.toList();
+    
+    return months.map((m) {
+      final monthlySum = _subscriptions
+          .where((s) => s.status == SubscriptionRecordStatus.active)
+          .where((s) {
+            final start = s.createdAt ?? s.updatedAt ?? now;
+            return start.isBefore(DateTime(m.year, m.month + 1, 1));
+          })
+          .fold<double>(0.0, (sum, s) {
+            final plan = _planById[s.planId];
+            return sum + (plan?.price ?? 0.0);
+          });
+      return monthlySum / 1000.0; // Show in thousands for the chart scale
+    }).toList();
+  }
+
+  List<double> get growthHistory {
+    if (_academies.isEmpty) return const [0, 0, 0, 0, 0, 0];
+    
+    final now = DateTime.now();
+    final months = List.generate(6, (i) => DateTime(now.year, now.month - i, 1)).reversed.toList();
+    
+    return months.map((m) {
+      final count = _academies.where((a) {
+        final created = a.createdAt ?? now;
+        return created.isBefore(DateTime(m.year, m.month + 1, 1));
+      }).length;
+      return count.toDouble();
+    }).toList();
+  }
+
   List<DashboardPendingPaymentItem> get pendingPaymentsTop {
     final items = _payments
         .where((p) => p.status == PaymentReviewStatus.pending)

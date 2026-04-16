@@ -22,7 +22,7 @@ class PaymentsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth < 1140 ? 1140.0 : constraints.maxWidth;
+        final width = constraints.maxWidth < 1220 ? 1220.0 : constraints.maxWidth;
         final cs = Theme.of(context).colorScheme;
 
         return AppCard(
@@ -91,7 +91,7 @@ class _Header extends StatelessWidget {
             ),
             Expanded(flex: 12, child: Text('Status')),
             SizedBox(width: 120, child: Text('Proof')),
-            SizedBox(width: 160, child: Align(alignment: Alignment.centerRight, child: Text('Actions'))),
+            SizedBox(width: 240, child: Align(alignment: Alignment.centerRight, child: Text('Actions'))),
           ],
         ),
       ),
@@ -214,7 +214,7 @@ class _RowState extends State<_Row> {
               ),
             ),
             SizedBox(
-              width: 160,
+              width: 240,
               child: Align(
                 alignment: Alignment.centerRight,
                 child: pending
@@ -340,6 +340,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Row(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         OutlinedButton(
@@ -347,7 +348,9 @@ class _QuickActions extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFB91C1C),
             side: BorderSide(color: cs.outlineVariant),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           child: const Text('Reject'),
@@ -358,6 +361,7 @@ class _QuickActions extends StatelessWidget {
           color: const Color(0xFF16A34A),
           label: 'Approve',
           height: 40,
+          width: 100,
         ),
       ],
     );

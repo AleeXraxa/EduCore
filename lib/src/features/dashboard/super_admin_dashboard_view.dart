@@ -273,12 +273,18 @@ class _DashboardHomeBodyStatefulState
                         : Axis.horizontal,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Expanded(flex: 3, child: _RevenueChart()),
+                      Expanded(
+                        flex: 3,
+                        child: _RevenueChart(values: controller.revenueHistory),
+                      ),
                       SizedBox(
                         width: size == ScreenSize.compact ? 0 : 24,
                         height: size == ScreenSize.compact ? 24 : 0,
                       ),
-                      const Expanded(flex: 2, child: _GrowthChart()),
+                      Expanded(
+                        flex: 2,
+                        child: _GrowthChart(values: controller.growthHistory),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 48),
@@ -497,7 +503,9 @@ class _KpiCard extends StatelessWidget {
 }
 
 class _RevenueChart extends StatelessWidget {
-  const _RevenueChart();
+  const _RevenueChart({required this.values});
+
+  final List<double> values;
 
   @override
   Widget build(BuildContext context) {
@@ -551,7 +559,7 @@ class _RevenueChart extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-          const SizedBox(height: 280, child: _MockLineChart()),
+          SizedBox(height: 280, child: _MockLineChart(values: values)),
         ],
       ),
     );
@@ -559,7 +567,9 @@ class _RevenueChart extends StatelessWidget {
 }
 
 class _GrowthChart extends StatelessWidget {
-  const _GrowthChart();
+  const _GrowthChart({required this.values});
+
+  final List<double> values;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +600,7 @@ class _GrowthChart extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          const SizedBox(height: 280, child: _MockBarChart()),
+          SizedBox(height: 280, child: _MockBarChart(values: values)),
         ],
       ),
     );
@@ -598,16 +608,16 @@ class _GrowthChart extends StatelessWidget {
 }
 
 class _MockLineChart extends StatelessWidget {
-  const _MockLineChart();
+  const _MockLineChart({required this.values});
 
-  static const _values = <double>[12, 18, 15, 22, 20, 28, 26, 34, 30, 38, 44];
+  final List<double> values;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return CustomPaint(
       painter: _LineChartPainter(
-        values: _values,
+        values: values,
         lineGradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -621,16 +631,16 @@ class _MockLineChart extends StatelessWidget {
 }
 
 class _MockBarChart extends StatelessWidget {
-  const _MockBarChart();
+  const _MockBarChart({required this.values});
 
-  static const _values = <double>[8, 12, 10, 16, 14, 18, 20, 22];
+  final List<double> values;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return CustomPaint(
       painter: _BarChartPainter(
-        values: _values,
+        values: values,
         barGradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
