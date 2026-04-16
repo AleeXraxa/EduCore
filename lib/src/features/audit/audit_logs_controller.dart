@@ -86,17 +86,15 @@ class AuditLogsController extends BaseController {
       }
 
       if (results.isNotEmpty) {
-        // REFACTOR: Use the last timestamp as cursor if needed, or re-fetch last doc.
-        // For compliance, we fetch the cursor doc.
+        // Get the DocumentSnapshot to use as the pagination cursor
         final lastLog = results.last;
         final lastDocSnap = await FirebaseFirestore.instance
             .collection('auditLogs')
-            .where('timestamp', isEqualTo: lastLog.timestamp)
-            .limit(1)
+            .doc(lastLog.id)
             .get();
             
-        if (lastDocSnap.docs.isNotEmpty) {
-          _lastDoc = lastDocSnap.docs.first;
+        if (lastDocSnap.exists) {
+          _lastDoc = lastDocSnap;
         }
         
         _logs.addAll(results);

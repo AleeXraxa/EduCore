@@ -306,14 +306,35 @@ service cloud.firestore {
     }
 
     // ======================================================
-    // §11  COLLECTION: audit_logs/{logId}
+    // §11  COLLECTION: auditLogs/{logId}
     // ======================================================
-    match /audit_logs/{logId} {
+    match /auditLogs/{logId} {
       // Only super_admin may read the audit trail.
       allow read:   if isSuperAdmin();
       // Writes are handled by Cloud Functions using the Admin SDK,
       // which bypasses these rules. Client-side writes are denied.
       allow write:  if isSuperAdmin();
+    }
+    // ======================================================
+    // §12  COLLECTION: notifications/{notificationId}
+    // ======================================================
+    match /notifications/{notificationId} {
+      // Only super_admin may read and write notifications.
+      // This is a platform-broadcast collection; institute users have no access.
+      allow read:   if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // §13  COLLECTION: settings/{docId}
+    // ======================================================
+    match /settings/{docId} {
+      // Any active authenticated user may read settings (needed for sidebar branding, app name, logo).
+      // Only super_admin may write (update platform-wide configuration).
+      allow read:  if isSignedIn() && isActiveUser();
+      allow write: if isSuperAdmin();
     }
   }
 }
