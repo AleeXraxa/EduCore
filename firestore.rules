@@ -1,0 +1,155 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ======================================================
+    // CORE FUNCTIONS
+    // ======================================================
+
+    /**
+     * Check if the request is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Fetches the user document data from the root 'users' collection.
+     */
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    /**
+     * Checks if the current user exists and is active.
+     */
+    function isUserActive() {
+      let data = getUserData();
+      return data != null && data.status == 'active';
+    }
+
+    /**
+     * Returns true if the current user is a Super Admin.
+     */
+    function isSuperAdmin() {
+      return isSignedIn() && isUserActive() && getUserData().role == 'super_admin';
+    }
+
+    /**
+     * Returns true if the current user is an Institute Admin.
+     */
+    function isInstituteAdmin() {
+      return isSignedIn() && isUserActive() && getUserData().role == 'institute_admin';
+    }
+
+    /**
+     * Returns true if the user belongs to the specified academy.
+     */
+    function belongsTo(academyId) {
+      return isSignedIn() && isUserActive() && getUserData().academyId == academyId;
+    }
+
+    /**
+     * Checks if the academy has an active subscription.
+     * Required for non-Super Admin write operations.
+     */
+    function hasActiveSubscription(academyId) {
+      return get(/databases/$(database)/documents/subscriptions/$(academyId)).data.status == 'active';
+    }
+
+    // ======================================================
+    // GLOBAL DEFAULT: DENY
+    // ======================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ======================================================
+    // COLLECTION: USERS
+    // ======================================================
+    match /users/{uid} {
+      // Super Admin can see all users.
+      // Institute Admins can see users within their own academy.
+      // Individual users can see their own data.
+      allow read: if isSuperAdmin() 
+                  || (belongsTo(resource.data.academyId))
+                  || (request.auth.uid == uid);
+      
+      // Super Admin can create anyone.
+      // Institute Admin can create users for their academy (cannot assign Super Admin role).
+      allow create: if isSuperAdmin()
+                    || (isInstituteAdmin() 
+                        && request.resource.data.academyId == getUserData().academyId 
+                        && request.resource.data.role != 'super_admin');
+      
+      // Super Admin can update anyone.
+      // Institute Admin can update their academy users (cannot promote to Super Admin).
+      // Users can update their own profile but cannot change their role or academy association.
+      allow update: if isSuperAdmin()
+                    || (isInstituteAdmin() 
+                        && resource.data.academyId == getUserData().academyId 
+                        && request.resource.data.role != 'super_admin')
+                    || (request.auth.uid == uid 
+                        && request.resource.data.role == resource.data.role 
+                        && request.resource.data.academyId == resource.data.academyId);
+      
+      allow delete: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // COLLECTION: ACADEMIES & SUBCOLLECTIONS
+    // ======================================================
+    match /academies/{academyId} {
+      // Only Super Admins and associated academy users can read the academy doc.
+      allow read: if isSuperAdmin() || belongsTo(academyId);
+      allow write: if isSuperAdmin();
+
+      // Sub-collections: students, fees, attendance, exams, staff
+      // Strictly isolated by academyId path parameter.
+      match /{subcollection}/{docId} {
+        allow read: if isSuperAdmin() || belongsTo(academyId);
+        
+        // Writes require an active subscription for non-Super Admins.
+        allow write: if isSuperAdmin() 
+                     || (belongsTo(academyId) && hasActiveSubscription(academyId));
+      }
+    }
+
+    // ======================================================
+    // COLLECTION: SUBSCRIPTIONS
+    // ======================================================
+    match /subscriptions/{academyId} {
+      allow read: if isSuperAdmin() || belongsTo(academyId);
+      allow write: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // COLLECTIONS: PLANS & FEATURES (Global Content)
+    // ======================================================
+    match /plans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+    match /features/{featureId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // COLLECTION: PAYMENTS
+    // ======================================================
+    match /payments/{paymentId} {
+      allow read: if isSuperAdmin() || belongsTo(resource.data.academyId);
+      allow write: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // COLLECTION: AUDIT LOGS
+    // ======================================================
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow write: if isSuperAdmin(); // Usually written by Cloud Functions with Admin SDK
+    }
+  }
+}

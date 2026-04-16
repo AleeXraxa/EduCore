@@ -62,7 +62,7 @@ class Sidebar extends StatelessWidget {
                 const SizedBox(height: 32),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: collapsed ? 8 : 16),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
@@ -107,7 +107,12 @@ class Sidebar extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    collapsed ? 8 : 16,
+                    8,
+                    collapsed ? 8 : 16,
+                    24,
+                  ),
                   child: Column(
                     children: [
                       if (bottomItems.isNotEmpty) ...[
@@ -149,7 +154,9 @@ class _BrandRow extends StatelessWidget {
     final settingsService = AppServices.instance.settingsService;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 16, 8),
+      padding: collapsed
+          ? const EdgeInsets.symmetric(vertical: 20)
+          : const EdgeInsets.fromLTRB(20, 20, 16, 8),
       child: StreamBuilder(
         stream: settingsService?.watchGlobalSettings(),
         builder: (context, snapshot) {
@@ -543,7 +550,10 @@ class _NavItemState extends State<_NavItem>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.collapsed ? 4 : 12,
+              vertical: 10,
+            ),
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(16),

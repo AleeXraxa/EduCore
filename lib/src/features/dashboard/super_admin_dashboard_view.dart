@@ -10,8 +10,8 @@ import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/dashboard/dashboard_controller.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
+import 'package:educore/src/features/features/feature_access_control_view.dart';
 import 'package:educore/src/features/features/features_view.dart';
-import 'package:educore/src/features/features/overrides_view.dart';
 import 'package:educore/src/features/institutes/institutes_view.dart';
 import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/payments/payments_view.dart';
@@ -82,7 +82,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.users => const UsersView(),
             _SuperAdminNav.notifications => const NotificationsView(),
             _SuperAdminNav.features => const FeaturesView(),
-            _SuperAdminNav.featureOverrides => const FeatureOverridesView(),
+            _SuperAdminNav.featureOverrides => const FeatureAccessControlView(),
             _SuperAdminNav.plans => const PlansView(),
             _SuperAdminNav.auditLogs => const AuditLogsView(),
             _SuperAdminNav.platformHealth => const PlatformHealthView(),
@@ -161,9 +161,9 @@ enum _SuperAdminNav {
     featureKey: 'system_features',
   ),
   featureOverrides(
-    'overrides',
-    'Overrides',
-    'Feature Overrides',
+    'access_control',
+    'Access Control',
+    'Feature Access Control',
     Icons.tune_rounded,
     featureKey: 'system_overrides',
   ),

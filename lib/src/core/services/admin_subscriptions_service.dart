@@ -36,6 +36,33 @@ class AdminSubscriptionsService {
     return SubscriptionRecord.fromDoc(snap);
   }
 
+  Future<void> updateOverrides(
+    String academyId, {
+    required List<String> enabled,
+    required List<String> disabled,
+    String? uid,
+  }) async {
+    final patch = {
+      'overrides': {
+        'enabled': enabled,
+        'disabled': disabled,
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    await _col.doc(academyId).update(patch);
+
+    await _audit.logAction(
+      action: 'FEATURE_OVERRIDES_UPDATED',
+      module: 'subscriptions',
+      academyId: academyId,
+      uid: uid ?? 'super_admin_system',
+      role: 'super_admin',
+      targetDoc: 'subscriptions/$academyId',
+      after: patch,
+      severity: AuditSeverity.medium,
+    );
+  }
+
   Future<void> updateSubscription(
     String academyId, {
     String? planId,

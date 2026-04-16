@@ -71,12 +71,17 @@ class AnalyticsChartsSection extends StatelessWidget {
                       title: 'Plan distribution',
                       subtitle: snapshot.planDist.items.isEmpty
                           ? 'No active subscriptions'
-                          : snapshot.planDist.items.take(3).map((e) => e.label).join(' • '),
+                          : snapshot.planDist.items
+                                .take(3)
+                                .map((e) => e.label)
+                                .join(' • '),
                       trailing: _Legend(
                         items: snapshot.planDist.items.take(5).indexed.map((e) {
                           final (i, item) = e;
                           return _LegendItem(
-                            color: _DonutChart.segmentColors[i % _DonutChart.segmentColors.length],
+                            color:
+                                _DonutChart.segmentColors[i %
+                                    _DonutChart.segmentColors.length],
                             label: item.label,
                           );
                         }).toList(),
@@ -120,16 +125,16 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
       ],
     );
@@ -165,15 +170,15 @@ class _ChartCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -190,10 +195,7 @@ class _ChartCard extends StatelessWidget {
             border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.9)),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: child,
-          ),
+          child: Padding(padding: const EdgeInsets.all(14), child: child),
         ),
       ],
     );
@@ -277,10 +279,7 @@ class _LineChartPainter extends CustomPainter {
     final dx = size.width / (values.length - 1);
     final points = <Offset>[
       for (var i = 0; i < values.length; i++)
-        Offset(
-          i * dx,
-          size.height - ((values[i] - minV) / span) * size.height,
-        ),
+        Offset(i * dx, size.height - ((values[i] - minV) / span) * size.height),
     ];
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
@@ -370,16 +369,14 @@ class _BarChartPainter extends CustomPainter {
     for (var i = 0; i < values.length; i++) {
       final h = (values[i] / span) * size.height;
       final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          i * (barW + gap),
-          size.height - h,
-          barW,
-          h,
-        ),
+        Rect.fromLTWH(i * (barW + gap), size.height - h, barW, h),
         const Radius.circular(999),
       );
 
-      canvas.drawRRect(rect, Paint()..shader = barGradient.createShader(bounds));
+      canvas.drawRRect(
+        rect,
+        Paint()..shader = barGradient.createShader(bounds),
+      );
     }
   }
 
@@ -409,11 +406,11 @@ class _DonutChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     // Find dominant plan to show in center
     String dominantLabel = 'No data';
     int dominantPct = 0;
-    
+
     if (dist.items.isNotEmpty) {
       final dominant = dist.items.first;
       dominantLabel = dominant.label;
@@ -433,9 +430,9 @@ class _DonutChart extends StatelessWidget {
             Text(
               '$dominantPct%',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3,
+              ),
             ),
             const SizedBox(height: 4),
             Padding(
@@ -446,9 +443,9 @@ class _DonutChart extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -548,9 +545,9 @@ class _PaymentBreakdownBars extends StatelessWidget {
         Text(
           'Total: $total payments',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -581,17 +578,17 @@ class _BarRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const Spacer(),
             Text(
               '$value',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
@@ -665,9 +662,9 @@ class _Legend extends StatelessWidget {
               Text(
                 it.label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -675,4 +672,3 @@ class _Legend extends StatelessWidget {
     );
   }
 }
-
