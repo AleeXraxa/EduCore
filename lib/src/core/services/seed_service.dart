@@ -35,11 +35,36 @@ class SeedService {
     required String uid,
     required String email,
   }) async {
-    await firestore.collection('superAdmins').doc(uid).set({
-      'uid': uid,
-      'email': email,
-      'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    final batch = firestore.batch();
+
+    // 1. Unified 'users' collection (Required for login)
+    batch.set(
+      firestore.collection('users').doc(uid),
+      {
+        'uid': uid,
+        'email': email,
+        'emailLower': email.toLowerCase(),
+        'name': 'Platform Developer',
+        'role': 'super_admin',
+        'academyId': 'all',
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    // 2. Legacy 'superAdmins' collection (Optional but kept for compatibility)
+    batch.set(
+      firestore.collection('superAdmins').doc(uid),
+      {
+        'uid': uid,
+        'email': email,
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
   }
 }
 

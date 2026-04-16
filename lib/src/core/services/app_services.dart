@@ -89,7 +89,7 @@ class AppServices {
       firestore = FirebaseFirestore.instance;
       auditLogService = AuditLogService(firestore!);
 
-      authService = AuthService(auth: auth!);
+      authService = AuthService(auth: auth!, firestore: firestore!);
       seedService = SeedService(
         authService: authService!,
         firestore: firestore!,

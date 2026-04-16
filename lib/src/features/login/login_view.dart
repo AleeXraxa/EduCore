@@ -1,4 +1,7 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
+import 'package:educore/src/core/services/auth_exceptions.dart';
+import 'package:educore/src/features/login/seed/super_admin_seed.dart';
+import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/constants/prefs_keys.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -8,7 +11,6 @@ import 'package:educore/src/core/ui/widgets/auth_split_layout.dart';
 import 'package:educore/src/features/login/login_controller.dart';
 import 'package:educore/src/features/login/widgets/login_form_card.dart';
 import 'package:educore/src/features/login/widgets/login_marketing_panel.dart';
-import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class LoginView extends StatefulWidget {
@@ -66,8 +68,9 @@ class _LoginViewState extends State<LoginView>
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: AuthSplitLayout(
                       left: FadeTransition(
                         opacity: _leftFade,
@@ -100,6 +103,39 @@ class _LoginViewState extends State<LoginView>
           );
         },
       ),
+      floatingActionButton: kDebugMode
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                AppDialogs.showLoading(
+                  context,
+                  message: 'Seeding Super Admin...',
+                );
+                try {
+                  await _controller.seedSuperAdmin();
+                  if (!mounted) return;
+                  AppDialogs.hide(context);
+                  AppDialogs.showSuccess(
+                    context,
+                    title: 'Seed Success',
+                    message:
+                        'Super Admin account created: ${SuperAdminSeed.email}',
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  AppDialogs.hide(context);
+                  AppDialogs.showError(
+                    context,
+                    title: 'Seed Failed',
+                    message: e.toString(),
+                  );
+                }
+              },
+              icon: const Icon(Icons.code_rounded),
+              label: const Text('DEBUG SEED'),
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+            )
+          : null,
     );
   }
 
@@ -115,19 +151,24 @@ class _LoginViewState extends State<LoginView>
       // dashboard on next app restart without waiting on the Firebase stream.
       await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, true);
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.dashboard,
-        (route) => false,
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.dashboard, (route) => false);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      AppDialogs.showError(
+        context,
+        title: 'Security Access Denied',
+        message: e.message,
       );
     } catch (e) {
       if (!mounted) return;
       AppDialogs.showError(
         context,
         title: 'Sign In Failed',
-        message: 'We could not authenticate your credentials. Please verify your email and password and try again.',
+        message:
+            'We could not authenticate your credentials. Please verify your email and password and try again.',
       );
     }
   }
-
-  
 }

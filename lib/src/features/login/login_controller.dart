@@ -9,7 +9,7 @@ class LoginController extends BaseController {
       if (authService == null) {
         throw StateError('Firebase not initialized');
       }
-      await authService.signInWithEmailPassword(
+      await authService.login(
         email: email,
         password: password,
       );

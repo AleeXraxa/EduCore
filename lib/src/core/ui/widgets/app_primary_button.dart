@@ -49,7 +49,7 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton>
     final textColor = widget.textColor ?? switch (widget.variant) {
       AppButtonVariant.primary => Colors.white,
       AppButtonVariant.secondary => cs.onSurface,
-      AppButtonVariant.danger => const Color(0xFFDC2626),
+      AppButtonVariant.danger => Colors.white,
     };
 
     if (widget.variant == AppButtonVariant.secondary && widget.color == null) {

@@ -77,16 +77,13 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       final authService = AppServices.instance.authService;
       if (authService != null) {
         try {
-          final user = await authService
-              .authStateChanges()
-              .firstWhere((u) => u != null)
-              .timeout(const Duration(seconds: 5));
-          actualSignIn = user != null;
+          // Attempt to restore and re-validate the session.
+          // This ensures that even if credentials are locally cached, 
+          // we still check against server-side status (Blocked Academy, Expired Sub, etc.)
+          await authService.refreshSession();
+          actualSignIn = authService.isAuthenticated;
         } catch (_) {
-          // Timeout or error: we failed to restore session within 5s
           actualSignIn = false;
-          // Sync the flag back to false since session couldn't be restored
-          await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, false);
         }
       }
     }
