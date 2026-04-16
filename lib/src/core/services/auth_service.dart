@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/app_user.dart';
 import 'package:educore/src/core/models/subscription_record.dart';
@@ -15,8 +16,8 @@ class AuthService extends ChangeNotifier {
   AuthService({
     required FirebaseAuth auth,
     required FirebaseFirestore firestore,
-  })  : _auth = auth,
-        _firestore = firestore;
+  }) : _auth = auth,
+       _firestore = firestore;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -34,13 +35,6 @@ class AuthService extends ChangeNotifier {
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
-  /// Logs in a user and performs a 5-step security validation.
-  /// 
-  /// 1. Firebase Auth verify credentials
-  /// 2. Fetch User Profile & check status
-  /// 3. Validate Institute status (if not super admin)
-  /// 4. Validate Subscription health (if not super admin)
-  /// 5. Build secure session context
   Future<AuthSession> login({
     required String email,
     required String password,
@@ -65,9 +59,21 @@ class AuthService extends ChangeNotifier {
       }
 
       // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
-      if (appUser.role != AppUserRole.superAdmin) {
+      final roleStr = appUser.role.toString().toLowerCase();
+      final isPlatformAdmin =
+          roleStr.contains('superadmin') ||
+          roleStr.contains('super_admin') ||
+          appUser.academyId.toLowerCase() == 'all' ||
+          appUser.academyId.toLowerCase() == 'global_admin';
+
+      if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
         await validateSubscription(appUser.academyId);
+      } else {
+        dev.log(
+          'Bypassing multi-tenant validation for Super Admin: ${appUser.uid}',
+          name: 'AuthService',
+        );
       }
 
       // Step 5: Build Session Context
@@ -114,8 +120,10 @@ class AuthService extends ChangeNotifier {
   Future<void> validateSubscription(String academyId) async {
     if (academyId.isEmpty) throw SubscriptionInactiveException();
 
-    final doc =
-        await _firestore.collection('subscriptions').doc(academyId).get();
+    final doc = await _firestore
+        .collection('subscriptions')
+        .doc(academyId)
+        .get();
     if (!doc.exists) {
       throw SubscriptionInactiveException();
     }
@@ -135,10 +143,7 @@ class AuthService extends ChangeNotifier {
 
   /// Constructs the in-memory [AuthSession].
   AuthSession buildSessionContext(AppUser appUser) {
-    return AuthSession(
-      user: appUser,
-      academyId: appUser.academyId,
-    );
+    return AuthSession(user: appUser, academyId: appUser.academyId);
   }
 
   /// Periodically re-validates the current session.
@@ -158,7 +163,16 @@ class AuthService extends ChangeNotifier {
         throw UserBlockedException();
       }
 
-      if (appUser.role != AppUserRole.superAdmin) {
+      // Step 3 & 4: Validate Institute & Subscription (Skip for Super Admin)
+      // We skip if role is Super Admin OR if the academyId indicates a global platform admin
+      final roleStr = appUser.role.toString().toLowerCase();
+      final isPlatformAdmin =
+          roleStr.contains('superadmin') ||
+          roleStr.contains('super_admin') ||
+          appUser.academyId.toLowerCase() == 'all' ||
+          appUser.academyId.toLowerCase() == 'global_admin';
+
+      if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
         await validateSubscription(appUser.academyId);
       }
@@ -195,8 +209,8 @@ class AuthService extends ChangeNotifier {
     required String password,
   }) {
     return _auth.createUserWithEmailAndPassword(
-        email: email, password: password);
+      email: email,
+      password: password,
+    );
   }
 }
-
-

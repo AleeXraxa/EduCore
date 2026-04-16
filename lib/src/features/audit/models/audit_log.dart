@@ -64,7 +64,7 @@ class AuditLog {
       module: data['module'] ?? '',
       academyId: data['academyId'],
       uid: data['uid'] ?? '',
-      userName: data['userName'] ?? 'Unknown User',
+      userName: data['userName'] ?? data['name'] ?? 'System User',
       role: data['role'] ?? '',
       targetDoc: data['targetDoc'],
       before: data['before'],

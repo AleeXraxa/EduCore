@@ -24,9 +24,21 @@ class AuditLogService {
     AuditSeverity severity = AuditSeverity.low,
   }) async {
     try {
-      // Resolve name from session if not provided
       final session = AppServices.instance.authService?.session;
-      final resolvedName = userName ?? session?.user.name ?? 'System User';
+      final firebaseUser = AppServices.instance.auth?.currentUser;
+
+      String? nameCandidate = userName;
+      if (nameCandidate == null || nameCandidate.isEmpty) {
+        nameCandidate = session?.user.name;
+      }
+      if (nameCandidate == null || nameCandidate.isEmpty) {
+        nameCandidate = firebaseUser?.displayName;
+      }
+      if (nameCandidate == null || nameCandidate.isEmpty) {
+        nameCandidate = firebaseUser?.email?.split('@').first;
+      }
+
+      final resolvedName = nameCandidate ?? 'System Action';
 
       final log = {
         'action': action,
