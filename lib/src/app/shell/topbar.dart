@@ -1,4 +1,3 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 
 class Topbar extends StatelessWidget {
@@ -38,17 +37,19 @@ class Topbar extends StatelessWidget {
             icon: Icon(Icons.menu_rounded, color: cs.onSurfaceVariant),
             style: IconButton.styleFrom(
               hoverColor: cs.onSurface.withValues(alpha: 0.04),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: cs.onSurface,
-                  letterSpacing: -0.5,
-                ),
+              fontWeight: FontWeight.w900,
+              color: cs.onSurface,
+              letterSpacing: -0.5,
+            ),
           ),
           const Spacer(),
           _SearchField(),
@@ -107,13 +108,19 @@ class _SearchFieldState extends State<_SearchField> {
             color: cs.onSurfaceVariant.withValues(alpha: 0.6),
             fontWeight: FontWeight.w500,
           ),
-          prefixIcon: Icon(Icons.search_rounded,
-              color: _isFocused ? cs.primary : cs.onSurfaceVariant, size: 20),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: _isFocused ? cs.primary : cs.onSurfaceVariant,
+            size: 20,
+          ),
           suffixIcon: !_isFocused
               ? Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(4),
@@ -131,12 +138,18 @@ class _SearchFieldState extends State<_SearchField> {
                 )
               : null,
           filled: true,
-          fillColor:
-              _isFocused ? cs.surface : cs.surfaceContainerLowest.withValues(alpha: 0.5),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          fillColor: _isFocused
+              ? cs.surface
+              : cs.surfaceContainerLowest.withValues(alpha: 0.5),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.8)),
+            borderSide: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.8),
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -183,10 +196,14 @@ class _TopbarIconState extends State<_TopbarIcon> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _hovered ? cs.primary.withValues(alpha: 0.08) : Colors.transparent,
+              color: _hovered
+                  ? cs.primary.withValues(alpha: 0.08)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _hovered ? cs.primary.withValues(alpha: 0.1) : Colors.transparent,
+                color: _hovered
+                    ? cs.primary.withValues(alpha: 0.1)
+                    : Colors.transparent,
               ),
             ),
             child: Icon(
@@ -234,7 +251,9 @@ class _ProfileChipState extends State<_ProfileChip> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: _hovered ? cs.onSurface.withValues(alpha: 0.04) : Colors.transparent,
+          color: _hovered
+              ? cs.onSurface.withValues(alpha: 0.04)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _hovered ? cs.outlineVariant : Colors.transparent,
@@ -281,22 +300,25 @@ class _ProfileChipState extends State<_ProfileChip> {
                   Text(
                     'Super Admin',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: cs.onSurface,
-                        ),
+                      fontWeight: FontWeight.w900,
+                      color: cs.onSurface,
+                    ),
                   ),
                   Text(
                     'admin@educore.com',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             const SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down_rounded,
-                size: 20, color: cs.onSurfaceVariant),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 20,
+              color: cs.onSurfaceVariant,
+            ),
           ],
         ),
       ),

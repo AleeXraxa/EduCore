@@ -16,36 +16,21 @@ class SystemPreferencesPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'System preferences',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-              ),
+        _SectionHeader(
+          title: 'App Preferences',
+          subtitle:
+              'Customize your interface theme and regional formatting.',
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Look & feel and formatting preferences (future-ready).',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: AppRadii.r16,
-            border: Border.all(color: cs.outlineVariant),
-            boxShadow: AppShadows.soft(Colors.black),
-          ),
+        const SizedBox(height: 20),
+        _GroupCard(
+          title: 'THEME & FORMATTING',
           child: Column(
             children: [
               Row(
                 children: [
                   Expanded(
                     child: AppDropdown<ThemePreference>(
-                      label: 'Theme',
+                      label: 'App Theme',
                       items: const [
                         ThemePreference.light,
                         ThemePreference.dark,
@@ -56,16 +41,16 @@ class SystemPreferencesPanel extends StatelessWidget {
                       itemLabel: (t) => switch (t) {
                         ThemePreference.light => 'Light',
                         ThemePreference.dark => 'Dark',
-                        ThemePreference.system => 'System',
+                        ThemePreference.system => 'System Default',
                       },
-                      onChanged: (v) =>
-                          controller.themePreference = v ?? controller.themePreference,
+                      onChanged: (v) => controller.themePreference =
+                          v ?? controller.themePreference,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: AppDropdown<DateFormatOption>(
-                      label: 'Date format',
+                      label: 'Date Format',
                       items: const [
                         DateFormatOption.ymd,
                         DateFormatOption.dmy,
@@ -74,9 +59,9 @@ class SystemPreferencesPanel extends StatelessWidget {
                       value: controller.dateFormat,
                       prefixIcon: Icons.event_rounded,
                       itemLabel: (d) => switch (d) {
-                        DateFormatOption.ymd => 'YYYY-MM-DD',
-                        DateFormatOption.dmy => 'DD-MM-YYYY',
-                        DateFormatOption.mdy => 'MM-DD-YYYY',
+                        DateFormatOption.ymd => 'YYYY-MM-DD (Standard)',
+                        DateFormatOption.dmy => 'DD-MM-YYYY (Traditional)',
+                        DateFormatOption.mdy => 'MM-DD-YYYY (Western)',
                       },
                       onChanged: (v) =>
                           controller.dateFormat = v ?? controller.dateFormat,
@@ -84,24 +69,25 @@ class SystemPreferencesPanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 20),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest.withValues(alpha: 0.26),
+                  color: cs.primary.withValues(alpha: 0.05),
                   borderRadius: AppRadii.r16,
-                  border: Border.all(color: cs.outlineVariant),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.language_rounded, color: cs.primary),
-                    const SizedBox(width: 10),
+                    Icon(Icons.language_rounded, color: cs.primary, size: 20),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Language & branding settings will be added as the platform scales.',
+                        'Multilingual support (Urdu & English) is coming in a future update.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -115,3 +101,75 @@ class SystemPreferencesPanel extends StatelessWidget {
   }
 }
 
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
+      ),
+    );
+  }
+}

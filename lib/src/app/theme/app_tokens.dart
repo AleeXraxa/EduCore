@@ -14,6 +14,7 @@ abstract final class AppColors {
 }
 
 abstract final class AppRadii {
+  static const r8 = BorderRadius.all(Radius.circular(8));
   static const r12 = BorderRadius.all(Radius.circular(12));
   static const r16 = BorderRadius.all(Radius.circular(16));
   static const r20 = BorderRadius.all(Radius.circular(20));

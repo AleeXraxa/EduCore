@@ -52,116 +52,128 @@ class _InstitutesViewState extends State<InstitutesView> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Header(
-                search: _search,
-                filter: _filter,
-                onFilterChanged: (value) {
-                  setState(() => _filter = value);
-                  controller.setFilter(value);
-                },
-                onSearchChanged: controller.setQuery,
-                onAdd: () async {
-                  final draft = await AddInstituteDialog.show(
-                    context,
-                  );
-                  if (draft == null) return;
-                  try {
-                    await controller.createInstitute(
-                      name: draft.name,
-                      ownerName: draft.ownerName,
-                      email: draft.email,
-                      phone: draft.phone,
-                      address: draft.address,
-                      adminEmail: draft.adminEmail,
-                      adminPassword: draft.adminPassword,
+              _AnimatedSlideIn(
+                delayIndex: 0,
+                child: _Header(
+                  search: _search,
+                  filter: _filter,
+                  onFilterChanged: (value) {
+                    setState(() => _filter = value);
+                    controller.setFilter(value);
+                  },
+                  onSearchChanged: controller.setQuery,
+                  onAdd: () async {
+                    final draft = await AddInstituteDialog.show(
+                      context,
                     );
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Institute created: ${draft.name}'),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$e')),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-              InstitutesTable(
-                items: controller.paged,
-                planLabel: controller.planLabel,
-                onAction: (action) async {
-                  switch (action.action) {
-                    case InstituteMenuAction.block:
-                    case InstituteMenuAction.unblock:
-                      controller.toggleBlocked(action.instituteId);
-                      break;
-                    case InstituteMenuAction.view:
-                      final institute = controller.paged.firstWhere(
-                        (e) => e.id == action.instituteId,
+                    if (draft == null) return;
+                    try {
+                      await controller.createInstitute(
+                        name: draft.name,
+                        ownerName: draft.ownerName,
+                        email: draft.email,
+                        phone: draft.phone,
+                        address: draft.address,
+                        adminEmail: draft.adminEmail,
+                        adminPassword: draft.adminPassword,
                       );
-                      InstituteDetailsPanel.show(
-                        context,
-                        institute: institute,
-                        planLabel: controller.planLabel(institute.planId),
-                        onToggleBlocked: () =>
-                            controller.toggleBlocked(action.instituteId),
-                      );
-                      break;
-                    case InstituteMenuAction.edit:
-                      final institute = controller.paged.firstWhere(
-                        (e) => e.id == action.instituteId,
-                      );
-                      final endDate =
-                          await controller.getSubscriptionEndDate(institute.id);
-                      if (!context.mounted) return;
-                      final draft = await EditInstituteDialog.show(
-                        context,
-                        institute: institute,
-                        plans: controller.plans,
-                        initialEndDate: endDate,
-                      );
-                      if (draft == null) return;
-                      try {
-                        await controller.updateInstitute(
-                          academyId: institute.id,
-                          name: draft.name,
-                          ownerName: draft.ownerName,
-                          email: draft.email,
-                          phone: draft.phone,
-                          address: draft.address,
-                          planId: draft.planId,
-                          status: draft.status,
-                          endDate: draft.endDate,
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Institute updated: ${draft.name}')),
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$e')),
-                        );
-                      }
-                      break;
-                    case InstituteMenuAction.delete:
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Action: ${action.action.name}')),
+                        SnackBar(
+                          content: Text('Institute created: ${draft.name}'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
                       );
-                      break;
-                  }
-                },
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$e'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
+              _AnimatedSlideIn(
+                delayIndex: 1,
+                child: InstitutesTable(
+                  items: controller.paged,
+                  planLabel: controller.planLabel,
+                  onAction: (action) async {
+                    switch (action.action) {
+                      case InstituteMenuAction.block:
+                      case InstituteMenuAction.unblock:
+                        controller.toggleBlocked(action.instituteId);
+                        break;
+                      case InstituteMenuAction.view:
+                        final institute = controller.paged.firstWhere(
+                          (e) => e.id == action.instituteId,
+                        );
+                        InstituteDetailsPanel.show(
+                          context,
+                          institute: institute,
+                          planLabel: controller.planLabel(institute.planId),
+                          onToggleBlocked: () =>
+                              controller.toggleBlocked(action.instituteId),
+                        );
+                        break;
+                      case InstituteMenuAction.edit:
+                        final institute = controller.paged.firstWhere(
+                          (e) => e.id == action.instituteId,
+                        );
+                        final endDate =
+                            await controller.getSubscriptionEndDate(institute.id);
+                        if (!context.mounted) return;
+                        final draft = await EditInstituteDialog.show(
+                          context,
+                          institute: institute,
+                          plans: controller.plans,
+                          initialEndDate: endDate,
+                        );
+                        if (draft == null) return;
+                        try {
+                          await controller.updateInstitute(
+                            academyId: institute.id,
+                            name: draft.name,
+                            ownerName: draft.ownerName,
+                            email: draft.email,
+                            phone: draft.phone,
+                            address: draft.address,
+                            planId: draft.planId,
+                            status: draft.status,
+                            endDate: draft.endDate,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Institute profile updated: ${draft.name}'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('$e'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                        break;
+                      case InstituteMenuAction.delete:
+                        break;
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
               _PaginationBar(
                 total: controller.totalCount,
                 page: controller.page,
@@ -169,13 +181,20 @@ class _InstitutesViewState extends State<InstitutesView> {
                 onPrev: controller.prevPage,
                 onNext: controller.nextPage,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Tip: Use search + filters to quickly find an institute.',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: cs.primary, size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Tip: Search for institutes by name, email, or owner.',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -464,6 +483,31 @@ class _NotReadyPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

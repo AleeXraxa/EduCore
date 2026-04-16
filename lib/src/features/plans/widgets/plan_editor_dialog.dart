@@ -77,306 +77,6 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final grouped = _groupFeatures(widget.availableFeatures);
-    final limitKeys = _limits.keys.toList(growable: false)..sort();
-
-    return Dialog(
-      insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 920,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.90,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _editing ? 'Edit plan' : 'Create plan',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Plans define pricing and feature access for institutes.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _GroupCard(
-                        title: 'Plan details',
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _name,
-                                    label: 'Plan name',
-                                    hintText: 'e.g. Basic / Pro / Premium',
-                                    prefixIcon: Icons.workspace_premium_rounded,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _price,
-                                    label: 'Price (PKR)',
-                                    hintText: 'e.g. 12000',
-                                    prefixIcon: Icons.payments_rounded,
-                                    keyboardType: TextInputType.number,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _duration,
-                                    label: 'Duration (days)',
-                                    hintText: 'e.g. 30',
-                                    prefixIcon: Icons.calendar_month_rounded,
-                                    keyboardType: TextInputType.number,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                SizedBox(
-                                  width: 190,
-                                  child: _ActiveToggle(
-                                    value: _isActive,
-                                    onChanged: (v) =>
-                                        setState(() => _isActive = v),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            AppTextArea(
-                              controller: _description,
-                              label: 'Description',
-                              hintText:
-                                  'Short plan description for admins and sales.',
-                              minLines: 2,
-                              maxLines: 4,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _GroupCard(
-                        title: 'Features',
-                        child: grouped.isEmpty
-                            ? _EmptyFeatures()
-                            : ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 360),
-                                child: ListView.separated(
-                                  shrinkWrap: true,
-                                  itemCount: grouped.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final entry = grouped[index];
-                                    final group = entry.$1;
-                                    final items = entry.$2;
-                                    return _FeatureGroupTile(
-                                      group: group,
-                                      items: items,
-                                      selected: _features,
-                                      onSelectAll: (enabled) {
-                                        setState(() {
-                                          if (enabled) {
-                                            for (final f in items) {
-                                              _features.add(f.key);
-                                            }
-                                          } else {
-                                            for (final f in items) {
-                                              _features.remove(f.key);
-                                            }
-                                          }
-                                        });
-                                      },
-                                      onToggle: (key, enabled) {
-                                        setState(() {
-                                          if (enabled) {
-                                            _features.add(key);
-                                          } else {
-                                            _features.remove(key);
-                                          }
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                      ),
-                      const SizedBox(height: 12),
-                      _GroupCard(
-                        title: 'Limits (optional)',
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _newLimitKey,
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Limit key (e.g. maxStudents)',
-                                      filled: true,
-                                      fillColor: cs.surface,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: AppRadii.r12,
-                                        borderSide: BorderSide(
-                                          color: cs.outlineVariant,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: AppRadii.r12,
-                                        borderSide: BorderSide(
-                                          color: cs.primary,
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 150,
-                                  child: TextField(
-                                    controller: _newLimitValue,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(
-                                      hintText: 'Value',
-                                      filled: true,
-                                      fillColor: cs.surface,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: AppRadii.r12,
-                                        borderSide: BorderSide(
-                                          color: cs.outlineVariant,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: AppRadii.r12,
-                                        borderSide: BorderSide(
-                                          color: cs.primary,
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                AppPrimaryButton(
-                                  onPressed: _addLimit,
-                                  label: 'Add',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(maxHeight: 280),
-                              child: ListView.separated(
-                                shrinkWrap: true,
-                                itemCount: limitKeys.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
-                                itemBuilder: (context, index) {
-                                  final k = limitKeys[index];
-                                  final v = _limits[k] ?? 0;
-                                  return _LimitTile(
-                                    label: _prettyKey(k),
-                                    value: v,
-                                    onChanged: (next) =>
-                                        setState(() => _limits[k] = next),
-                                    onRemove: () => setState(() {
-                                      _limits.remove(k);
-                                    }),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Feature keys are dynamic and can evolve as EduCore grows.',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 10),
-                  AppPrimaryButton(
-                    onPressed: _submit,
-                    icon: Icons.check_rounded,
-                    label: _editing ? 'Save changes' : 'Create plan',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _addLimit() {
     final rawKey = _newLimitKey.text.trim();
     if (rawKey.isEmpty) return;
@@ -409,9 +109,8 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
       return;
     }
 
-    final cleanedFeatures = _features
-        .where((k) => k.trim().isNotEmpty)
-        .toList(growable: false);
+    final cleanedFeatures =
+        _features.where((k) => k.trim().isNotEmpty).toList(growable: false);
 
     final cleanedLimits = Map<String, num>.from(_limits)
       ..removeWhere((k, _) => k.trim().isEmpty);
@@ -431,6 +130,344 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     );
 
     Navigator.of(context).pop(plan);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final grouped = _groupFeatures(widget.availableFeatures);
+    final limitKeys = _limits.keys.toList(growable: false)..sort();
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              title: _editing ? 'Edit Subscription Plan' : 'Create New Plan',
+              subtitle: 'Configure features, pricing, and usage limits for this tier.',
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  children: [
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: _GroupCard(
+                        title: 'PLAN DETAILS',
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: AppTextField(
+                                    controller: _name,
+                                    label: 'Label',
+                                    hintText: 'e.g. Enterprise Plus',
+                                    prefixIcon: Icons.workspace_premium_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _price,
+                                    label: 'Unit Price (PKR)',
+                                    hintText: '0.00',
+                                    prefixIcon: Icons.payments_rounded,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _duration,
+                                    label: 'Validity (Days)',
+                                    hintText: '365',
+                                    prefixIcon: Icons.calendar_month_rounded,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                _ActiveToggle(
+                                  value: _isActive,
+                                  onChanged: (v) => setState(() => _isActive = v),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextArea(
+                              controller: _description,
+                              label: 'Plan Description',
+                              hintText: 'Describe the features and benefits of this plan.',
+                              minLines: 2,
+                              maxLines: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _AnimatedSlideIn(
+                      delayIndex: 1,
+                      child: _GroupCard(
+                        title: 'FEATURES & ACCESS',
+                        child: grouped.isEmpty
+                            ? const _EmptyFeatures()
+                            : ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 380),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  itemCount: grouped.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, index) {
+                                    final entry = grouped[index];
+                                    return _FeatureGroupTile(
+                                      group: entry.$1,
+                                      items: entry.$2,
+                                      selected: _features,
+                                      onSelectAll: (enabled) {
+                                        setState(() {
+                                          if (enabled) {
+                                            for (final f in entry.$2) {
+                                              _features.add(f.key);
+                                            }
+                                          } else {
+                                            for (final f in entry.$2) {
+                                              _features.remove(f.key);
+                                            }
+                                          }
+                                        });
+                                      },
+                                      onToggle: (key, enabled) {
+                                        setState(() {
+                                          if (enabled) {
+                                            _features.add(key);
+                                          } else {
+                                            _features.remove(key);
+                                          }
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _AnimatedSlideIn(
+                      delayIndex: 2,
+                      child: _GroupCard(
+                        title: 'RESOURCE CONSTRAINTS',
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _newLimitKey,
+                                    label: 'Key',
+                                    hintText: 'e.g. max_file_size',
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 160,
+                                  child: AppTextField(
+                                    controller: _newLimitValue,
+                                    label: 'Quota',
+                                    hintText: '0',
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 24),
+                                  child: AppPrimaryButton(
+                                    onPressed: _addLimit,
+                                    label: 'Add Limit',
+                                    icon: Icons.add_circle_outline_rounded,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (limitKeys.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 240),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  itemCount: limitKeys.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    final k = limitKeys[index];
+                                    return _LimitTile(
+                                      label: _prettyKey(k),
+                                      value: _limits[k] ?? 0,
+                                      onChanged: (next) =>
+                                          setState(() => _limits[k] = next),
+                                      onRemove: () => setState(() {
+                                        _limits.remove(k);
+                                      }),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _Footer(
+              editing: _editing,
+              onCancel: () => Navigator.of(context).pop(),
+              onSave: _submit,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+  });
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.8,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.editing,
+    required this.onCancel,
+    required this.onSave,
+  });
+  final bool editing;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            ),
+            child: Text(
+              'Discard',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppPrimaryButton(
+            onPressed: onSave,
+            label: editing ? 'Update Plan' : 'Publish Plan',
+            icon: editing ? Icons.update_rounded : Icons.publish_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
   }
 }
 
@@ -480,25 +517,33 @@ class _ActiveToggle extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: cs.surfaceContainerLow,
         borderRadius: AppRadii.r12,
         border: Border.all(color: cs.outlineVariant),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.power_settings_new_rounded, color: cs.onSurfaceVariant, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              value ? 'Active' : 'Inactive',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
+          Icon(
+            value ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+            color: value ? Colors.green : cs.onSurfaceVariant,
+            size: 18,
           ),
-          Switch(value: value, onChanged: onChanged),
+          const SizedBox(width: 8),
+          Text(
+            value ? 'PUBLISHED' : 'DRAFT',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+          ),
+          const SizedBox(width: 8),
+          Transform.scale(
+            scale: 0.7,
+            child: Switch(value: value, onChanged: onChanged),
+          ),
         ],
       ),
     );
@@ -531,15 +576,13 @@ class _FeatureGroupTileState extends State<_FeatureGroupTile> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final total = widget.items.length;
-    final selectedCount = widget.items
-        .where((f) => widget.selected.contains(f.key))
-        .length;
+    final selectedCount =
+        widget.items.where((f) => widget.selected.contains(f.key)).length;
     final bool? triState = selectedCount == 0
         ? false
         : (selectedCount == total ? true : null);
 
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: AppRadii.r16,
@@ -547,75 +590,82 @@ class _FeatureGroupTileState extends State<_FeatureGroupTile> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Icon(Icons.layers_rounded, color: cs.primary, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.group,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: _expanded
+                ? const BorderRadius.vertical(top: Radius.circular(16))
+                : AppRadii.r16,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.layers_rounded, color: cs.primary, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.group,
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$selectedCount of $total active',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$selectedCount of $total selected',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  _SelectionCounter(
+                    triState: triState,
+                    onChanged: (v) => widget.onSelectAll(v ?? true),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    _expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ],
               ),
-              Text(
-                'Select all',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(width: 6),
-              Checkbox(
-                value: triState,
-                tristate: true,
-                onChanged: (v) {
-                  widget.onSelectAll(v ?? true);
-                  setState(() {});
-                },
-              ),
-              IconButton(
-                tooltip: _expanded ? 'Collapse group' : 'Expand group',
-                onPressed: () => setState(() => _expanded = !_expanded),
-                icon: Icon(
-                  _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ],
+            ),
           ),
           if (_expanded) ...[
-            const SizedBox(height: 10),
-            Column(
-              children: [
-                for (final f in widget.items) ...[
-                  _ToggleTile(
+            Divider(height: 1, color: cs.outlineVariant),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: widget.items.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  mainAxisExtent: 64,
+                ),
+                itemBuilder: (context, i) {
+                  final f = widget.items[i];
+                  return _ToggleTile(
                     label: f.label.trim().isEmpty ? _prettyKey(f.key) : f.label,
                     subtitle: f.key,
                     value: widget.selected.contains(f.key),
-                    onChanged: (enabled) {
-                      widget.onToggle(f.key, enabled);
-                      setState(() {});
-                    },
-                    onRemove: null,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ],
+                    onChanged: (enabled) => widget.onToggle(f.key, enabled),
+                  );
+                },
+              ),
             ),
           ],
         ],
@@ -624,82 +674,69 @@ class _FeatureGroupTileState extends State<_FeatureGroupTile> {
   }
 }
 
-class _ToggleTile extends StatefulWidget {
+class _ToggleTile extends StatelessWidget {
   const _ToggleTile({
     required this.label,
     required this.subtitle,
     required this.value,
     required this.onChanged,
-    required this.onRemove,
   });
 
   final String label;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-  final VoidCallback? onRemove;
-
-  @override
-  State<_ToggleTile> createState() => _ToggleTileState();
-}
-
-class _ToggleTileState extends State<_ToggleTile> {
-  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = _hovered
-        ? cs.surfaceContainerHighest.withValues(alpha: 0.45)
-        : cs.surface;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: AppRadii.r12,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: AppRadii.r16,
-          border: Border.all(color: cs.outlineVariant),
+          color: value ? cs.primary.withValues(alpha: 0.04) : cs.surface,
+          borderRadius: AppRadii.r12,
+          border: Border.all(
+            color: value ? cs.primary.withValues(alpha: 0.2) : cs.outlineVariant,
+          ),
         ),
         child: Row(
           children: [
             Expanded(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.label,
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -0.1,
+                          fontSize: 13,
                         ),
                   ),
-                  const SizedBox(height: 4),
                   Text(
-                    widget.subtitle,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
                         ),
                   ),
                 ],
               ),
             ),
-            if (widget.onRemove != null)
-              IconButton(
-                tooltip: 'Remove',
-                onPressed: widget.onRemove,
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 18,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            Switch(value: widget.value, onChanged: widget.onChanged),
+            const SizedBox(width: 8),
+            Transform.scale(
+              scale: 0.75,
+              child: Switch(value: value, onChanged: onChanged),
+            ),
           ],
         ),
       ),
@@ -707,7 +744,44 @@ class _ToggleTileState extends State<_ToggleTile> {
   }
 }
 
-class _LimitTile extends StatefulWidget {
+class _SelectionCounter extends StatelessWidget {
+  const _SelectionCounter({required this.triState, required this.onChanged});
+  final bool? triState;
+  final ValueChanged<bool?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => onChanged(!(triState ?? false)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'SELECT ALL',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: cs.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: triState,
+              tristate: true,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LimitTile extends StatelessWidget {
   const _LimitTile({
     required this.label,
     required this.value,
@@ -721,95 +795,45 @@ class _LimitTile extends StatefulWidget {
   final VoidCallback onRemove;
 
   @override
-  State<_LimitTile> createState() => _LimitTileState();
-}
-
-class _LimitTileState extends State<_LimitTile> {
-  bool _hovered = false;
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.value.toString());
-
-  @override
-  void didUpdateWidget(covariant _LimitTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _controller.text = widget.value.toString();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = _hovered
-        ? cs.surfaceContainerHighest.withValues(alpha: 0.45)
-        : cs.surface;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: AppRadii.r16,
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.1,
-                    ),
-              ),
-            ),
-            SizedBox(
-              width: 140,
-              child: TextField(
-                controller: _controller,
-                keyboardType: TextInputType.number,
-                onChanged: (v) {
-                  final parsed = num.tryParse(v);
-                  if (parsed == null) return;
-                  widget.onChanged(parsed);
-                },
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: cs.surface,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: AppRadii.r12,
-                    borderSide: BorderSide(color: cs.outlineVariant),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: AppRadii.r12,
-                    borderSide: BorderSide(color: cs.primary, width: 1.2),
-                  ),
-                ),
-              ),
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'Remove',
-              onPressed: widget.onRemove,
-              icon: Icon(Icons.close_rounded, size: 18, color: cs.onSurfaceVariant),
+          ),
+          SizedBox(
+            width: 120,
+            child: AppTextField(
+              label: 'Limit Value',
+              initialValue: value.toString(),
+              hintText: '0',
+              keyboardType: TextInputType.number,
+              onChanged: (v) {
+                final parsed = num.tryParse(v);
+                if (parsed != null) onChanged(parsed);
+              },
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: onRemove,
+            icon: Icon(Icons.delete_outline_rounded,
+                color: cs.error.withValues(alpha: 0.7), size: 20),
+          ),
+        ],
       ),
     );
   }
@@ -818,25 +842,28 @@ class _LimitTileState extends State<_LimitTile> {
 List<(String, List<FeatureFlag>)> _groupFeatures(List<FeatureFlag> items) {
   final Map<String, List<FeatureFlag>> grouped = {};
   for (final feature in items) {
-    final group = feature.group.trim().isEmpty ? 'Ungrouped' : feature.group.trim();
+    final group =
+        feature.group.trim().isEmpty ? 'General' : feature.group.trim();
     grouped.putIfAbsent(group, () => []).add(feature);
   }
-  final entries = grouped.entries.toList()
-    ..sort((a, b) => a.key.compareTo(b.key));
+  final entries = grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
   return [
     for (final entry in entries)
       (
         entry.key,
-        (entry.value..sort((a, b) {
-          final labelA = a.label.trim().isEmpty ? a.key : a.label;
-          final labelB = b.label.trim().isEmpty ? b.key : b.label;
-          return labelA.compareTo(labelB);
-        }))
+        (entry.value
+          ..sort((a, b) {
+            final labelA = a.label.trim().isEmpty ? a.key : a.label;
+            final labelB = b.label.trim().isEmpty ? b.key : b.label;
+            return labelA.compareTo(labelB);
+          }))
       )
   ];
 }
 
 class _EmptyFeatures extends StatelessWidget {
+  const _EmptyFeatures();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;

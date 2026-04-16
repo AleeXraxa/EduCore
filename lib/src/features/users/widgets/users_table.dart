@@ -1,4 +1,5 @@
-import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
+
 import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/features/users/widgets/user_role_badge.dart';
 import 'package:educore/src/features/users/widgets/user_status_badge.dart';
@@ -30,12 +31,29 @@ class UsersTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth < 1220 ? 1220.0 : constraints.maxWidth;
+        final width = constraints.maxWidth < 1280
+            ? 1280.0
+            : constraints.maxWidth;
 
-        return AppCard(
-          padding: EdgeInsets.zero,
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: AppRadii.r20,
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.r20,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
@@ -43,14 +61,6 @@ class UsersTable extends StatelessWidget {
                 child: Column(
                   children: [
                     const _TableHeader(),
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.75),
-                    ),
                     if (items.isEmpty)
                       const _EmptyTable()
                     else
@@ -81,29 +91,33 @@ class _TableHeader extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: DefaultTextStyle(
-        style: Theme.of(context).textTheme.labelMedium!.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
-            ),
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+          color: cs.onSurfaceVariant,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
         child: Row(
           children: [
-            const Expanded(flex: 20, child: Text('User')),
-            const Expanded(flex: 18, child: Text('Email / Phone')),
-            const Expanded(flex: 14, child: Text('Role')),
-            const Expanded(flex: 18, child: Text('Institute')),
-            const Expanded(flex: 10, child: Text('Status')),
+            const Expanded(flex: 20, child: Text('USER INFO')),
+            const Expanded(flex: 18, child: Text('CONTACT INFO')),
+            const Expanded(flex: 14, child: Text('ROLE')),
+            const Expanded(flex: 18, child: Text('INSTITUTE')),
+            const Expanded(flex: 10, child: Text('STATUS')),
             const Expanded(
               flex: 12,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: Text('Last login'),
+                child: Text('LAST ACTIVE'),
               ),
             ),
-            const SizedBox(width: 44),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -136,91 +150,93 @@ class _TableRowState extends State<_TableRow> {
     final cs = Theme.of(context).colorScheme;
     final item = widget.item;
 
-    final zebra = widget.index.isOdd
-        ? cs.surfaceContainerHighest.withValues(alpha: 0.22)
-        : cs.surface;
-    final bg = _hovered ? cs.primary.withValues(alpha: 0.040) : zebra;
+    final bg = _hovered
+        ? cs.primary.withValues(alpha: 0.03)
+        : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border(
-            bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
-          ),
-        ),
-        child: InkWell(
-          onTap: () => widget.onOpenUser?.call(item),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 20,
-                  child: _UserCell(name: item.name, email: item.email),
-                ),
-                Expanded(
-                  flex: 18,
-                  child: _PrimaryCell(
-                    title: item.email,
-                    subtitle: item.phone,
-                  ),
-                ),
-                Expanded(
-                  flex: 14,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: UserRoleBadge(role: item.role),
-                  ),
-                ),
-                Expanded(
-                  flex: 18,
-                  child: _PrimaryCell(
-                    title: item.instituteName,
-                    subtitle:
-                        item.instituteId == 'all' ? 'Platform' : item.instituteId,
-                  ),
-                ),
-                Expanded(
-                  flex: 10,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: UserStatusBadge(status: item.status),
-                  ),
-                ),
-                Expanded(
-                  flex: 12,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      _fmtLastLogin(item.lastLoginAt),
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 44,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: _RowMenu(
-                      blocked: item.status == AppUserStatus.blocked,
-                      onSelected: (value) {
-                        widget.onAction(UserRowAction(value, item.id));
-                      },
-                    ),
-                  ),
-                ),
-              ],
+      child: GestureDetector(
+        onTap: () => widget.onOpenUser?.call(item),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: bg,
+            border: Border(
+              bottom: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 20,
+                child: _UserCell(name: item.name, email: item.email),
+              ),
+              Expanded(
+                flex: 18,
+                child: _PrimaryCell(
+                  title: item.email,
+                  subtitle: item.phone.isEmpty ? 'N/A' : item.phone,
+                  icon: Icons.alternate_email_rounded,
+                ),
+              ),
+              Expanded(
+                flex: 14,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: UserRoleBadge(role: item.role),
+                ),
+              ),
+              Expanded(
+                flex: 18,
+                child: _PrimaryCell(
+                  title: item.instituteName,
+                  subtitle: item.instituteId == 'all'
+                      ? 'Global Controller'
+                      : 'ID: ${item.instituteId}',
+                  icon: Icons.apartment_rounded,
+                ),
+              ),
+              Expanded(
+                flex: 10,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: UserStatusBadge(status: item.status),
+                ),
+              ),
+              Expanded(
+                flex: 12,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _fmtLastLogin(item.lastLoginAt),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _RowMenu(
+                    blocked: item.status == AppUserStatus.blocked,
+                    onSelected: (value) {
+                      widget.onAction(UserRowAction(value, item.id));
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -239,18 +255,35 @@ class _UserCell extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: cs.primary.withValues(alpha: 0.12),
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [cs.primary, cs.primary.withValues(alpha: 0.8)],
+            ),
+            borderRadius: AppRadii.r12,
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
           child: Text(
             _initials(name),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: cs.onPrimary,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,19 +293,19 @@ class _UserCell extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.1,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 1),
               Text(
                 email,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -283,35 +316,53 @@ class _UserCell extends StatelessWidget {
 }
 
 class _PrimaryCell extends StatelessWidget {
-  const _PrimaryCell({required this.title, required this.subtitle});
+  const _PrimaryCell({required this.title, required this.subtitle, this.icon});
 
   final String title;
   final String subtitle;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.1,
+        if (icon != null) ...[
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: AppRadii.r12,
+            ),
+            child: Icon(icon, size: 16, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
               ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
+            ],
+          ),
         ),
       ],
     );
@@ -331,55 +382,160 @@ class _RowMenu extends StatelessWidget {
     return PopupMenuButton<UserMenuAction>(
       tooltip: 'Actions',
       onSelected: onSelected,
+      elevation: 20,
+      color: cs.surface,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.black.withValues(alpha: 0.14),
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, 10),
+      constraints: const BoxConstraints(minWidth: 240),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       itemBuilder: (context) => [
+        PopupMenuItem<UserMenuAction>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          height: 0,
+          child: Text(
+            'USER ACTIONS',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.primary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
         PopupMenuItem(
           value: UserMenuAction.viewProfile,
-          child: Row(
-            children: [
-              Icon(Icons.person_rounded, color: cs.onSurfaceVariant, size: 18),
-              const SizedBox(width: 10),
-              const Text('View profile'),
-            ],
+          height: 48,
+          padding: EdgeInsets.zero,
+          child: const _MenuRow(
+            icon: Icons.person_rounded,
+            label: 'View Profile',
           ),
         ),
         PopupMenuItem(
           value: UserMenuAction.viewInstitute,
-          child: Row(
-            children: [
-              Icon(Icons.apartment_rounded, color: cs.onSurfaceVariant, size: 18),
-              const SizedBox(width: 10),
-              const Text('View institute'),
-            ],
+          height: 48,
+          padding: EdgeInsets.zero,
+          child: const _MenuRow(
+            icon: Icons.apartment_rounded,
+            label: 'View Institute',
           ),
         ),
-        const PopupMenuDivider(),
+        PopupMenuItem<UserMenuAction>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          height: 1,
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            indent: 16,
+            endIndent: 16,
+            color: cs.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
         PopupMenuItem(
           value: UserMenuAction.toggleBlocked,
-          child: Row(
-            children: [
-              Icon(
-                blocked ? Icons.lock_open_rounded : Icons.lock_rounded,
-                color: blocked ? cs.primary : const Color(0xFFB91C1C),
-                size: 18,
-              ),
-              const SizedBox(width: 10),
-              Text(blocked ? 'Unblock' : 'Block'),
-            ],
+          height: 48,
+          padding: EdgeInsets.zero,
+          child: _MenuRow(
+            icon: blocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+            label: blocked ? 'Restore Access' : 'Suspend Account',
+            danger: !blocked,
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: UserMenuAction.resetPassword,
           enabled: false,
-          child: Row(
-            children: [
-              Icon(Icons.key_rounded, color: cs.onSurfaceVariant, size: 18),
-              const SizedBox(width: 10),
-              const Text('Reset password (soon)'),
-            ],
-          ),
+          height: 48,
+          padding: EdgeInsets.zero,
+          child: _MenuRow(icon: Icons.key_rounded, label: 'Reset Password'),
         ),
       ],
-      child: Icon(Icons.more_horiz_rounded, color: cs.onSurfaceVariant),
+      child: const _RowMenuTrigger(),
+    );
+  }
+}
+
+class _RowMenuTrigger extends StatefulWidget {
+  const _RowMenuTrigger();
+
+  @override
+  State<_RowMenuTrigger> createState() => _RowMenuTriggerState();
+}
+
+class _RowMenuTriggerState extends State<_RowMenuTrigger> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bg = _hovered
+        ? cs.surfaceContainerHighest.withValues(alpha: 0.4)
+        : Colors.transparent;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _hovered ? cs.outlineVariant : Colors.transparent,
+          ),
+          color: bg,
+        ),
+        child: Icon(
+          Icons.more_horiz_rounded,
+          size: 18,
+          color: cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = danger ? const Color(0xFFE11D48) : cs.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color.withValues(alpha: 0.8)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -391,31 +547,39 @@ class _EmptyTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 38),
+      padding: const EdgeInsets.all(80),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
+              color: cs.primary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
             ),
-            child: Icon(Icons.people_alt_rounded, color: cs.primary, size: 26),
+            child: Icon(
+              Icons.person_off_rounded,
+              color: cs.primary.withValues(alpha: 0.2),
+              size: 40,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           Text(
-            'No users found',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            'No Users Found',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Try adjusting filters or search terms.',
+            'No user accounts found matching your search or filters.',
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -424,11 +588,11 @@ class _EmptyTable extends StatelessWidget {
 }
 
 String _fmtLastLogin(DateTime? value) {
-  if (value == null) return '—';
+  if (value == null) return 'NEVER';
   final d = DateTime.now().difference(value);
-  if (d.inMinutes < 60) return '${d.inMinutes}m';
-  if (d.inHours < 24) return '${d.inHours}h';
-  return '${d.inDays}d';
+  if (d.inMinutes < 60) return '${d.inMinutes}M AGO';
+  if (d.inHours < 24) return '${d.inHours}H AGO';
+  return '${d.inDays}D AGO';
 }
 
 String _initials(String name) {
@@ -438,4 +602,3 @@ String _initials(String name) {
   final last = parts.length >= 2 ? parts.last[0] : '';
   return (first + last).toUpperCase();
 }
-

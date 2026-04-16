@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/features/users/widgets/user_role_badge.dart';
 import 'package:educore/src/features/users/widgets/user_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class UserDetailsPanel {
@@ -50,8 +50,7 @@ class _UserDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final panelWidth =
-        MediaQuery.of(context).size.width < 560 ? double.infinity : 460.0;
+    final panelWidth = MediaQuery.of(context).size.width < 560 ? double.infinity : 480.0;
     final maxHeight = MediaQuery.of(context).size.height - 36;
 
     return Material(
@@ -61,7 +60,9 @@ class _UserDetailsDialog extends StatelessWidget {
           Positioned.fill(
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
-              child: const SizedBox.expand(),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.15),
+              ),
             ),
           ),
           Align(
@@ -75,98 +76,78 @@ class _UserDetailsDialog extends StatelessWidget {
               child: Container(
                 margin: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: cs.surface.withValues(alpha: 0.82),
+                  color: cs.surface,
                   borderRadius: AppRadii.r24,
                   border: Border.all(
-                    color: cs.onSurface.withValues(alpha: 0.08),
-                    width: 0.5,
+                    color: cs.outlineVariant.withValues(alpha: 0.5),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18),
+                      color: Colors.black.withValues(alpha: 0.12),
                       blurRadius: 40,
-                      offset: const Offset(0, 12),
+                      offset: const Offset(0, 16),
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: AppRadii.r24,
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        _Header(user: user),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _AnimatedSlideIn(
-                                  delayIndex: 0,
-                                  child: _InfoGrid(user: user),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    _Header(user: user, onClose: () => Navigator.of(context).pop()),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _InfoGrid(user: user),
+                            const SizedBox(height: 24),
+                            _AnimatedSlideIn(
+                              delayIndex: 5,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withValues(alpha: 0.05),
+                                  borderRadius: AppRadii.r16,
+                                  border: Border.all(color: cs.primary.withValues(alpha: 0.1)),
                                 ),
-                                const SizedBox(height: 32),
-                                _AnimatedSlideIn(
-                                  delayIndex: 5,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: _ActionBtn(
-                                          isDanger: user.status != AppUserStatus.blocked,
-                                          onPressed: () {
-                                            onToggleBlocked();
-                                            Navigator.of(context).pop();
-                                          },
-                                          icon: user.status == AppUserStatus.blocked
-                                              ? Icons.lock_open_rounded
-                                              : Icons.lock_rounded,
-                                          label: user.status == AppUserStatus.blocked
-                                              ? 'Restore Access'
-                                              : 'Restrict Access',
-                                        ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.info_outline_rounded, size: 16, color: cs.primary),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Note: All changes to administrative accounts are logged for security and audit purposes.',
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: cs.primary.withValues(alpha: 0.8),
+                                              fontWeight: FontWeight.w700,
+                                              height: 1.4,
+                                            ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _ActionBtn(
-                                          isDanger: false,
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Credential reset initialization requested.',
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          icon: Icons.key_rounded,
-                                          label: 'Reset Key',
-                                          outlined: true,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 16),
-                                _AnimatedSlideIn(
-                                  delayIndex: 6,
-                                  child: Text(
-                                    'Note: Policy mandates and audit trails are logged for every modification to administrative accounts.',
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.4,
-                                        ),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    _Footer(
+                      user: user,
+                      onToggleBlocked: () {
+                        onToggleBlocked();
+                        Navigator.of(context).pop();
+                      },
+                      onResetKey: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password reset email sent.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -178,14 +159,20 @@ class _UserDetailsDialog extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.user});
+  const _Header({required this.user, required this.onClose});
   final AppUser user;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -194,13 +181,13 @@ class _Header extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: cs.primary.withValues(alpha: 0.3),
-                width: 1.5,
+                color: cs.primary.withValues(alpha: 0.2),
+                width: 2,
               ),
             ),
             child: CircleAvatar(
-              radius: 26,
-              backgroundColor: cs.primary,
+              radius: 28,
+              backgroundColor: cs.primary.withValues(alpha: 0.8),
               child: Text(
                 _initials(user.name),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -239,12 +226,68 @@ class _Header extends StatelessWidget {
             ),
           ),
           Material(
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             child: IconButton(
-              tooltip: 'Close',
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: onClose,
               icon: const Icon(Icons.close_rounded, size: 20),
+              color: cs.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.user,
+    required this.onToggleBlocked,
+    required this.onResetKey,
+  });
+
+  final AppUser user;
+  final VoidCallback onToggleBlocked;
+  final VoidCallback onResetKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isBlocked = user.status == AppUserStatus.blocked;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: AppPrimaryButton(
+              color: !isBlocked ? const Color(0xFFDC2626) : null,
+              onPressed: onToggleBlocked,
+              icon: isBlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+              label: isBlocked ? 'Restore Access' : 'Suspend Account',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onResetKey,
+              icon: const Icon(Icons.key_rounded, size: 20),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+                side: BorderSide(color: cs.outlineVariant),
+              ),
+              label: const Text(
+                'Reset Password',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ],
@@ -262,14 +305,14 @@ class _InfoGrid extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     String lastLoginText(DateTime? value) {
-      if (value == null) return '—';
+      if (value == null) return 'No active session recorded';
       final d = DateTime.now().difference(value);
-      if (d.inMinutes < 60) return '${d.inMinutes} min ago';
-      if (d.inHours < 24) return '${d.inHours} hr ago';
+      if (d.inMinutes < 60) return '${d.inMinutes} minutes ago';
+      if (d.inHours < 24) return '${d.inHours} hours ago';
       return '${d.inDays} day${d.inDays == 1 ? '' : 's'} ago';
     }
 
-    Widget info({
+    Widget infoItem({
       required IconData icon,
       required String label,
       required Widget value,
@@ -278,24 +321,30 @@ class _InfoGrid extends StatelessWidget {
       return _AnimatedSlideIn(
         delayIndex: delayIndex,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: cs.surfaceContainerLow.withValues(alpha: 0.4),
+            color: cs.surface,
             borderRadius: AppRadii.r20,
             border: Border.all(
-              color: cs.onSurface.withValues(alpha: 0.05),
-              width: 0.5,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: cs.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: cs.primary, size: 20),
               ),
@@ -308,11 +357,11 @@ class _InfoGrid extends StatelessWidget {
                       label.toUpperCase(),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: 1.0,
                           ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     value,
                   ],
                 ),
@@ -325,121 +374,52 @@ class _InfoGrid extends StatelessWidget {
 
     return Column(
       children: [
-        info(
+        infoItem(
           icon: Icons.shield_rounded,
-          label: 'Security Status',
+          label: 'Account Status',
           value: UserStatusBadge(status: user.status),
           delayIndex: 0,
         ),
-        info(
+        infoItem(
           icon: Icons.badge_rounded,
-          label: 'Assigned Role',
+          label: 'Account Role',
           value: UserRoleBadge(role: user.role, compact: true),
           delayIndex: 1,
         ),
-        info(
-          icon: Icons.apartment_rounded,
-          label: 'Organization',
+        infoItem(
+          icon: Icons.hub_rounded,
+          label: 'Assigned Institute',
           value: Text(
             user.instituteName,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  fontSize: 15,
                 ),
           ),
           delayIndex: 2,
         ),
-        info(
-          icon: Icons.phone_rounded,
-          label: 'Contact Baseline',
+        infoItem(
+          icon: Icons.phone_iphone_rounded,
+          label: 'Phone Number',
           value: Text(
             user.phone,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  fontSize: 15,
                 ),
           ),
           delayIndex: 3,
         ),
-        info(
+        infoItem(
           icon: Icons.history_rounded,
-          label: 'Last Session Activity',
+          label: 'Last Active',
           value: Text(
             lastLoginText(user.lastLoginAt),
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  fontSize: 15,
                 ),
           ),
           delayIndex: 4,
         ),
       ],
-    );
-  }
-}
-
-class _ActionBtn extends StatelessWidget {
-  const _ActionBtn({
-    required this.onPressed,
-    required this.icon,
-    required this.label,
-    required this.isDanger,
-    this.outlined = false,
-  });
-
-  final VoidCallback onPressed;
-  final IconData icon;
-  final String label;
-  final bool isDanger;
-  final bool outlined;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    if (outlined) {
-      return OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 20),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
-          side: BorderSide(color: cs.outlineVariant),
-        ),
-        label: Text(label),
-      );
-    }
-
-    final color = isDanger ? const Color(0xFFDC2626) : cs.primary;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: AppRadii.r16,
-        gradient: LinearGradient(
-          colors: [
-            color,
-            color.withValues(alpha: 0.8),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 20, color: Colors.white),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
-        ),
-        label: Text(label, style: const TextStyle(color: Colors.white)),
-      ),
     );
   }
 }
@@ -453,13 +433,13 @@ class _AnimatedSlideIn extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 450 + (delayIndex * 80)),
+      duration: Duration(milliseconds: 400 + (delayIndex * 80)),
       curve: Curves.easeOutQuart,
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
           child: Transform.translate(
-            offset: Offset(0, 15 * (1 - value)),
+            offset: Offset(0, 16 * (1 - value)),
             child: child,
           ),
         );
@@ -476,3 +456,4 @@ String _initials(String name) {
   final last = parts.length >= 2 ? parts.last[0] : '';
   return (first + last).toUpperCase();
 }
+

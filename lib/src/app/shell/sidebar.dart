@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
@@ -27,10 +28,10 @@ class Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final width = collapsed ? 92.0 : 280.0;
+    final width = collapsed ? 80.0 : 250.0;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
       curve: Curves.fastOutSlowIn,
       width: width,
       decoration: BoxDecoration(
@@ -43,8 +44,8 @@ class Sidebar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 20,
             offset: const Offset(4, 0),
           ),
         ],
@@ -53,7 +54,7 @@ class Sidebar extends StatelessWidget {
         child: Column(
           children: [
             _BrandRow(collapsed: collapsed, onToggle: onToggle),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -75,7 +76,7 @@ class Sidebar extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
                 children: [
                   if (bottomItems.isNotEmpty) ...[
@@ -88,11 +89,16 @@ class Sidebar extends StatelessWidget {
                         onTap: () => onSelect?.call(item.id),
                       ),
                     const SizedBox(height: 12),
+                    Divider(
+                      color: cs.outlineVariant.withValues(alpha: 0.5),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 12),
                   ],
                   _NavItem(
                     collapsed: collapsed,
                     icon: Icons.logout_rounded,
-                    label: 'Sign Out',
+                    label: 'Logout',
                     selected: false,
                     danger: true,
                     onTap: () => unawaited(_onLogout(context)),
@@ -114,22 +120,33 @@ class Sidebar extends StatelessWidget {
         return AlertDialog(
           backgroundColor: cs.surface,
           surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.power_settings_new_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Text('Logout'),
+            ],
           ),
-          title: Text(
-            'Confirm Logout',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: cs.onSurface,
-            ),
+          titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
           ),
-          content: Text(
-            'Are you sure you want to exit the current session?',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
           ),
+          actionsPadding: const EdgeInsets.all(20),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -141,20 +158,24 @@ class Sidebar extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
+            const SizedBox(width: 8),
+            ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626).withValues(alpha: 0.1),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: const Text(
-                'Sign Out',
-                style: TextStyle(
-                  color: Color(0xFFDC2626),
-                  fontWeight: FontWeight.w900,
-                ),
+                'Logout',
+                style: TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
           ],
@@ -180,7 +201,6 @@ class Sidebar extends StatelessWidget {
 
 class _BrandRow extends StatelessWidget {
   const _BrandRow({required this.collapsed, required this.onToggle});
-
   final bool collapsed;
   final VoidCallback onToggle;
 
@@ -190,7 +210,7 @@ class _BrandRow extends StatelessWidget {
     final settingsService = AppServices.instance.settingsService;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(20, 20, 16, 8),
       child: StreamBuilder(
         stream: settingsService?.watchGlobalSettings(),
         builder: (context, snapshot) {
@@ -204,39 +224,33 @@ class _BrandRow extends StatelessWidget {
                 ? MainAxisAlignment.center
                 : MainAxisAlignment.start,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+              Container(
                 width: 44,
                 height: 44,
-                padding: EdgeInsets.all(hasLogo ? 0 : 8),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [cs.primary, cs.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: cs.primary,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: cs.primary.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: hasLogo
                       ? Image.network(logoUrl, fit: BoxFit.cover)
-                      : Image.asset(
-                          'assets/images/logo_v4.png',
+                      : const Icon(
+                          Icons.auto_awesome_mosaic_rounded,
                           color: Colors.white,
-                          fit: BoxFit.contain,
+                          size: 24,
                         ),
                 ),
               ),
               if (!collapsed) ...[
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,17 +263,17 @@ class _BrandRow extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               fontWeight: FontWeight.w900,
-                              color: cs.onSurface,
-                              letterSpacing: -0.8,
-                              fontSize: 18,
+                              letterSpacing: -1.0,
+                              fontSize: 16,
                             ),
                       ),
                       Text(
-                        'Management',
+                        'PLATFORM ADMIN',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          fontSize: 9,
                         ),
                       ),
                     ],
@@ -287,9 +301,13 @@ class _ToggleBtn extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onToggle,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Icon(
             collapsed ? Icons.menu_open_rounded : Icons.menu_rounded,
             size: 20,
@@ -331,8 +349,6 @@ class _NavItemState extends State<_NavItem>
     final cs = Theme.of(context).colorScheme;
 
     final primaryColor = widget.danger ? const Color(0xFFDC2626) : cs.primary;
-    final indicatorColor = widget.danger ? const Color(0xFFDC2626) : cs.primary;
-
     final bg = widget.selected
         ? primaryColor.withValues(alpha: 0.08)
         : (_hovered
@@ -344,7 +360,7 @@ class _NavItemState extends State<_NavItem>
         : (widget.danger ? const Color(0xFFB91C1C) : cs.onSurfaceVariant);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -356,7 +372,7 @@ class _NavItemState extends State<_NavItem>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(16),
@@ -377,48 +393,46 @@ class _NavItemState extends State<_NavItem>
                   children: [
                     AnimatedScale(
                       scale: widget.selected ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 400),
                       curve: Curves.elasticOut,
                       child: Container(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
                           color: primaryColor.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                       ),
                     ),
-                    Icon(widget.icon, color: fg, size: 22),
+                    Icon(widget.icon, color: fg, size: 20),
                   ],
                 ),
                 if (!widget.collapsed) ...[
                   const SizedBox(width: 16),
                   Expanded(
-                    child: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 200),
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                    child: Text(
+                      widget.label,
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
                         color: fg,
                         fontWeight: widget.selected
                             ? FontWeight.w900
                             : FontWeight.w700,
                         letterSpacing: widget.selected ? -0.2 : 0,
                       ),
-                      child: Text(widget.label),
                     ),
                   ),
                   if (widget.selected)
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 400),
+                    Container(
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: indicatorColor,
+                        color: primaryColor,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: indicatorColor.withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 1,
+                            color: primaryColor.withValues(alpha: 0.5),
+                            blurRadius: 8,
+                            spreadRadius: 2,
                           ),
                         ],
                       ),

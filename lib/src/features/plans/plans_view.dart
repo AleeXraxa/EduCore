@@ -89,121 +89,136 @@ class _PlansViewState extends State<PlansView> {
             };
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Plans',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Create and manage subscription plans and feature access.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      AppPrimaryButton(
-                        label: 'Create plan',
-                        icon: Icons.add_rounded,
-                        busy: controller.busy,
-                        onPressed: () async {
-                          final created = await PlanEditorDialog.show(
-                            context,
-                            availableFeatures: controller.registryFeatures,
-                          );
-                          if (created == null) return;
-                          try {
-                            await controller.createPlan(created);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Plan created: ${created.name}'),
+                  _AnimatedSlideIn(
+                    delayIndex: 0,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Plans',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.8,
+                                    ),
                               ),
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(
+                              const SizedBox(height: 6),
+                              Text(
+                                'Create and manage subscription plans and feature access.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        AppPrimaryButton(
+                          label: 'Create plan',
+                          icon: Icons.add_rounded,
+                          busy: controller.busy,
+                          onPressed: () async {
+                            final created = await PlanEditorDialog.show(
                               context,
-                            ).showSnackBar(SnackBar(content: Text('$e')));
-                          }
-                        },
-                      ),
-                    ],
+                              availableFeatures: controller.registryFeatures,
+                            );
+                            if (created == null) return;
+                            try {
+                              await controller.createPlan(created);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Plan created: ${created.name}'),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('$e')));
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _KpiGrid(columns: kpiCols, items: kpis),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
+                  _AnimatedSlideIn(
+                    delayIndex: 1,
+                    child: _KpiGrid(columns: kpiCols, items: kpis),
+                  ),
+                  const SizedBox(height: 24),
                   if (controller.errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         controller.errorMessage!,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
                               color: const Color(0xFFB91C1C),
                               fontWeight: FontWeight.w800,
                             ),
                       ),
                     ),
-                  _PlansGrid(
-                    columns: gridCols,
-                    items: controller.plans,
-                    busy: controller.busy,
-                    onEdit: (plan) async {
-                      final updated = await PlanEditorDialog.show(
-                        context,
-                        initial: plan,
-                        availableFeatures: controller.registryFeatures,
-                      );
-                      if (updated == null) return;
-                      try {
-                        await controller.updatePlan(updated);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Plan updated: ${updated.name}'),
-                          ),
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(
+                  _AnimatedSlideIn(
+                    delayIndex: 2,
+                    child: _PlansGrid(
+                      columns: gridCols,
+                      items: controller.plans,
+                      busy: controller.busy,
+                      onEdit: (plan) async {
+                        final updated = await PlanEditorDialog.show(
                           context,
-                        ).showSnackBar(SnackBar(content: Text('$e')));
-                      }
-                    },
-                    onFeatures: (plan) => FeatureToggleDialog.show(
-                      context,
-                      plan: plan,
-                      availableKeys: controller.allFeatureKeys,
-                      onToggle: (key, enabled) =>
-                          controller.toggleFeature(plan.id, key, enabled),
+                          initial: plan,
+                          availableFeatures: controller.registryFeatures,
+                        );
+                        if (updated == null) return;
+                        try {
+                          await controller.updatePlan(updated);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Plan updated: ${updated.name}'),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                      onFeatures: (plan) => FeatureToggleDialog.show(
+                        context,
+                        plan: plan,
+                        availableKeys: controller.allFeatureKeys,
+                        onToggle: (key, enabled) =>
+                            controller.toggleFeature(plan.id, key, enabled),
+                      ),
+                      onToggleActive: (plan) =>
+                          controller.setActive(plan.id, !plan.isActive),
+                      onArchive: (plan) => _confirmArchive(context, plan, controller),
                     ),
-                    onToggleActive: (plan) =>
-                        controller.setActive(plan.id, !plan.isActive),
-                    onArchive: (plan) =>
-                        _confirmArchive(context, plan, controller),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tip: Build your first plan by cloning features from an existing plan, then adjust keys as you grow.',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.tips_and_updates_rounded, color: cs.primary, size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        'TIP: Start with a Demo plan to let institutes explore EduCore before committing to a paid subscription.',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -211,6 +226,31 @@ class _PlansViewState extends State<PlansView> {
           },
         );
       },
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

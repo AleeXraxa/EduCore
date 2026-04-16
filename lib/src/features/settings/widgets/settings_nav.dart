@@ -75,12 +75,12 @@ const _items = <_SettingsNavItem>[
   ),
   _SettingsNavItem(
     section: SettingsSection.paymentSettings,
-    label: 'Payment settings',
+    label: 'Payment Methods',
     icon: Icons.payments_rounded,
   ),
   _SettingsNavItem(
     section: SettingsSection.notificationSettings,
-    label: 'Notification settings',
+    label: 'Notifications',
     icon: Icons.notifications_active_rounded,
   ),
   _SettingsNavItem(
@@ -90,7 +90,7 @@ const _items = <_SettingsNavItem>[
   ),
   _SettingsNavItem(
     section: SettingsSection.systemPreferences,
-    label: 'System preferences',
+    label: 'App Preferences',
     icon: Icons.settings_suggest_rounded,
   ),
 ];

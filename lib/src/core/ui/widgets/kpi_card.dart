@@ -1,4 +1,4 @@
-import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 
 @immutable
@@ -31,15 +31,27 @@ class KpiCard extends StatelessWidget {
     final trendText = data.trendText;
     final trendUp = data.trendUp;
 
-    return AppCard(
-      padding: const EdgeInsets.all(18),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: AppRadii.r16,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -47,44 +59,48 @@ class KpiCard extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: data.gradient.first.withValues(alpha: 0.22),
-                  blurRadius: 18,
+                  color: data.gradient.first.withValues(alpha: 0.25),
+                  blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
               ],
             ),
-            child: Icon(data.icon, color: Colors.white, size: 22),
+            child: Icon(data.icon, color: Colors.white, size: 24),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data.label,
+                  data.label.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: [
                     Expanded(
                       child: Text(
                         data.value,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
+                              letterSpacing: -1.0,
                             ),
                       ),
                     ),
                     if (trendText != null && trendUp != null) ...[
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       _TrendPill(text: trendText, up: trendUp),
                     ],
                   ],
@@ -106,17 +122,15 @@ class _TrendPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final fg = up ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
-    final bg = (up ? const Color(0xFF16A34A) : const Color(0xFFEF4444))
-        .withValues(alpha: 0.10);
+    final fg = up ? const Color(0xFF16A34A) : const Color(0xFFE11D48);
+    final bg = fg.withValues(alpha: 0.08);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
+        border: Border.all(color: fg.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -126,13 +140,15 @@ class _TrendPill extends StatelessWidget {
             size: 14,
             color: fg,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Text(
             text,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: fg,
-                  fontWeight: FontWeight.w900,
-                ),
+              color: fg,
+              fontWeight: FontWeight.w900,
+              fontSize: 10,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),

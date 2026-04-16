@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
@@ -16,13 +15,19 @@ class EditSubscriptionDialog extends StatefulWidget {
 
   final Subscription subscription;
   final List<Plan> plans;
-  final Function(String planId, SubscriptionStatus status, DateTime expiryDate) onSave;
+  final Function(String planId, SubscriptionStatus status, DateTime expiryDate)
+  onSave;
 
   static Future<void> show(
     BuildContext context, {
     required Subscription subscription,
     required List<Plan> plans,
-    required Function(String planId, SubscriptionStatus status, DateTime expiryDate) onSave,
+    required Function(
+      String planId,
+      SubscriptionStatus status,
+      DateTime expiryDate,
+    )
+    onSave,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -36,7 +41,10 @@ class EditSubscriptionDialog extends StatefulWidget {
         onSave: onSave,
       ),
       transitionBuilder: (context, anim, secondary, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutQuart);
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutQuart,
+        );
         return FadeTransition(
           opacity: curved,
           child: ScaleTransition(
@@ -76,8 +84,8 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Theme.of(context).colorScheme.primary,
-                ),
+              primary: Theme.of(context).colorScheme.primary,
+            ),
           ),
           child: child!,
         );
@@ -92,109 +100,128 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final size = MediaQuery.sizeOf(context);
-    final isMobile = size.width < 600;
 
-    return Center(
-      child: Container(
-        width: isMobile ? size.width * 0.92 : 460,
-        margin: const EdgeInsets.symmetric(vertical: 24),
-        child: Material(
-          color: cs.surface.withValues(alpha: 0.92),
-          borderRadius: AppRadii.r24,
-          elevation: 24,
-          clipBehavior: Clip.antiAlias,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Header(instituteName: widget.subscription.instituteName),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _SectionHeader(title: 'Service Plan', icon: Icons.workspace_premium_rounded),
-                        const SizedBox(height: 12),
-                        AppDropdown<String>(
-                          label: 'Plan',
-                          showLabel: false,
-                          value: _planId,
-                          items: widget.plans.map((e) => e.id).toList(),
-                          itemLabel: (id) => widget.plans.firstWhere((e) => e.id == id).name,
-                          onChanged: (v) {
-                            if (v != null) setState(() => _planId = v);
-                          },
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              title: 'Update Subscription',
+              subtitle: widget.subscription.instituteName,
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  children: [
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: _GroupCard(
+                        title: 'SUBSCRIPTION DETAILS',
+                        child: Column(
+                          children: [
+                            AppDropdown<String>(
+                              label: 'Subscription Plan',
+                              value: _planId,
+                              items: widget.plans.map((e) => e.id).toList(),
+                              itemLabel: (id) => widget.plans
+                                  .firstWhere((e) => e.id == id)
+                                  .name,
+                              onChanged: (v) {
+                                if (v != null) setState(() => _planId = v);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            AppDropdown<SubscriptionStatus>(
+                              label: 'Subscription Status',
+                              value: _status,
+                              items: SubscriptionStatus.values,
+                              itemLabel: (s) => switch (s) {
+                                SubscriptionStatus.active =>
+                                  'Active',
+                                SubscriptionStatus.pendingApproval =>
+                                  'Pending Approval',
+                                SubscriptionStatus.expired =>
+                                  'Expired / Overdue',
+                                SubscriptionStatus.canceled =>
+                                  'Canceled / Suspended',
+                              },
+                              onChanged: (v) {
+                                if (v != null) setState(() => _status = v);
+                              },
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 24),
-                        const _SectionHeader(title: 'Lifecycle Status', icon: Icons.sync_rounded),
-                        const SizedBox(height: 12),
-                        AppDropdown<SubscriptionStatus>(
-                          label: 'Status',
-                          showLabel: false,
-                          value: _status,
-                          items: SubscriptionStatus.values,
-                          itemLabel: (s) => switch (s) {
-                            SubscriptionStatus.active => 'Active / Verified',
-                            SubscriptionStatus.pendingApproval => 'Pending Approval',
-                            SubscriptionStatus.expired => 'Expired / Overdue',
-                            SubscriptionStatus.canceled => 'Canceled / Suspended',
-                          },
-                          onChanged: (v) {
-                            if (v != null) setState(() => _status = v);
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        const _SectionHeader(title: 'Validity Period', icon: Icons.event_rounded),
-                        const SizedBox(height: 12),
-                        _DateTile(
-                          label: 'Expiry Date',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _AnimatedSlideIn(
+                      delayIndex: 1,
+                      child: _GroupCard(
+                        title: 'EXPIRY DATE',
+                        child: _DateTile(
+                          label: 'Service expiry date',
                           value: _expiryDate,
                           onTap: _pickDate,
                         ),
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cs.primary.withValues(alpha: 0.05),
-                            borderRadius: AppRadii.r16,
-                            border: Border.all(color: cs.primary.withValues(alpha: 0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline_rounded, color: cs.primary, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Changing these values will take effect immediately for the institute.',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: cs.onSurfaceVariant,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ),
-                            ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _AnimatedSlideIn(
+                      delayIndex: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.05),
+                          borderRadius: AppRadii.r16,
+                          border: Border.all(
+                            color: cs.primary.withValues(alpha: 0.1),
                           ),
                         ),
-                      ],
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: cs.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Changes to plan, status, or expiry date take effect immediately for this institute.',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                _Footer(
-                  saving: _saving,
-                  onCancel: () => Navigator.of(context).pop(),
-                  onSave: () async {
-                    setState(() => _saving = true);
-                    final nav = Navigator.of(context);
-                    await widget.onSave(_planId, _status, _expiryDate);
-                    if (mounted) nav.pop();
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
+            _Footer(
+              saving: _saving,
+              onCancel: () => Navigator.of(context).pop(),
+              onSave: () async {
+                setState(() => _saving = true);
+                final nav = Navigator.of(context);
+                await widget.onSave(_planId, _status, _expiryDate);
+                if (mounted) nav.pop();
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -202,48 +229,51 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.instituteName});
-  final String instituteName;
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+  });
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
-        border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-                child: Icon(Icons.edit_rounded, color: cs.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Override Subscription',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-             instituteName,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
           ),
         ],
       ),
@@ -251,30 +281,124 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.icon});
-  final String title;
-  final IconData icon;
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.onCancel,
+    required this.onSave,
+    required this.saving,
+  });
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  final bool saving;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: cs.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Text(
-          title.toUpperCase(),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-                color: cs.onSurfaceVariant,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
         ),
-      ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: saving ? null : onCancel,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            ),
+            child: Text(
+              'Discard',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppPrimaryButton(
+            onPressed: saving ? null : onSave,
+            busy: saving,
+            label: 'Save Changes',
+            icon: Icons.published_with_changes_rounded,
+          ),
+        ],
+      ),
     );
   }
 }
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+
 
 class _DateTile extends StatelessWidget {
   const _DateTile({
@@ -290,7 +414,8 @@ class _DateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final dateStr = '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${value.year}-${value.month.toString().padLeft(2, "0")}-${value.day.toString().padLeft(2, "0")}';
 
     return InkWell(
       onTap: onTap,
@@ -311,21 +436,25 @@ class _DateTile extends StatelessWidget {
                   Text(
                     label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: cs.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     dateStr,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.calendar_month_rounded, color: cs.onSurfaceVariant, size: 20),
+            Icon(
+              Icons.calendar_month_rounded,
+              color: cs.onSurfaceVariant,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -333,49 +462,4 @@ class _DateTile extends StatelessWidget {
   }
 }
 
-class _Footer extends StatelessWidget {
-  const _Footer({
-    required this.onCancel,
-    required this.onSave,
-    required this.saving,
-  });
 
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
-  final bool saving;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
-        border: Border(top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: saving ? null : onCancel,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
-                side: BorderSide(color: cs.outlineVariant),
-              ),
-              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w800)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppPrimaryButton(
-              onPressed: saving ? null : onSave,
-              busy: saving,
-              label: 'Save Changes',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

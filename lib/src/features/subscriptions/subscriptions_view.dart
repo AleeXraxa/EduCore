@@ -2,6 +2,8 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_controller.dart';
 import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.dart';
@@ -55,244 +57,242 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
         final kpis = controller.kpis;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Subscriptions',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.4,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Manage plans, approvals, and subscription lifecycle.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: cs.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 18),
-                  SizedBox(
-                    width: 340,
-                    height: toolbarHeight,
-                    child: TextField(
-                      controller: _search,
-                      onChanged: controller.setQuery,
-                      decoration: InputDecoration(
-                        hintText: 'Search by institute name',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        filled: true,
-                        fillColor: cs.surface,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: AppRadii.r12,
-                          borderSide: BorderSide(color: cs.outlineVariant),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: AppRadii.r12,
-                          borderSide: BorderSide(color: cs.primary, width: 1.2),
-                        ),
+              _AnimatedSlideIn(
+                delayIndex: 0,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Subscriptions',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.8,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Manage institute subscriptions, renewals, and approvals.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 190,
-                    height: toolbarHeight,
-                    child: AppDropdown<SubscriptionsFilter>(
-                      label: 'Status',
-                      showLabel: false,
-                      compact: true,
-                      prefixIcon: Icons.filter_alt_rounded,
-                      items: const [
-                        SubscriptionsFilter.all,
-                        SubscriptionsFilter.active,
-                        SubscriptionsFilter.pending,
-                        SubscriptionsFilter.expired,
-                        SubscriptionsFilter.canceled,
-                      ],
-                      value: _filter,
-                      hintText: 'Status',
-                      itemLabel: (f) => switch (f) {
-                        SubscriptionsFilter.all => 'All',
-                        SubscriptionsFilter.active => 'Active',
-                        SubscriptionsFilter.pending => 'Pending approval',
-                        SubscriptionsFilter.expired => 'Expired',
-                        SubscriptionsFilter.canceled => 'Canceled',
-                      },
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _filter = value);
-                        controller.setFilter(value);
-                      },
+                    const SizedBox(width: 18),
+                    AppSearchField(
+                      width: 320,
+                      controller: _search,
+                      onChanged: controller.setQuery,
+                      hintText: 'Search subscriptions…',
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 180,
-                    height: toolbarHeight,
-                    child: AppDropdown<String>(
-                      label: 'Plan',
-                      showLabel: false,
-                      compact: true,
-                      prefixIcon: Icons.workspace_premium_rounded,
-                      items: controller.planIds,
-                      value: _planId,
-                      hintText: 'Plan',
-                      itemLabel: controller.planNameForId,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _planId = value);
-                        controller.setPlanIdFilter(value);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  AppPrimaryButton(
-                    onPressed: () async {
-                      final res = await AddSubscriptionDialog.show(
-                        context,
-                        academies: controller.academies,
-                        plans: controller.plans,
-                      );
-                      if (res != null) {
-                        await controller.addSubscription(
-                          academyId: res.academyId,
-                          planId: res.planId,
-                          durationMonths: res.durationMonths,
-                        );
-                      }
-                    },
-                    icon: Icons.add_rounded,
-                    label: 'Add Subscription',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = screenSizeForWidth(constraints.maxWidth);
-                  final columns = switch (size) {
-                    ScreenSize.compact => 1,
-                    ScreenSize.medium => 2,
-                    ScreenSize.expanded => 4,
-                  };
-
-                  final items = [
-                    KpiCardData(
-                      label: 'Total Subscriptions',
-                      value: _fmtInt(kpis.total),
-                      icon: Icons.receipt_long_rounded,
-                      gradient: const [Color(0xFF2563EB), Color(0xFF6366F1)],
-                    ),
-                    KpiCardData(
-                      label: 'Active Subscriptions',
-                      value: _fmtInt(kpis.active),
-                      icon: Icons.verified_rounded,
-                      gradient: const [Color(0xFF16A34A), Color(0xFF22C55E)],
-                    ),
-                    KpiCardData(
-                      label: 'Expired Subscriptions',
-                      value: _fmtInt(kpis.expired),
-                      icon: Icons.warning_rounded,
-                      gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
-                    ),
-                    KpiCardData(
-                      label: 'Monthly Revenue',
-                      value: _fmtMoney(kpis.monthRevenuePkr),
-                      icon: Icons.payments_rounded,
-                      gradient: const [Color(0xFF2563EB), Color(0xFF8B5CF6)],
-                    ),
-                  ];
-
-                  const gap = 12.0;
-                  final totalGap = gap * (columns - 1);
-                  final cardWidth = (constraints.maxWidth - totalGap) / columns;
-
-                  return Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: [
-                      for (final kpi in items)
-                        SizedBox(
-                          width: cardWidth,
-                          child: KpiCard(data: kpi),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              SubscriptionsTable(
-                items: controller.paged,
-                onAction: (action) async {
-                  final sub = controller.paged.firstWhere(
-                    (e) => e.id == action.subscriptionId,
-                  );
-
-                  switch (action.action) {
-                    case SubscriptionMenuAction.view:
-                      if (!context.mounted) return;
-                      SubscriptionDetailsDialog.show(
-                        context,
-                        subscription: sub,
-                      );
-                      break;
-                    case SubscriptionMenuAction.edit:
-                      if (!context.mounted) return;
-                      EditSubscriptionDialog.show(
-                        context,
-                        subscription: sub,
-                        plans: controller.plans,
-                        onSave: (planId, status, expiry) async {
-                          await controller.updateSubscriptionDetails(
-                            sub.id,
-                            planId: planId,
-                            status: status,
-                            expiryDate: expiry,
-                          );
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 190,
+                      height: toolbarHeight,
+                      child: AppDropdown<SubscriptionsFilter>(
+                        label: 'Status',
+                        showLabel: false,
+                        compact: true,
+                        prefixIcon: Icons.filter_alt_rounded,
+                        items: const [
+                          SubscriptionsFilter.all,
+                          SubscriptionsFilter.active,
+                          SubscriptionsFilter.pending,
+                          SubscriptionsFilter.expired,
+                          SubscriptionsFilter.canceled,
+                        ],
+                        value: _filter,
+                        hintText: 'Status',
+                        itemLabel: (f) => switch (f) {
+                          SubscriptionsFilter.all => 'All',
+                          SubscriptionsFilter.active => 'Active',
+                          SubscriptionsFilter.pending => 'Pending approval',
+                          SubscriptionsFilter.expired => 'Expired',
+                          SubscriptionsFilter.canceled => 'Canceled',
                         },
-                      );
-                      break;
-                    case SubscriptionMenuAction.approve:
-                      await controller.approve(action.subscriptionId);
-                      break;
-                    case SubscriptionMenuAction.reject:
-                      await controller.reject(action.subscriptionId);
-                      break;
-                    case SubscriptionMenuAction.extend:
-                      await controller.extend30Days(action.subscriptionId);
-                      break;
-
-                    case SubscriptionMenuAction.changePlan:
-                      final ids = controller.planIds
-                          .where((e) => e != 'all')
-                          .toList();
-                      if (ids.isEmpty) break;
-                      final curIndex = ids.indexOf(sub.planId);
-                      final next =
-                          ids[(curIndex < 0 ? 0 : (curIndex + 1) % ids.length)];
-                      await controller.changePlan(action.subscriptionId, next);
-                      break;
-                  }
-                },
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _filter = value);
+                          controller.setFilter(value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 180,
+                      height: toolbarHeight,
+                      child: AppDropdown<String>(
+                        label: 'Plan',
+                        showLabel: false,
+                        compact: true,
+                        prefixIcon: Icons.workspace_premium_rounded,
+                        items: controller.planIds,
+                        value: _planId,
+                        hintText: 'Plan',
+                        itemLabel: controller.planNameForId,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _planId = value);
+                          controller.setPlanIdFilter(value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    AppPrimaryButton(
+                      onPressed: () async {
+                        final res = await AddSubscriptionDialog.show(
+                          context,
+                          academies: controller.academies,
+                          plans: controller.plans,
+                        );
+                        if (res != null) {
+                          await controller.addSubscription(
+                            academyId: res.academyId,
+                            planId: res.planId,
+                            durationMonths: res.durationMonths,
+                          );
+                        }
+                      },
+                      icon: Icons.add_rounded,
+                      label: 'Add Subscription',
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
+              _AnimatedSlideIn(
+                delayIndex: 1,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = screenSizeForWidth(constraints.maxWidth);
+                    final columns = switch (size) {
+                      ScreenSize.compact => 1,
+                      ScreenSize.medium => 2,
+                      ScreenSize.expanded => 4,
+                    };
+
+                    final items = [
+                      KpiCardData(
+                        label: 'Total Subscriptions',
+                        value: _fmtInt(kpis.total),
+                        icon: Icons.receipt_long_rounded,
+                        gradient: const [Color(0xFF2563EB), Color(0xFF6366F1)],
+                      ),
+                      KpiCardData(
+                        label: 'Active Subscriptions',
+                        value: _fmtInt(kpis.active),
+                        icon: Icons.verified_rounded,
+                        gradient: const [Color(0xFF16A34A), Color(0xFF22C55E)],
+                      ),
+                      KpiCardData(
+                        label: 'Expired Subscriptions',
+                        value: _fmtInt(kpis.expired),
+                        icon: Icons.warning_rounded,
+                        gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
+                      ),
+                      KpiCardData(
+                        label: 'Monthly Revenue',
+                        value: _fmtMoney(kpis.monthRevenuePkr),
+                        icon: Icons.payments_rounded,
+                        gradient: const [Color(0xFF2563EB), Color(0xFF8B5CF6)],
+                      ),
+                    ];
+
+                    const gap = 12.0;
+                    final totalGap = gap * (columns - 1);
+                    final cardWidth =
+                        (constraints.maxWidth - totalGap) / columns;
+
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: [
+                        for (final kpi in items)
+                          SizedBox(
+                            width: cardWidth,
+                            child: KpiCard(data: kpi),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              _AnimatedSlideIn(
+                delayIndex: 2,
+                child: SubscriptionsTable(
+                  items: controller.paged,
+                  onAction: (action) async {
+                    final sub = controller.paged.firstWhere(
+                      (e) => e.id == action.subscriptionId,
+                    );
+
+                    switch (action.action) {
+                      case SubscriptionMenuAction.view:
+                        if (!context.mounted) return;
+                        SubscriptionDetailsDialog.show(
+                          context,
+                          subscription: sub,
+                        );
+                        break;
+                      case SubscriptionMenuAction.edit:
+                        if (!context.mounted) return;
+                        EditSubscriptionDialog.show(
+                          context,
+                          subscription: sub,
+                          plans: controller.plans,
+                          onSave: (planId, status, expiry) async {
+                            await controller.updateSubscriptionDetails(
+                              sub.id,
+                              planId: planId,
+                              status: status,
+                              expiryDate: expiry,
+                            );
+                          },
+                        );
+                        break;
+                      case SubscriptionMenuAction.approve:
+                        await controller.approve(action.subscriptionId);
+                        break;
+                      case SubscriptionMenuAction.reject:
+                        await controller.reject(action.subscriptionId);
+                        break;
+                      case SubscriptionMenuAction.extend:
+                        await controller.extend30Days(action.subscriptionId);
+                        break;
+
+                      case SubscriptionMenuAction.changePlan:
+                        final ids = controller.planIds
+                            .where((e) => e != 'all')
+                            .toList();
+                        if (ids.isEmpty) break;
+                        final curIndex = ids.indexOf(sub.planId);
+                        final next =
+                            ids[(curIndex < 0
+                                ? 0
+                                : (curIndex + 1) % ids.length)];
+                        await controller.changePlan(
+                          action.subscriptionId,
+                          next,
+                        );
+                        break;
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
               _PaginationBar(
                 total: controller.totalCount,
                 page: controller.page,
@@ -300,13 +300,20 @@ class _SubscriptionsViewState extends State<SubscriptionsView> {
                 onPrev: controller.prevPage,
                 onNext: controller.nextPage,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Tip: Expiring subscriptions are subtly highlighted for fast review.',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.shield_outlined, color: cs.primary, size: 14),
+                  const SizedBox(width: 8),
+                  Text(
+                    'NOTE: All subscription changes and plan updates are securely logged for audit purposes.',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -512,4 +519,29 @@ String _fmtInt(int v) {
     if ((i + 1) % 3 == 0 && idx != 0) b.write(',');
   }
   return b.toString().split('').reversed.join();
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
 }

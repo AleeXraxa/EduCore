@@ -1,5 +1,6 @@
 import 'package:educore/src/app/shell/app_shell.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
@@ -42,13 +43,11 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         switchInCurve: Curves.easeOutCubic,
         switchOutCurve: Curves.easeInCubic,
         layoutBuilder: (currentChild, previousChildren) {
+          final c = currentChild;
           return Stack(
             alignment: Alignment.topLeft,
             fit: StackFit.expand,
-            children: <Widget>[
-              ...previousChildren,
-              if (currentChild != null) currentChild,
-            ],
+            children: <Widget>[...previousChildren, if (c != null) c],
           );
         },
         transitionBuilder: (child, animation) {
@@ -78,7 +77,6 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.features => const FeaturesView(),
             _SuperAdminNav.plans => const PlansView(),
             _SuperAdminNav.settings => const SettingsView(),
-            _ => _PlaceholderPage(title: current.title),
           },
         ),
       ),
@@ -138,16 +136,16 @@ class _PlaceholderPage extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.4,
-                ),
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.4,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'This section is ready for the next build step.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           AppCard(
@@ -173,16 +171,16 @@ class _PlaceholderPage extends StatelessWidget {
                   Text(
                     'Coming next',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'We’ll build this screen with tables, filters, and actions.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -211,7 +209,8 @@ class _DashboardHomeBodyStateful extends StatefulWidget {
       _DashboardHomeBodyStatefulState();
 }
 
-class _DashboardHomeBodyStatefulState extends State<_DashboardHomeBodyStateful> {
+class _DashboardHomeBodyStatefulState
+    extends State<_DashboardHomeBodyStateful> {
   late final DashboardController _controller;
 
   @override
@@ -249,39 +248,40 @@ class _DashboardHomeBodyStatefulState extends State<_DashboardHomeBodyStateful> 
             };
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _HeaderRow(),
-                  const SizedBox(height: 16),
+                  const _HeaderRow(),
+                  const SizedBox(height: 32),
                   _KpiGrid(columns: columns, kpis: controller.kpis),
-                  const SizedBox(height: 24),
-                  _SectionTitle(
-                    title: 'Analytics',
-                    subtitle: 'Revenue and institute growth at a glance.',
+                  const SizedBox(height: 48),
+                  const _SectionTitle(
+                    title: 'FINANCIAL OVERVIEW',
+                    subtitle: 'Real-time revenue streams and growth metrics.',
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   Flex(
                     direction: size == ScreenSize.compact
                         ? Axis.vertical
                         : Axis.horizontal,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: AppCard(child: _RevenueChart())),
+                      const Expanded(flex: 3, child: _RevenueChart()),
                       SizedBox(
-                        width: size == ScreenSize.compact ? 0 : 16,
-                        height: size == ScreenSize.compact ? 16 : 0,
+                        width: size == ScreenSize.compact ? 0 : 24,
+                        height: size == ScreenSize.compact ? 24 : 0,
                       ),
-                      Expanded(child: AppCard(child: _GrowthChart())),
+                      const Expanded(flex: 2, child: _GrowthChart()),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  _SectionTitle(
-                    title: 'Operations',
-                    subtitle: 'Recent activity and pending approvals.',
+                  const SizedBox(height: 48),
+                  const _SectionTitle(
+                    title: 'PLATFORM ACTIVITY',
+                    subtitle:
+                        'Recent activity and pending subscription approvals.',
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   Flex(
                     direction: size == ScreenSize.compact
                         ? Axis.vertical
@@ -289,19 +289,17 @@ class _DashboardHomeBodyStatefulState extends State<_DashboardHomeBodyStateful> 
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: AppCard(
-                          child: _ActivityList(items: controller.recentActivity),
-                        ),
+                        flex: 2,
+                        child: _ActivityList(items: controller.recentActivity),
                       ),
                       SizedBox(
-                        width: size == ScreenSize.compact ? 0 : 16,
-                        height: size == ScreenSize.compact ? 16 : 0,
+                        width: size == ScreenSize.compact ? 0 : 24,
+                        height: size == ScreenSize.compact ? 24 : 0,
                       ),
                       Expanded(
-                        child: AppCard(
-                          child: _PendingPaymentsTable(
-                            items: controller.pendingPaymentsTop,
-                          ),
+                        flex: 3,
+                        child: _PendingPaymentsTable(
+                          items: controller.pendingPaymentsTop,
                         ),
                       ),
                     ],
@@ -317,6 +315,8 @@ class _DashboardHomeBodyStatefulState extends State<_DashboardHomeBodyStateful> 
 }
 
 class _HeaderRow extends StatelessWidget {
+  const _HeaderRow();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -328,26 +328,24 @@ class _HeaderRow extends StatelessWidget {
             children: [
               Text(
                 'Super Admin Dashboard',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.4,
-                    ),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.2,
+                ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
-                'Manage institutes, subscriptions, payments, and system health.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
+                'Manage institutes, subscriptions, and platform-wide configurations.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 24),
-        const AppSearchField(
-          width: 320,
-          hintText: 'Search dashboard...',
-        ),
+        const SizedBox(width: 32),
+        const AppSearchField(width: 380, hintText: 'Search institutes...'),
       ],
     );
   }
@@ -363,34 +361,34 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       _KpiData(
-        'Total Institutes',
+        'Institutes',
         _fmtInt(kpis.totalInstitutes),
         Icons.apartment_rounded,
-        const [Color(0xFF2563EB), Color(0xFF6366F1)],
+        const [Color(0xFF0F172A), Color(0xFF1E293B)],
       ),
       _KpiData(
         'Active Subscriptions',
         _fmtInt(kpis.activeSubscriptions),
         Icons.verified_rounded,
-        const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
       ),
       _KpiData(
         'Monthly Revenue',
         'PKR ${_fmtInt(kpis.monthlyRevenuePkr)}',
         Icons.payments_rounded,
-        const [Color(0xFF2563EB), Color(0xFF8B5CF6)],
+        const [Color(0xFF0D9488), Color(0xFF0F766E)],
       ),
       _KpiData(
-        'Pending Payments',
+        'Pending Approvals',
         _fmtInt(kpis.pendingPayments),
         Icons.pending_actions_rounded,
-        const [Color(0xFF1D4ED8), Color(0xFF6366F1)],
+        const [Color(0xFFE11D48), Color(0xFFBE123C)],
       ),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const gap = 12.0;
+        final gap = 20.0;
         final totalGap = gap * (columns - 1);
         final cardWidth = (constraints.maxWidth - totalGap) / columns;
 
@@ -401,8 +399,8 @@ class _KpiGrid extends StatelessWidget {
             for (final item in items)
               SizedBox(
                 width: cardWidth,
-                child: AppCard(child: _KpiCard(data: item)),
-              )
+                child: _KpiCard(data: item),
+              ),
           ],
         );
       },
@@ -426,129 +424,169 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: data.gradient,
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: AppRadii.r16,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: data.gradient,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: data.gradient.first.withValues(alpha: 0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: data.gradient.first.withValues(alpha: 0.22),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            child: Icon(data.icon, color: Colors.white, size: 24),
           ),
-          child: Icon(data.icon, color: Colors.white, size: 22),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data.label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                data.value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                    ),
-              ),
-            ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.label.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data.value,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class _RevenueChart extends StatelessWidget {
+  const _RevenueChart();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Revenue Over Time',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'MONTHLY REVENUE',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'LIVE',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 9,
                   ),
-            ),
-            const Spacer(),
-            Text(
-              'Last 30 days',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: cs.onSurfaceVariant),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          height: 220,
-          decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: cs.outlineVariant),
+                ),
+              ),
+            ],
           ),
-          clipBehavior: Clip.antiAlias,
-          child: const Padding(
-            padding: EdgeInsets.all(14),
-            child: _MockLineChart(),
-          ),
-        ),
-      ],
+          const SizedBox(height: 28),
+          const SizedBox(height: 280, child: _MockLineChart()),
+        ],
+      ),
     );
   }
 }
 
 class _GrowthChart extends StatelessWidget {
+  const _GrowthChart();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Institute Growth',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 14),
-        Container(
-          height: 220,
-          decoration: BoxDecoration(
-            color: cs.secondary.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: cs.outlineVariant),
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: const Padding(
-            padding: EdgeInsets.all(14),
-            child: _MockBarChart(),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'INSTITUTE GROWTH',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 28),
+          const SizedBox(height: 280, child: _MockBarChart()),
+        ],
+      ),
     );
   }
 }
@@ -630,10 +668,7 @@ class _LineChartPainter extends CustomPainter {
     final dx = size.width / (values.length - 1);
     final points = <Offset>[
       for (var i = 0; i < values.length; i++)
-        Offset(
-          i * dx,
-          size.height - ((values[i] - minV) / span) * size.height,
-        ),
+        Offset(i * dx, size.height - ((values[i] - minV) / span) * size.height),
     ];
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
@@ -736,12 +771,7 @@ class _BarChartPainter extends CustomPainter {
     for (var i = 0; i < values.length; i++) {
       final h = (values[i] / span) * size.height;
       final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          i * (barW + gap),
-          size.height - h,
-          barW,
-          h,
-        ),
+        Rect.fromLTWH(i * (barW + gap), size.height - h, barW, h),
         const Radius.circular(999),
       );
 
@@ -777,16 +807,16 @@ class _SectionTitle extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               ),
             ],
           ),
@@ -803,66 +833,60 @@ class _ActivityList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Recent Activity',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text(
-              'No recent activity yet.',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'RECENT ACTIVITY',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
             ),
           ),
-        if (items.isNotEmpty) ...[
-          for (var i = 0; i < items.length; i++) ...[
-            _ActivityRow(
-              icon: _activityIcon(items[i].kind),
-              title: items[i].title,
-              subtitle: items[i].subtitle,
-              time: _fmtAgo(items[i].time),
-              tint: _activityTint(cs, items[i].kind),
-            ),
-            if (i != items.length - 1) const SizedBox(height: 10),
-          ],
+          const SizedBox(height: 28),
+          if (items.isEmpty)
+            _EmptyState(
+              icon: Icons.history_rounded,
+              label: 'No recent activity',
+              subtitle:
+                  'Activity will appear here as institutes interact with the platform.',
+            )
+          else
+            for (var i = 0; i < items.length; i++) ...[
+              _ActivityRow(
+                icon: _activityIcon(items[i].kind),
+                title: items[i].title,
+                subtitle: items[i].subtitle,
+                time: _fmtAgo(items[i].time),
+                tint: _activityTint(cs, items[i].kind),
+              ),
+              if (i != items.length - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+            ],
         ],
-        if (false) ...[
-        _ActivityRow(
-          icon: Icons.verified_rounded,
-          title: 'Subscription approved',
-          subtitle: 'Green Valley Academy • Standard Plan',
-          time: '2m ago',
-          tint: cs.primary,
-        ),
-        const SizedBox(height: 10),
-        _ActivityRow(
-          icon: Icons.payments_rounded,
-          title: 'Payment verified',
-          subtitle: 'Sunrise School • PKR 18,000',
-          time: '18m ago',
-          tint: cs.secondary,
-        ),
-        const SizedBox(height: 10),
-        _ActivityRow(
-          icon: Icons.block_rounded,
-          title: 'Institute blocked',
-          subtitle: 'Apex Institute • Policy violation',
-          time: '1h ago',
-          tint: cs.tertiary,
-        ),
-        ],
-      ],
+      ),
     );
   }
 }
@@ -888,15 +912,15 @@ class _ActivityRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: tint.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(14),
+            color: tint.withValues(alpha: 0.08),
+            borderRadius: AppRadii.r12,
           ),
           child: Icon(icon, color: tint, size: 20),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -904,25 +928,29 @@ class _ActivityRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(width: 12),
         Text(
-          time,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+          time.toUpperCase(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+          ),
         ),
       ],
     );
@@ -937,115 +965,142 @@ class _PendingPaymentsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Pending Payments',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const Spacer(),
-            Text(
-              'View all',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: cs.primary),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _TableHeader(),
-        const SizedBox(height: 6),
-        if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text(
-              'No pending payments.',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
-        if (items.isNotEmpty) ...[
-          for (var i = 0; i < items.length.clamp(0, 3); i++) ...[
-            _TableRow(
-              name: items[i].instituteName,
-              amount: 'PKR ${_fmtInt(items[i].amountPkr)}',
-              status: _paymentStatusLabel(items[i].status),
-            ),
-            if (i != items.length.clamp(0, 3) - 1) const SizedBox(height: 6),
-          ],
         ],
-        if (false) ...[
-        _TableRow(name: 'Green Valley', amount: 'PKR 18,000', status: 'Pending'),
-        const SizedBox(height: 6),
-        _TableRow(name: 'City School', amount: 'PKR 12,500', status: 'Review'),
-        const SizedBox(height: 6),
-        _TableRow(name: 'Apex Institute', amount: 'PKR 21,000', status: 'Pending'),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'PENDING PAYMENTS',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () {},
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  textStyle: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text('VIEW ALL'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          const _TableHeader(),
+          const SizedBox(height: 8),
+          if (items.isEmpty)
+            _EmptyState(
+              icon: Icons.payments_rounded,
+              label: 'No pending payments',
+              subtitle: 'All subscription payments are up to date.',
+            )
+          else
+            for (var i = 0; i < items.length.clamp(0, 5); i++) ...[
+              _TableRow(
+                name: items[i].instituteName,
+                amount: 'PKR ${_fmtInt(items[i].amountPkr)}',
+                status: _paymentStatusLabel(items[i].status),
+                icon: Icons.account_balance_rounded,
+              ),
+              if (i != items.length.clamp(0, 5) - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.2),
+                  ),
+                ),
+            ],
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Text(
+                'Showing top ${items.length.clamp(0, 5)} pending payments',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              _PaginationTrigger(
+                icon: Icons.chevron_left_rounded,
+                enabled: false,
+              ),
+              const SizedBox(width: 8),
+              _PaginationTrigger(
+                icon: Icons.chevron_right_rounded,
+                enabled: items.length > 5,
+              ),
+            ],
+          ),
         ],
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Text(
-              '1–3 of 12',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: cs.onSurfaceVariant),
-            ),
-            const Spacer(),
-            Icon(Icons.chevron_left, color: cs.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _TableHeader extends StatelessWidget {
+  const _TableHeader();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+        borderRadius: AppRadii.r12,
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              'Institute',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+              'INSTITUTE',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           Text(
-            'Amount',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+            'AMOUNT',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 24),
           Text(
-            'Status',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+            'STATUS',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -1058,60 +1113,146 @@ class _TableRow extends StatelessWidget {
     required this.name,
     required this.amount,
     required this.status,
+    required this.icon,
   });
 
   final String name;
   final String amount;
   final String status;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          Icon(icon, size: 18, color: cs.primary.withValues(alpha: 0.5)),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               name,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
           Text(
             amount,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+              color: cs.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 24),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
+              color: cs.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              status,
+              status.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: cs.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: cs.primary.withValues(alpha: 0.2),
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaginationTrigger extends StatelessWidget {
+  const _PaginationTrigger({required this.icon, required this.enabled});
+
+  final IconData icon;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: enabled
+            ? cs.surfaceContainerHighest.withValues(alpha: 0.3)
+            : Colors.transparent,
+        borderRadius: AppRadii.r8,
+        border: Border.all(
+          color: enabled
+              ? cs.outlineVariant
+              : cs.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Icon(
+        icon,
+        size: 18,
+        color: enabled
+            ? cs.onSurface
+            : cs.onSurfaceVariant.withValues(alpha: 0.3),
       ),
     );
   }
@@ -1131,62 +1272,79 @@ class _NotReadyPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: AppCard(
-        child: Row(
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600),
+        margin: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: AppRadii.r24,
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 40,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(14),
+                color: cs.primary.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
               ),
-              child: Icon(Icons.cloud_off_rounded, color: cs.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    busy ? 'Initializing Firebase…' : 'Firestore not ready',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    message?.trim().isNotEmpty == true
-                        ? message!.trim()
-                        : 'Dashboard requires Firebase Firestore. Initialize Firebase to enable this module.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                  ),
-                ],
+              child: Icon(
+                busy ? Icons.hub_rounded : Icons.cloud_off_rounded,
+                color: cs.primary,
+                size: 40,
               ),
             ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: busy ? null : () async => onRetry(),
-              icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
+            const SizedBox(height: 32),
+            Text(
+              busy ? 'Loading Dashboard' : 'Connection Error',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message?.trim().isNotEmpty == true
+                  ? message!.trim()
+                  : 'Loading your EduCore dashboard. Please wait a moment while we fetch your platform data.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: busy ? null : () async => onRetry(),
+                icon: busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.refresh_rounded),
+                label: Text(busy ? 'Loading...' : 'Try Again'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                 ),
               ),
             ),

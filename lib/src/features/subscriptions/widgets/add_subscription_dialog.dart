@@ -1,5 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
@@ -47,209 +48,292 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
     final cs = Theme.of(context).colorScheme;
 
     return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: Container(
-        width: 500,
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: AppRadii.r24,
-          boxShadow: AppShadows.soft(Colors.black),
-        ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: AppRadii.r16,
-                    ),
-                    child: Icon(Icons.add_card_rounded, color: cs.primary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Issue New Subscription',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                        Text(
-                          'Assign a plan to an institute manually.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
+            _Header(
+              title: 'New Subscription',
+              subtitle: 'Assign a plan to an institute.',
+              onClose: () => Navigator.of(context).pop(),
             ),
-            const Divider(height: 1),
-
-            // Body
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Institute Selection
-                    Text(
-                      'Select Institute',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadii.r12,
-                        border: Border.all(color: cs.outlineVariant),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: _GroupCard(
+                        title: 'SELECT INSTITUTE',
+                        child: AppDropdown<String>(
+                          label: 'Institute',
+                          items: widget.academies.map((a) => a.id).toList(),
                           value: _selectedAcademyId,
-                          hint: const Text('Choose an institute'),
-                          items: widget.academies.map((a) {
-                            return DropdownMenuItem(
-                              value: a.id,
-                              child: Text(a.name),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() => _selectedAcademyId = v),
+                          hintText: 'Select an institute',
+                          prefixIcon: Icons.apartment_rounded,
+                          itemLabel: (id) => widget.academies
+                              .firstWhere((a) => a.id == id)
+                              .name,
+                          onChanged: (v) =>
+                              setState(() => _selectedAcademyId = v),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Plan Selection
-                    Text(
-                      'Select Plan',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadii.r12,
-                        border: Border.all(color: cs.outlineVariant),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: _selectedPlanId,
-                          items: widget.plans.map((p) {
-                            return DropdownMenuItem(
-                              value: p.id,
-                              child: Text('${p.name} (PKR ${p.price.round()}/mo)'),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() => _selectedPlanId = v),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Duration Selection
-                    Text(
-                      'Duration',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _DurationChip(
-                          label: '1 Month',
-                          selected: _durationMonths == 1,
-                          onTap: () => setState(() => _durationMonths = 1),
+                    _AnimatedSlideIn(
+                      delayIndex: 1,
+                      child: _GroupCard(
+                        title: 'PLAN & DURATION',
+                        child: Column(
+                          children: [
+                            AppDropdown<String>(
+                              label: 'Subscription Plan',
+                              items: widget.plans.map((p) => p.id).toList(),
+                              value: _selectedPlanId,
+                              prefixIcon: Icons.workspace_premium_rounded,
+                              itemLabel: (id) {
+                                final p = widget.plans.firstWhere(
+                                  (p) => p.id == id,
+                                );
+                                return '${p.name} (PKR ${p.price.round()}/mo)';
+                              },
+                              onChanged: (v) =>
+                                  setState(() => _selectedPlanId = v),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _DurationChip(
+                                    label: '1 Month',
+                                    selected: _durationMonths == 1,
+                                    onTap: () =>
+                                        setState(() => _durationMonths = 1),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _DurationChip(
+                                    label: '3 Months',
+                                    selected: _durationMonths == 3,
+                                    onTap: () =>
+                                        setState(() => _durationMonths = 3),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _DurationChip(
+                                    label: '1 Year',
+                                    selected: _durationMonths == 12,
+                                    onTap: () =>
+                                        setState(() => _durationMonths = 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        _DurationChip(
-                          label: '3 Months',
-                          selected: _durationMonths == 3,
-                          onTap: () => setState(() => _durationMonths = 3),
-                        ),
-                        const SizedBox(width: 8),
-                        _DurationChip(
-                          label: '1 Year',
-                          selected: _durationMonths == 12,
-                          onTap: () => setState(() => _durationMonths = 12),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Summary Card
-                    if (_selectedPlanId != null) ...[
-                      _TotalSummary(
-                        plan: widget.plans.firstWhere((p) => p.id == _selectedPlanId),
-                        durationMonths: _durationMonths,
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_selectedPlanId != null)
+                      _AnimatedSlideIn(
+                        delayIndex: 2,
+                        child: _TotalSummary(
+                          plan: widget.plans.firstWhere(
+                            (p) => p.id == _selectedPlanId,
+                          ),
+                          durationMonths: _durationMonths,
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
-
-            const Divider(height: 1),
-            // Footer
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppPrimaryButton(
-                      onPressed: _selectedAcademyId == null || _selectedPlanId == null
-                          ? null
-                          : () {
-                              Navigator.pop(context, (
-                                academyId: _selectedAcademyId!,
-                                planId: _selectedPlanId!,
-                                durationMonths: _durationMonths,
-                              ));
-                            },
-                      label: 'Create Subscription',
-                    ),
-                  ),
-                ],
-              ),
+            _Footer(
+              onCancel: () => Navigator.of(context).pop(),
+              onSave: _selectedAcademyId == null || _selectedPlanId == null
+                  ? null
+                  : () {
+                      Navigator.pop(context, (
+                        academyId: _selectedAcademyId!,
+                        planId: _selectedPlanId!,
+                        durationMonths: _durationMonths,
+                      ));
+                    },
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+  });
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({required this.onCancel, required this.onSave});
+  final VoidCallback onCancel;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            ),
+            child: Text(
+              'Discard',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppPrimaryButton(
+            onPressed: onSave,
+            label: 'Create Subscription',
+            icon: Icons.add_moderator_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
@@ -296,9 +380,9 @@ class _TotalSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: cs.surfaceContainerLow,
         borderRadius: AppRadii.r16,
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Row(
         children: [
@@ -307,17 +391,17 @@ class _TotalSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total Amount',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
+                  'Total amount',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
                 Text(
-                  'PKR ${total.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                  'PKR ${total.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: cs.primary,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    color: cs.primary,
+                  ),
                 ),
               ],
             ),

@@ -38,27 +38,14 @@ class _AnalyticsViewState extends State<AnalyticsView> {
       builder: (context, controller, _) {
         final snap = controller.snapshot;
 
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          layoutBuilder: (currentChild, previousChildren) {
-            return Stack(
-              alignment: Alignment.topLeft,
-              fit: StackFit.expand,
-              children: <Widget>[
-                ...previousChildren,
-                if (currentChild != null) currentChild,
-              ],
-            );
-          },
-          child: SingleChildScrollView(
-            key: ValueKey('${controller.range}_${controller.plan}'),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _AnimatedSlideIn(
+                delayIndex: 0,
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
@@ -67,17 +54,18 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                         children: [
                           Text(
                             'Analytics',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.4,
+                                  letterSpacing: -0.8,
                                 ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Executive overview of revenue, growth, and platform health.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: cs.onSurfaceVariant),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
@@ -131,27 +119,74 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                AnalyticsKpisSection(snapshot: snap),
+              ),
+              const SizedBox(height: 32),
+              _AnimatedSlideIn(
+                delayIndex: 1,
+                child: AnalyticsKpisSection(snapshot: snap),
+              ),
+              const SizedBox(height: 24),
+              _AnimatedSlideIn(
+                delayIndex: 2,
+                child: AnalyticsChartsSection(snapshot: snap),
+              ),
+              const SizedBox(height: 24),
+              _AnimatedSlideIn(
+                delayIndex: 3,
+                child: AnalyticsInsightsSection(snapshot: snap),
+              ),
+              if (controller.busy) ...[
                 const SizedBox(height: 24),
-                AnalyticsChartsSection(snapshot: snap),
-                const SizedBox(height: 24),
-                AnalyticsInsightsSection(snapshot: snap),
-                if (controller.busy) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Refreshing…',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
+                _AnimatedSlideIn(
+                  delayIndex: 4,
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Refreshing analytics engine…',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

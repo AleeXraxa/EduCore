@@ -74,164 +74,161 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
     final groups = widget.groups.where((g) => g != 'All').toList(growable: false);
 
     return Dialog(
-      insetPadding: const EdgeInsets.all(20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 860),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _editing ? 'Edit feature' : 'Add feature',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Define system-level feature metadata and access rules.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _GroupCard(
-                title: 'Feature details',
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              title: _editing ? 'Edit Feature' : 'Add New Feature',
+              subtitle: 'Define a feature that can be enabled or disabled per plan.',
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextField(
-                            controller: _key,
-                            label: 'Feature key',
-                            hintText: 'e.g. fee_collect',
-                            prefixIcon: Icons.key_rounded,
-                          ),
+                    _AnimatedSlideIn(
+                      delayIndex: 0,
+                      child: _GroupCard(
+                        title: 'FEATURE DETAILS',
+                        child: Column(
+                          children: [
+                            AppTextField(
+                              controller: _key,
+                              label: 'Feature Key',
+                              hintText: 'e.g. library_module',
+                              prefixIcon: Icons.key_rounded,
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              controller: _label,
+                              label: 'Display Name',
+                              hintText: 'e.g. Library Management',
+                              prefixIcon: Icons.text_fields_rounded,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AppTextField(
-                            controller: _label,
-                            label: 'Label',
-                            hintText: 'e.g. Collect Fee',
-                            prefixIcon: Icons.text_fields_rounded,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppDropdown<String>(
-                            label: 'Group',
-                            items: groups,
-                            value: _group,
-                            itemLabel: (g) => g,
-                            prefixIcon: Icons.folder_rounded,
-                            onChanged: (v) =>
-                                setState(() => _group = v ?? _group),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AppTextField(
-                            controller: _icon,
-                            label: 'Icon (optional)',
-                            hintText: 'e.g. receipt',
-                            prefixIcon: Icons.star_outline_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 160,
-                          child: AppTextField(
-                            controller: _order,
-                            label: 'Order',
-                            hintText: '0',
-                            prefixIcon: Icons.format_list_numbered_rounded,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    AppTextArea(
-                      controller: _description,
-                      label: 'Description',
-                      hintText: 'Explain what access this feature unlocks.',
-                      minLines: 2,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Active',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                    _AnimatedSlideIn(
+                      delayIndex: 1,
+                      child: _GroupCard(
+                        title: 'CATEGORY & ORDERING',
+                        child: Column(
+                          children: [
+                            AppDropdown<String>(
+                              label: 'Feature Group',
+                              items: groups,
+                              value: _group,
+                              itemLabel: (g) => g,
+                              prefixIcon: Icons.folder_rounded,
+                              onChanged: (v) =>
+                                  setState(() => _group = v ?? _group),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: AppTextField(
+                                    controller: _icon,
+                                    label: 'Icon Name',
+                                    hintText: 'e.g. book',
+                                    prefixIcon: Icons.star_outline_rounded,
+                                  ),
                                 ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AppTextField(
+                                    controller: _order,
+                                    label: 'Weight',
+                                    hintText: '0',
+                                    prefixIcon: Icons.format_list_numbered_rounded,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _AnimatedSlideIn(
+                      delayIndex: 2,
+                      child: _GroupCard(
+                        title: 'DESCRIPTION',
+                        child: Column(
+                          children: [
+                            AppTextArea(
+                              controller: _description,
+                              label: 'Description',
+                              hintText: 'What does this feature enable for the institute?',
+                              minLines: 2,
+                              maxLines: 4,
+                            ),
+                            const SizedBox(height: 12),
+                            _StatusToggle(
+                              value: _isActive,
+                              onChanged: (v) => setState(() => _isActive = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _AnimatedSlideIn(
+                      delayIndex: 3,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.05),
+                          borderRadius: AppRadii.r16,
+                          border: Border.all(
+                            color: cs.primary.withValues(alpha: 0.1),
                           ),
                         ),
-                        Switch(
-                          value: _isActive,
-                          onChanged: (v) => setState(() => _isActive = v),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: cs.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Feature keys must use snake_case (e.g. fee_management) and cannot be changed once assigned to a plan.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Keys must be lowercase with underscores.',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 10),
-                  AppPrimaryButton(
-                    onPressed: _submit,
-                    icon: Icons.check_rounded,
-                    label: _editing ? 'Save changes' : 'Create feature',
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            _Footer(
+              editing: _editing,
+              onCancel: () => Navigator.of(context).pop(),
+              onSave: _submit,
+            ),
+          ],
         ),
       ),
     );
@@ -246,7 +243,10 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
 
     if (key.isEmpty || label.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Key and label are required.')),
+        const SnackBar(
+          content: Text('Key and label are required.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -256,12 +256,13 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Key must be lowercase and use underscores only.'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    final plan = FeatureFlag(
+    final feature = FeatureFlag(
       id: widget.initial?.id ?? '',
       key: key,
       label: label,
@@ -274,7 +275,176 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
       updatedAt: widget.initial?.updatedAt,
     );
 
-    Navigator.of(context).pop(plan);
+    Navigator.of(context).pop(feature);
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.onClose,
+  });
+  final String title;
+  final String subtitle;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.8,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+            child: IconButton(
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.editing,
+    required this.onCancel,
+    required this.onSave,
+  });
+  final bool editing;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            ),
+            child: Text(
+              'Discard',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppPrimaryButton(
+            onPressed: onSave,
+            label: editing ? 'Update Feature' : 'Add Feature',
+            icon: editing ? Icons.update_rounded : Icons.add_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _StatusToggle extends StatelessWidget {
+  const _StatusToggle({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r12,
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+            color: value ? Colors.green : cs.onSurfaceVariant,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value ? 'ACTIVE / VISIBLE' : 'DEACTIVATED / HIDDEN',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+            ),
+          ),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(value: value, onChanged: onChanged),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -291,9 +461,16 @@ class _GroupCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.22),
+        color: cs.surface,
         borderRadius: AppRadii.r16,
         border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,6 +479,8 @@ class _GroupCard extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  color: cs.primary,
                 ),
           ),
           const SizedBox(height: 12),

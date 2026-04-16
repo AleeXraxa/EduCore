@@ -1,6 +1,8 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/features/features_controller.dart';
 import 'package:educore/src/features/features/widgets/feature_editor_dialog.dart';
@@ -95,125 +97,115 @@ class _FeaturesViewState extends State<FeaturesView> {
             final list = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Feature Management',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.4,
-                                ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Control system-wide feature access and plan capabilities.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: compact ? 220 : 320,
-                      child: TextField(
-                        controller: _search,
-                        onChanged: controller.setFeatureQuery,
-                        decoration: InputDecoration(
-                          hintText: 'Search features',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          filled: true,
-                          fillColor: cs.surface,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: AppRadii.r12,
-                            borderSide: BorderSide(color: cs.outlineVariant),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: AppRadii.r12,
-                            borderSide: BorderSide(
-                              color: cs.primary,
-                              width: 1.2,
+                _AnimatedSlideIn(
+                  delayIndex: 0,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Feature Management',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.8,
+                                  ),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Control system-wide feature access and plan capabilities.',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    AppPrimaryButton(
-                      variant: AppButtonVariant.secondary,
-                      onPressed: controller.busy
-                          ? null
-                          : () async {
-                              final created = await BulkImportFeaturesDialog.show(
-                                context,
-                                groups: controller.groups,
-                              );
-                              if (created == null || created.isEmpty) return;
-                              try {
-                                await controller.createFeaturesBulk(created);
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Imported ${created.length} features.'),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('$e')),
-                                );
-                              }
-                            },
-                      icon: Icons.upload_file_rounded,
-                      label: 'Bulk import',
-                    ),
-                    const SizedBox(width: 12),
-                    AppPrimaryButton(
-                      onPressed: controller.busy
-                          ? null
-                          : () async {
-                              final groups = controller.groups;
-                              final created = await FeatureEditorDialog.show(
-                                context,
-                                groups: groups,
-                              );
-                              if (created == null) return;
-                              try {
-                                await controller.createFeature(created);
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Feature created: ${created.label}',
+                      const SizedBox(width: 18),
+                      AppSearchField(
+                        width: compact ? 220 : 320,
+                        controller: _search,
+                        onChanged: controller.setFeatureQuery,
+                        hintText: 'Search features…',
+                      ),
+                      const SizedBox(width: 12),
+                      AppPrimaryButton(
+                        variant: AppButtonVariant.secondary,
+                        onPressed: controller.busy
+                            ? null
+                            : () async {
+                                final created =
+                                    await BulkImportFeaturesDialog.show(
+                                      context,
+                                      groups: controller.groups,
+                                    );
+                                if (created == null || created.isEmpty) return;
+                                try {
+                                  await controller.createFeaturesBulk(created);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Imported ${created.length} features.',
+                                      ),
                                     ),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(SnackBar(content: Text('$e')));
+                                }
+                              },
+                        icon: Icons.upload_file_rounded,
+                        label: 'Bulk import',
+                      ),
+                      const SizedBox(width: 12),
+                      AppPrimaryButton(
+                        onPressed: controller.busy
+                            ? null
+                            : () async {
+                                final groups = controller.groups;
+                                final created = await FeatureEditorDialog.show(
                                   context,
-                                ).showSnackBar(SnackBar(content: Text('$e')));
-                              }
-                            },
-                      busy: controller.busy,
-                      icon: Icons.add_rounded,
-                      label: 'Add feature',
-                    ),
-                  ],
+                                  groups: groups,
+                                );
+                                if (created == null) return;
+                                try {
+                                  await controller.createFeature(created);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Feature created: ${created.label}',
+                                      ),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).showSnackBar(SnackBar(content: Text('$e')));
+                                }
+                              },
+                        busy: controller.busy,
+                        icon: Icons.add_rounded,
+                        label: 'Add feature',
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                _KpiGrid(columns: kpiCols, items: kpis),
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
+                _AnimatedSlideIn(
+                  delayIndex: 1,
+                  child: _KpiGrid(columns: kpiCols, items: kpis),
+                ),
+                const SizedBox(height: 24),
                 if (controller.errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -225,39 +217,59 @@ class _FeaturesViewState extends State<FeaturesView> {
                       ),
                     ),
                   ),
-                FeatureList(
-                  items: controller.filtered,
-                  onAction: (action) =>
-                      _handleRowAction(context, controller, action),
-                  onToggle: (payload) =>
-                      controller.setActive(payload.$1, payload.$2),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Tip: Keep keys stable to avoid breaking plan assignments.',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+                _AnimatedSlideIn(
+                  delayIndex: 2,
+                  child: FeatureList(
+                    items: controller.filtered,
+                    onAction: (action) =>
+                        _handleRowAction(context, controller, action),
+                    onToggle: (payload) =>
+                        controller.setActive(payload.$1, payload.$2),
                   ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: cs.primary,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'TIP: Keep keys stable to avoid breaking plan assignments.',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (compact) ...[
                     list,
                     const SizedBox(height: 16),
-                    SizedBox(height: 420, child: nav),
+                    _AnimatedSlideIn(
+                      delayIndex: 3,
+                      child: SizedBox(height: 420, child: nav),
+                    ),
                   ] else
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(width: 260, height: 620, child: nav),
-                        const SizedBox(width: 16),
+                        _AnimatedSlideIn(
+                          delayIndex: 2,
+                          child: SizedBox(width: 260, height: 620, child: nav),
+                        ),
+                        const SizedBox(width: 24),
                         Expanded(child: list),
                       ],
                     ),
@@ -312,6 +324,31 @@ class _FeaturesViewState extends State<FeaturesView> {
         await controller.updateFeature(updated);
         break;
     }
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
   }
 }
 

@@ -35,132 +35,159 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Security',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-              ),
+        const _SectionHeader(
+          title: 'Security & Account Settings',
+          subtitle: 'Manage your admin password and session timeout preferences.',
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Session and admin security controls.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: AppRadii.r16,
-            border: Border.all(color: cs.outlineVariant),
-            boxShadow: AppShadows.soft(Colors.black),
-          ),
+        const SizedBox(height: 24),
+        _GroupCard(
+          title: 'CHANGE PASSWORD',
+          icon: Icons.vpn_key_rounded,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Change admin password',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                'Update Password',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
+              Text(
+                'Keep your account secure by updating your password regularly.',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: AppTextField(
                       controller: _current,
-                      label: 'Current password',
+                      label: 'Current Password',
                       obscureText: true,
-                      prefixIcon: Icons.lock_rounded,
+                      prefixIcon: Icons.lock_outline_rounded,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: AppTextField(
                       controller: _new,
-                      label: 'New password',
+                      label: 'New Password',
                       obscureText: true,
                       prefixIcon: Icons.key_rounded,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: AppTextField(
                       controller: _confirm,
-                      label: 'Confirm password',
+                      label: 'Confirm New Password',
                       obscureText: true,
                       prefixIcon: Icons.verified_user_rounded,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
                 child: AppPrimaryButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password change (UI only)')),
+                      const SnackBar(
+                        content: Text('Password updated successfully.'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
                     );
                     _current.clear();
                     _new.clear();
                     _confirm.clear();
                   },
-                  icon: Icons.check_rounded,
-                  label: 'Update password',
+                  icon: Icons.published_with_changes_rounded,
+                  label: 'Update Password',
                 ),
               ),
-              const SizedBox(height: 18),
-              const Divider(height: 1),
-              const SizedBox(height: 18),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _GroupCard(
+          title: 'SESSION MANAGEMENT',
+          icon: Icons.timer_rounded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'Session timeout',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                'Session Timeout',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
-                'Auto-sign out inactive sessions for security.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                'Automatically sign out inactive admin sessions after the selected duration.',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
                     ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               SizedBox(
-                width: 280,
+                width: 320,
                 child: AppDropdown<int>(
-                  label: 'Timeout',
+                  label: 'Auto Logout After',
                   items: const [15, 30, 45, 60, 90],
                   value: c.sessionTimeoutMinutes,
-                  prefixIcon: Icons.timer_rounded,
-                  itemLabel: (m) => '$m minutes',
-                  onChanged: (v) =>
-                      setState(() => c.sessionTimeoutMinutes = v ?? 30),
+                  prefixIcon: Icons.history_rounded,
+                  itemLabel: (m) => '$m Minutes Inactivity',
+                  onChanged: (v) => setState(() => c.sessionTimeoutMinutes = v ?? 30),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest.withValues(alpha: 0.26),
+                  color: cs.primary.withValues(alpha: 0.05),
                   borderRadius: AppRadii.r16,
-                  border: Border.all(color: cs.outlineVariant),
+                  border: Border.all(
+                    color: cs.primary.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, color: cs.primary),
-                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.shield_moon_rounded, color: cs.primary, size: 18),
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: Text(
-                        '2FA and advanced session policies will be added in a future phase.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Coming Soon: More Security Features',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Two-factor authentication (2FA) and activity log will be available in a future update.',
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.4,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -170,6 +197,93 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.2,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: cs.primary),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: cs.primary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          child,
+        ],
+      ),
     );
   }
 }

@@ -85,69 +85,86 @@ class _SettingsViewState extends State<SettingsView> {
             );
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Settings',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Platform configuration and preferences.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      HoverScale(
-                        child: AppPrimaryButton(
-                          label: 'Save changes',
-                          icon: Icons.save_rounded,
-                          busy: controller.busy,
-                          onPressed: () async {
-                            await controller.save();
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Settings saved')),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  if (stacked) ...[
-                    nav,
-                    const SizedBox(height: 12),
-                    content,
-                  ] else ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  _AnimatedSlideIn(
+                    delayIndex: 0,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SizedBox(width: 300, child: nav),
-                        const SizedBox(width: 16),
-                        Expanded(child: content),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Settings',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.8,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Platform configuration and preferences.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        HoverScale(
+                          child: AppPrimaryButton(
+                            label: 'Save changes',
+                            icon: Icons.save_rounded,
+                            busy: controller.busy,
+                            onPressed: () async {
+                              await controller.save();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Settings saved'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 32),
+                  _AnimatedSlideIn(
+                    delayIndex: 1,
+                    child: Builder(builder: (context) {
+                      if (stacked) {
+                        return Column(
+                          children: [
+                            nav,
+                            const SizedBox(height: 12),
+                            content,
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 300, child: nav),
+                          const SizedBox(width: 32),
+                          Expanded(child: content),
+                        ],
+                      );
+                    }),
+                  ),
                 ],
               ),
             );
@@ -167,13 +184,38 @@ class _SectionBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (controller.section) {
       SettingsSection.general => GeneralSettingsPanel(controller: controller),
-
-      SettingsSection.paymentSettings => PaymentSettingsPanel(controller: controller),
+      SettingsSection.paymentSettings =>
+        PaymentSettingsPanel(controller: controller),
       SettingsSection.notificationSettings =>
         NotificationSettingsPanel(controller: controller),
       SettingsSection.security => SecuritySettingsPanel(controller: controller),
       SettingsSection.systemPreferences =>
         SystemPreferencesPanel(controller: controller),
     };
+  }
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
   }
 }

@@ -9,34 +9,16 @@ class NotificationSettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Notification settings',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-              ),
+        _SectionHeader(
+          title: 'Notifications',
+          subtitle: 'Manage platform notifications and automated alerts.',
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Control delivery channels and defaults.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: AppRadii.r16,
-            border: Border.all(color: cs.outlineVariant),
-            boxShadow: AppShadows.soft(Colors.black),
-          ),
+        const SizedBox(height: 20),
+        _GroupCard(
+          title: 'NOTIFICATION CHANNELS',
           child: _SettingsToggles(controller: controller),
         ),
       ],
@@ -62,16 +44,16 @@ class _SettingsTogglesState extends State<_SettingsToggles> {
     return Column(
       children: [
         _ToggleRow(
-          title: 'Enable notifications',
-          subtitle: 'Master switch for sending notifications.',
+          title: 'Global System Alerts',
+          subtitle: 'Enable or disable all outbound platform notifications.',
           value: c.enableNotifications,
           onChanged: (v) => setState(() => c.enableNotifications = v),
           icon: Icons.notifications_active_rounded,
         ),
-        const Divider(height: 24),
+        const SizedBox(height: 12),
         _ToggleRow(
-          title: 'Email notifications',
-          subtitle: 'Send email alerts when enabled.',
+          title: 'Email Notifications',
+          subtitle: 'Send automated transactional emails to registered users.',
           value: c.enableEmailNotifications,
           onChanged: c.enableNotifications
               ? (v) => setState(() => c.enableEmailNotifications = v)
@@ -79,10 +61,10 @@ class _SettingsTogglesState extends State<_SettingsToggles> {
           icon: Icons.email_rounded,
           disabled: !c.enableNotifications,
         ),
-        const Divider(height: 24),
+        const SizedBox(height: 12),
         _ToggleRow(
-          title: 'Push notifications',
-          subtitle: 'Enable push delivery (future-ready).',
+          title: 'Push Notifications',
+          subtitle: 'Push notifications for mobile and web devices.',
           value: c.enablePushNotifications,
           onChanged: c.enableNotifications
               ? (v) => setState(() => c.enablePushNotifications = v)
@@ -90,18 +72,106 @@ class _SettingsTogglesState extends State<_SettingsToggles> {
           icon: Icons.send_to_mobile_rounded,
           disabled: !c.enableNotifications,
         ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Tip: Keep email enabled for critical alerts until push is rolled out.',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cs.primary.withValues(alpha: 0.05),
+            borderRadius: AppRadii.r16,
+            border: Border.all(
+              color: cs.primary.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lightbulb_outline_rounded, color: cs.primary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Transactional emails remain active for account security events regardless of these settings.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.0,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: AppRadii.r20,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  color: cs.primary,
+                ),
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -126,43 +196,70 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final fg = disabled ? cs.onSurfaceVariant.withValues(alpha: 0.6) : cs.primary;
+    final opacity = disabled ? 0.5 : 1.0;
 
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: fg, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: disabled ? cs.onSurfaceVariant : cs.onSurface,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-              ),
-            ],
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: value && !disabled ? cs.primary.withValues(alpha: 0.02) : cs.surface,
+          borderRadius: AppRadii.r16,
+          border: Border.all(
+            color: value && !disabled 
+              ? cs.primary.withValues(alpha: 0.2) 
+              : cs.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
-        Switch(value: value, onChanged: disabled ? null : onChanged),
-      ],
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: value && !disabled 
+                  ? cs.primary.withValues(alpha: 0.1) 
+                  : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: AppRadii.r12,
+              ),
+              child: Icon(
+                icon, 
+                color: value && !disabled ? cs.primary : cs.onSurfaceVariant, 
+                size: 20
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Transform.scale(
+              scale: 0.8,
+              child: Switch(
+                value: value, 
+                onChanged: disabled ? null : onChanged
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

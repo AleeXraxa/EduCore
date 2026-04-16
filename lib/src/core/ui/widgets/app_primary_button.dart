@@ -112,12 +112,16 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton>
                         Icon(widget.icon, color: textColor, size: 20),
                         const SizedBox(width: 10),
                       ],
-                      Text(
-                        widget.label,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: textColor,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.2,
+                      Flexible(
+                        child: Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: textColor,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
                     ],

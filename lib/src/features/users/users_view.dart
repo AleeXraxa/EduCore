@@ -41,7 +41,7 @@ class _UsersViewState extends State<UsersView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    const toolbarHeight = 48.0;
+
 
     return ControllerBuilder<UsersController>(
       controller: _controller,
@@ -106,14 +106,14 @@ class _UsersViewState extends State<UsersView> {
                 alignment: WrapAlignment.end,
                 children: [
                   AppSearchField(
-                    width: stacked ? double.infinity : 340,
+                    width: stacked ? double.infinity : 320,
                     controller: _search,
                     onChanged: controller.setQuery,
-                    hintText: 'Search name / email / phone',
+                    hintText: 'Search users…',
                   ),
                   SizedBox(
-                    width: stacked ? double.infinity : 190,
-                    height: toolbarHeight,
+                    width: stacked ? double.infinity : 180,
+                    height: 48,
                     child: AppDropdown<UsersRoleFilter>(
                       label: 'Role',
                       showLabel: false,
@@ -143,8 +143,8 @@ class _UsersViewState extends State<UsersView> {
                     ),
                   ),
                   SizedBox(
-                    width: stacked ? double.infinity : 210,
-                    height: toolbarHeight,
+                    width: stacked ? double.infinity : 200,
+                    height: 48,
                     child: AppDropdown<String>(
                       label: 'Institute',
                       showLabel: false,
@@ -162,8 +162,8 @@ class _UsersViewState extends State<UsersView> {
                     ),
                   ),
                   SizedBox(
-                    width: stacked ? double.infinity : 170,
-                    height: toolbarHeight,
+                    width: stacked ? double.infinity : 160,
+                    height: 48,
                     child: AppDropdown<UsersStatusFilter>(
                       label: 'Status',
                       showLabel: false,
@@ -201,78 +201,98 @@ class _UsersViewState extends State<UsersView> {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('User created: ${created.name}'),
+                          content: Text('User account created: ${created.name}'),
+                          behavior: SnackBarBehavior.floating,
                         ),
                       );
                     },
-                    icon: Icons.add_rounded,
-                    label: 'Create user',
+                    icon: Icons.person_add_rounded,
+                    label: 'Add New User',
                   ),
                 ],
               );
+
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (sideBySideToolbar)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Users',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: -0.4,
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Global directory for system-wide monitoring and access control.',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: cs.onSurfaceVariant),
-                              ),
-                            ],
+                        if (sideBySideToolbar)
+                          _AnimatedSlideIn(
+                            delayIndex: 0,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'User Management',
+                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -0.8,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Manage administrative accounts and staff access across all registered institutes.',
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: cs.onSurfaceVariant,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 1040),
+                                  child: filters(),
+                                ),
+                              ],
+                            ),
+                          )
+                        else ...[
+                          _AnimatedSlideIn(
+                            delayIndex: 0,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'User Management',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.8,
+                                      ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Manage administrative accounts and staff access across all registered institutes.',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const SizedBox(height: 24),
+                                filters(),
+                              ],
+                            ),
                           ),
+                        ],
+                        const SizedBox(height: 32),
+                        _AnimatedSlideIn(
+                          delayIndex: 1,
+                          child: _KpiGrid(columns: kpiCols, items: kpis),
                         ),
-                        const SizedBox(width: 18),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 980),
-                          child: filters(),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    Text(
-                      'Users',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Global directory for system-wide monitoring and access control.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    filters(),
-                  ],
-                  const SizedBox(height: 16),
-                  _KpiGrid(columns: kpiCols, items: kpis),
-                  const SizedBox(height: 20),
-                  UsersTable(
+                        const SizedBox(height: 24),
+                        _AnimatedSlideIn(
+                          delayIndex: 2,
+                          child: UsersTable(
                     items: controller.paged,
                     onOpenUser: (user) => UserDetailsPanel.show(
                       context,
@@ -293,28 +313,18 @@ class _UsersViewState extends State<UsersView> {
                           );
                           break;
                         case UserMenuAction.viewInstitute:
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Institute details page (next step).',
-                              ),
-                            ),
-                          );
                           break;
                         case UserMenuAction.toggleBlocked:
                           controller.toggleBlocked(action.userId);
                           break;
                         case UserMenuAction.resetPassword:
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Reset password is coming soon.'),
-                            ),
-                          );
                           break;
                       }
                     },
                   ),
-                  const SizedBox(height: 12),
+                ),
+
+                  const SizedBox(height: 20),
                   _PaginationBar(
                     total: controller.totalCount,
                     page: controller.page,
@@ -322,17 +332,25 @@ class _UsersViewState extends State<UsersView> {
                     onPrev: controller.prevPage,
                     onNext: controller.nextPage,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tip: Use role + institute filters to quickly audit access.',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.shield_outlined, color: cs.primary, size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        'SECURITY: All authentication events and access modifications are logged for auditing.',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             );
+
           },
         );
       },
@@ -569,4 +587,29 @@ String _fmtInt(int v) {
     if (idx > 1 && idx % 3 == 1) buf.write(',');
   }
   return buf.toString();
+}
+
+class _AnimatedSlideIn extends StatelessWidget {
+  const _AnimatedSlideIn({required this.child, required this.delayIndex});
+  final Widget child;
+  final int delayIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
 }

@@ -1,4 +1,4 @@
-import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/institutes/widgets/institute_status_badge.dart';
@@ -21,12 +21,25 @@ class InstitutesTable extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width =
-            constraints.maxWidth < 1120 ? 1120.0 : constraints.maxWidth;
+            constraints.maxWidth < 1180 ? 1180.0 : constraints.maxWidth;
 
-        return AppCard(
-          padding: EdgeInsets.zero,
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: AppRadii.r20,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.r20,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
@@ -34,14 +47,6 @@ class InstitutesTable extends StatelessWidget {
                 child: Column(
                   children: [
                     const _TableHeader(),
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.75),
-                    ),
                     if (items.isEmpty)
                       const _EmptyTable()
                     else
@@ -71,36 +76,42 @@ class _TableHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+        border: Border(
+          bottom: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: DefaultTextStyle(
-        style: Theme.of(context).textTheme.labelMedium!.copyWith(
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
               color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
             ),
         child: Row(
           children: [
-            const Expanded(flex: 22, child: Text('Institute')),
-            const Expanded(flex: 16, child: Text('Owner')),
-            const Expanded(flex: 18, child: Text('Contact')),
-            const Expanded(flex: 10, child: Text('Plan')),
-            const Expanded(flex: 10, child: Text('Status')),
+            const Expanded(flex: 22, child: Text('INSTITUTE NAME')),
+            const Expanded(flex: 16, child: Text('PRIMARY CONTACT')),
+            const Expanded(flex: 18, child: Text('CONTACT INFO')),
+            const Expanded(flex: 10, child: Text('PLAN TYPE')),
+            const Expanded(flex: 10, child: Text('STATUS')),
             const Expanded(
               flex: 10,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: Text('Students'),
+                child: Text('STUDENTS'),
               ),
             ),
             const Expanded(
               flex: 10,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: Text('Created'),
+                child: Text('CREATED ON'),
               ),
             ),
-            const SizedBox(width: 44),
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -133,101 +144,105 @@ class _TableRowState extends State<_TableRow> {
     final cs = Theme.of(context).colorScheme;
     final item = widget.item;
 
-    final zebra =
-        widget.index.isOdd ? cs.surfaceContainerHighest.withValues(alpha: 0.22) : cs.surface;
-    final bg = _hovered ? cs.primary.withValues(alpha: 0.040) : zebra;
+    final bg = _hovered ? cs.primary.withValues(alpha: 0.03) : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.basic,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border(
-            bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => widget.onAction(InstituteRowAction(InstituteMenuAction.view, item.id)),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: bg,
+            border: Border(
+              bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+            ),
           ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 22,
-              child: _PrimaryCell(
-                title: item.name,
-                subtitle: item.email,
-              ),
-            ),
-            Expanded(
-              flex: 16,
-              child: _PrimaryCell(
-                title: item.ownerName,
-                subtitle: 'Primary contact',
-              ),
-            ),
-            Expanded(
-              flex: 18,
-              child: _PrimaryCell(
-                title: item.phone,
-                subtitle: item.email,
-              ),
-            ),
-            Expanded(
-              flex: 10,
-              child: _PlanPill(label: widget.planLabel(item.planId)),
-            ),
-            Expanded(
-              flex: 10,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: InstituteStatusBadge(status: item.status),
-              ),
-            ),
-            Expanded(
-              flex: 10,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _fmtInt(item.studentsCount),
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: cs.onSurface,
-                      ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 22,
+                child: _PrimaryCell(
+                  title: item.name,
+                  subtitle: item.email,
+                  icon: Icons.apartment_rounded,
                 ),
               ),
-            ),
-            Expanded(
-              flex: 10,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _fmtDate(item.createdAt),
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
-                      ),
+              Expanded(
+                flex: 16,
+                child: _PrimaryCell(
+                  title: item.ownerName,
+                  subtitle: 'Lead Director',
+                  icon: Icons.person_2_outlined,
                 ),
               ),
-            ),
-            SizedBox(
-              width: 44,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: _RowMenu(
-                  blocked: item.status == AcademyStatus.blocked,
-                  onSelected: (value) {
-                    widget.onAction(
-                      InstituteRowAction(value, item.id),
-                    );
-                  },
+              Expanded(
+                flex: 18,
+                child: _PrimaryCell(
+                  title: item.phone,
+                  subtitle: item.email,
+                  icon: Icons.alternate_email_rounded,
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                flex: 10,
+                child: _PlanPill(label: widget.planLabel(item.planId)),
+              ),
+              Expanded(
+                flex: 10,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: InstituteStatusBadge(status: item.status),
+                ),
+              ),
+              Expanded(
+                flex: 10,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _fmtInt(item.studentsCount),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: cs.onSurface,
+                        ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 10,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _fmtDate(item.createdAt),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _RowMenu(
+                    blocked: item.status == AcademyStatus.blocked,
+                    onSelected: (value) {
+                      widget.onAction(
+                        InstituteRowAction(value, item.id),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -235,35 +250,57 @@ class _TableRowState extends State<_TableRow> {
 }
 
 class _PrimaryCell extends StatelessWidget {
-  const _PrimaryCell({required this.title, required this.subtitle});
+  const _PrimaryCell({
+    required this.title,
+    required this.subtitle,
+    this.icon,
+  });
 
   final String title;
   final String subtitle;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.1,
+        if (icon != null) ...[
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: AppRadii.r8,
+            ),
+            child: Icon(icon, size: 16, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
               ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
+            ],
+          ),
         ),
       ],
     );
@@ -284,20 +321,24 @@ class _PlanPill extends StatelessWidget {
     final fg = isKnown ? cs.primary : cs.onSurfaceVariant;
     final bg = isKnown
         ? cs.primary.withValues(alpha: 0.10)
-        : cs.surfaceContainerHighest.withValues(alpha: 0.65);
+        : cs.surfaceContainerHighest.withValues(alpha: 0.3);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.65)),
+        border: Border.all(
+          color: isKnown ? cs.primary.withValues(alpha: 0.2) : cs.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Text(
-        clean,
+        clean.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: fg,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
+              fontSize: 9,
+              letterSpacing: 0.5,
             ),
       ),
     );
@@ -316,47 +357,47 @@ class _RowMenu extends StatelessWidget {
     return PopupMenuButton<InstituteMenuAction>(
       tooltip: 'Actions',
       onSelected: onSelected,
-      elevation: 14,
+      elevation: 20,
       color: cs.surface,
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.black.withValues(alpha: 0.14),
       padding: EdgeInsets.zero,
       offset: const Offset(0, 10),
       constraints: const BoxConstraints(minWidth: 240),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       itemBuilder: (context) => [
         PopupMenuItem<InstituteMenuAction>(
           enabled: false,
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           height: 0,
           child: Text(
             'ACTIONS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+                  color: cs.primary,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
+                  letterSpacing: 1.0,
                 ),
           ),
         ),
         const PopupMenuItem(
           value: InstituteMenuAction.view,
-          height: 44,
+          height: 48,
           padding: EdgeInsets.zero,
-          child: _MenuRow(icon: Icons.visibility_rounded, label: 'View details'),
+          child: _MenuRow(icon: Icons.visibility_rounded, label: 'View Details'),
         ),
         const PopupMenuItem(
           value: InstituteMenuAction.edit,
-          height: 44,
+          height: 48,
           padding: EdgeInsets.zero,
-          child: _MenuRow(icon: Icons.edit_rounded, label: 'Edit institute'),
+          child: _MenuRow(icon: Icons.edit_rounded, label: 'Edit Institute'),
         ),
         PopupMenuItem(
           value: blocked ? InstituteMenuAction.unblock : InstituteMenuAction.block,
-          height: 44,
+          height: 48,
           padding: EdgeInsets.zero,
           child: _MenuRow(
             icon: blocked ? Icons.lock_open_rounded : Icons.block_rounded,
-            label: blocked ? 'Unblock institute' : 'Block institute',
+            label: blocked ? 'Restore Access' : 'Suspend Access',
           ),
         ),
         PopupMenuItem<InstituteMenuAction>(
@@ -366,18 +407,18 @@ class _RowMenu extends StatelessWidget {
           child: Divider(
             height: 1,
             thickness: 1,
-            indent: 14,
-            endIndent: 14,
-            color: cs.outlineVariant.withValues(alpha: 0.85),
+            indent: 16,
+            endIndent: 16,
+            color: cs.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         const PopupMenuItem(
           value: InstituteMenuAction.delete,
-          height: 44,
+          height: 48,
           padding: EdgeInsets.zero,
           child: _MenuRow(
             icon: Icons.delete_outline_rounded,
-            label: 'Delete (soft)',
+            label: 'Delete Institute',
             danger: true,
           ),
         ),
@@ -400,7 +441,7 @@ class _RowMenuTriggerState extends State<_RowMenuTrigger> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = _hovered ? cs.surfaceContainerHighest : cs.surface;
+    final bg = _hovered ? cs.surfaceContainerHighest.withValues(alpha: 0.4) : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -413,7 +454,9 @@ class _RowMenuTriggerState extends State<_RowMenuTrigger> {
         height: 36,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outlineVariant),
+          border: Border.all(
+            color: _hovered ? cs.outlineVariant : Colors.transparent,
+          ),
           color: bg,
         ),
         child: Icon(
@@ -440,17 +483,14 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = danger ? const Color(0xFFB91C1C) : cs.onSurface;
+    final color = danger ? const Color(0xFFE11D48) : cs.onSurface;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          SizedBox(
-            width: 22,
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(width: 10),
+          Icon(icon, size: 18, color: color.withValues(alpha: 0.8)),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
@@ -458,8 +498,8 @@ class _MenuRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: color,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
                   ),
             ),
           ),
@@ -476,36 +516,38 @@ class _EmptyTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(80),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cs.outlineVariant),
+              color: cs.primary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.apartment_rounded,
-              color: cs.primary,
-              size: 26,
+              Icons.domain_disabled_rounded,
+              color: cs.primary.withValues(alpha: 0.2),
+              size: 40,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           Text(
-            'No institutes found',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            'No Institutes Found',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
                 ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Try adjusting your search or filters.',
+            'No institutes have been added to the platform yet.',
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
           ),
         ],
@@ -541,3 +583,4 @@ class InstituteRowAction {
   final InstituteMenuAction action;
   final String instituteId;
 }
+

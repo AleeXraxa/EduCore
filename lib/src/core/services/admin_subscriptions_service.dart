@@ -3,7 +3,7 @@ import 'package:educore/src/core/models/subscription_record.dart';
 
 class AdminSubscriptionsService {
   AdminSubscriptionsService({required FirebaseFirestore firestore})
-      : _firestore = firestore;
+    : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 
@@ -12,9 +12,9 @@ class AdminSubscriptionsService {
 
   Stream<List<SubscriptionRecord>> watchSubscriptions() {
     return _col.snapshots().map(
-          (snap) =>
-              snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false),
-        );
+      (snap) =>
+          snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false),
+    );
   }
 
   Stream<SubscriptionRecord?> watchSubscription(String academyId) {
@@ -38,9 +38,7 @@ class AdminSubscriptionsService {
     DateTime? endDate,
     bool setEndDate = false,
   }) async {
-    final patch = <String, dynamic>{
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
+    final patch = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
     if (planId != null) patch['planId'] = planId.trim();
     if (status != null) patch['status'] = status.trim();
     if (startDate != null) patch['startDate'] = Timestamp.fromDate(startDate);
@@ -64,6 +62,7 @@ class AdminSubscriptionsService {
       });
     });
   }
+
   Future<void> createSubscription({
     required String academyId,
     required String planId,
