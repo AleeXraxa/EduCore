@@ -208,6 +208,13 @@ class _AccountSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final session = AppServices.instance.authService?.session;
+    final displayName = session?.user.name.isNotEmpty == true
+        ? session!.user.name
+        : 'Super Admin';
+    final displayEmail = session?.user.email.isNotEmpty == true
+        ? session!.user.email
+        : '';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -226,7 +233,7 @@ class _AccountSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
-                _Avatar(collapsed: collapsed),
+                _Avatar(collapsed: collapsed, name: displayName),
                 if (!collapsed) ...[
                   const SizedBox(width: 12),
                   Expanded(
@@ -235,7 +242,7 @@ class _AccountSection extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Super Admin',
+                          displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -243,15 +250,16 @@ class _AccountSection extends StatelessWidget {
                                 color: cs.onSurface,
                               ),
                         ),
-                        Text(
-                          'admin@educore.com',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
+                        if (displayEmail.isNotEmpty)
+                          Text(
+                            displayEmail,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
                       ],
                     ),
                   ),
@@ -358,13 +366,15 @@ class _AccountSection extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.collapsed});
+  const _Avatar({required this.collapsed, required this.name});
   final bool collapsed;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final size = collapsed ? 36.0 : 40.0;
+    final initials = _initials(name);
 
     return Container(
       width: size,
@@ -386,7 +396,7 @@ class _Avatar extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text(
-        'A',
+        initials,
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w900,
@@ -394,6 +404,14 @@ class _Avatar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return 'SA';
+    final first = parts.first.isEmpty ? '' : parts.first[0];
+    final last = parts.length >= 2 ? parts.last[0] : '';
+    return (first + last).toUpperCase();
   }
 }
 

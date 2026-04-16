@@ -78,10 +78,13 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       if (authService != null) {
         try {
           // Attempt to restore and re-validate the session.
-          // This ensures that even if credentials are locally cached, 
+          // This ensures that even if credentials are locally cached,
           // we still check against server-side status (Blocked Academy, Expired Sub, etc.)
           await authService.refreshSession();
-          actualSignIn = authService.isAuthenticated;
+          // Only route to dashboard if the restored session belongs to a Super Admin.
+          // Any other role (institute admin, teacher, etc.) is bounced to login.
+          actualSignIn = authService.isAuthenticated &&
+              (authService.session?.isSuperAdmin ?? false);
         } catch (_) {
           actualSignIn = false;
         }
@@ -96,8 +99,6 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
       body: AnimatedBuilder(
         animation: Listenable.merge([_floaty, _progress]),

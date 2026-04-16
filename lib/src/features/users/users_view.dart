@@ -2,6 +2,9 @@ import 'package:educore/src/features/users/models/app_user.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
+import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
+import 'package:educore/src/core/ui/widgets/app_pagination_bar.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
@@ -275,7 +278,7 @@ class _UsersViewState extends State<UsersView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (sideBySideToolbar)
-                    _AnimatedSlideIn(
+                    AppAnimatedSlide(
                       delayIndex: 0,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +318,7 @@ class _UsersViewState extends State<UsersView> {
                       ),
                     )
                   else ...[
-                    _AnimatedSlideIn(
+                    AppAnimatedSlide(
                       delayIndex: 0,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,12 +347,12 @@ class _UsersViewState extends State<UsersView> {
                     ),
                   ],
                   const SizedBox(height: 32),
-                  _AnimatedSlideIn(
+                  AppAnimatedSlide(
                     delayIndex: 1,
-                    child: _KpiGrid(columns: kpiCols, items: kpis),
+                    child: AppKpiGrid(columns: kpiCols, items: kpis),
                   ),
                   const SizedBox(height: 24),
-                  _AnimatedSlideIn(
+                  AppAnimatedSlide(
                     delayIndex: 2,
                     child: UsersTable(
                       items: controller.paged,
@@ -393,63 +396,44 @@ class _UsersViewState extends State<UsersView> {
                       },
                     ),
                   ),
-
                   const SizedBox(height: 20),
-                  _PaginationBar(
-                    total: controller.totalCount,
-                    page: controller.page,
-                    pageSize: controller.pageSize,
-                    onPrev: controller.prevPage,
-                    onNext: controller.nextPage,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.shield_outlined, color: cs.primary, size: 14),
-                      const SizedBox(width: 8),
-                      Text(
-                        'SECURITY: All authentication events and access modifications are logged for auditing.',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
+                  AppAnimatedSlide(
+                    delayIndex: 3,
+                    child: Column(
+                      children: [
+                        AppPaginationBar(
+                          total: controller.totalCount,
+                          page: controller.page,
+                          pageSize: controller.pageSize,
+                          onPrev: controller.prevPage,
+                          onNext: controller.nextPage,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(Icons.shield_outlined,
+                                color: cs.primary, size: 14),
+                            const SizedBox(width: 8),
+                            Text(
+                              'SECURITY: All authentication events and access modifications are logged for auditing.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             );
           },
-        );
-      },
-    );
-  }
-}
-
-class _KpiGrid extends StatelessWidget {
-  const _KpiGrid({required this.columns, required this.items});
-
-  final int columns;
-  final List<KpiCardData> items;
-
-  @override
-  Widget build(BuildContext context) {
-    const gap = 12.0;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalGap = gap * (columns - 1);
-        final cardWidth = (constraints.maxWidth - totalGap) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final item in items)
-              SizedBox(
-                width: cardWidth,
-                child: KpiCard(data: item),
-              ),
-          ],
         );
       },
     );
@@ -543,110 +527,6 @@ class _NotReadyPanel extends StatelessWidget {
   }
 }
 
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.total,
-    required this.page,
-    required this.pageSize,
-    required this.onPrev,
-    required this.onNext,
-  });
-
-  final int total;
-  final int page;
-  final int pageSize;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    final start = total == 0 ? 0 : (page * pageSize) + 1;
-    final end = (page * pageSize + pageSize).clamp(0, total);
-
-    return Row(
-      children: [
-        Text(
-          '$start–$end of $total',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const Spacer(),
-        _PagerIcon(
-          icon: Icons.chevron_left_rounded,
-          tooltip: 'Previous',
-          enabled: page > 0,
-          onTap: onPrev,
-        ),
-        const SizedBox(width: 8),
-        _PagerIcon(
-          icon: Icons.chevron_right_rounded,
-          tooltip: 'Next',
-          enabled: (page + 1) * pageSize < total,
-          onTap: onNext,
-        ),
-      ],
-    );
-  }
-}
-
-class _PagerIcon extends StatefulWidget {
-  const _PagerIcon({
-    required this.icon,
-    required this.tooltip,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  State<_PagerIcon> createState() => _PagerIconState();
-}
-
-class _PagerIconState extends State<_PagerIcon> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = _hovered ? cs.surfaceContainerHighest : cs.surface;
-
-    return Opacity(
-      opacity: widget.enabled ? 1 : 0.45,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: widget.enabled
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.forbidden,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: cs.outlineVariant),
-          ),
-          child: IconButton(
-            tooltip: widget.tooltip,
-            onPressed: widget.enabled ? widget.onTap : null,
-            icon: Icon(widget.icon),
-            splashRadius: 18,
-            iconSize: 20,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 String _fmtInt(int v) {
   final s = v.toString();
   final buf = StringBuffer();
@@ -656,29 +536,4 @@ String _fmtInt(int v) {
     if (idx > 1 && idx % 3 == 1) buf.write(',');
   }
   return buf.toString();
-}
-
-class _AnimatedSlideIn extends StatelessWidget {
-  const _AnimatedSlideIn({required this.child, required this.delayIndex});
-  final Widget child;
-  final int delayIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
-      curve: Curves.easeOutQuart,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
-  }
 }

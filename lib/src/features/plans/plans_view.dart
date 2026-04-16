@@ -1,6 +1,8 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
+import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
@@ -95,7 +97,7 @@ class _PlansViewState extends State<PlansView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AnimatedSlideIn(
+                  AppAnimatedSlide(
                     delayIndex: 0,
                     child: Row(
                       children: [
@@ -156,9 +158,9 @@ class _PlansViewState extends State<PlansView> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  _AnimatedSlideIn(
+                  AppAnimatedSlide(
                     delayIndex: 1,
-                    child: _KpiGrid(columns: kpiCols, items: kpis),
+                    child: AppKpiGrid(columns: kpiCols, items: kpis),
                   ),
                   const SizedBox(height: 24),
                   if (controller.errorMessage != null)
@@ -172,7 +174,7 @@ class _PlansViewState extends State<PlansView> {
                             ),
                       ),
                     ),
-                  _AnimatedSlideIn(
+                  AppAnimatedSlide(
                     delayIndex: 2,
                     child: _PlansGrid(
                       columns: gridCols,
@@ -218,19 +220,22 @@ class _PlansViewState extends State<PlansView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.tips_and_updates_rounded, color: cs.primary, size: 14),
-                      const SizedBox(width: 8),
-                      Text(
-                        'TIP: Start with a Demo plan to let institutes explore EduCore before committing to a paid subscription.',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                      ),
-                    ],
+                  AppAnimatedSlide(
+                    delayIndex: 3,
+                    child: Row(
+                      children: [
+                        Icon(Icons.tips_and_updates_rounded, color: cs.primary, size: 14),
+                        const SizedBox(width: 8),
+                        Text(
+                          'TIP: Start with a Demo plan to let institutes explore EduCore before committing to a paid subscription.',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -238,31 +243,6 @@ class _PlansViewState extends State<PlansView> {
           },
         );
       },
-    );
-  }
-}
-
-class _AnimatedSlideIn extends StatelessWidget {
-  const _AnimatedSlideIn({required this.child, required this.delayIndex});
-  final Widget child;
-  final int delayIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
-      curve: Curves.easeOutQuart,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: child,
     );
   }
 }
@@ -304,35 +284,6 @@ Future<void> _confirmArchive(
 
   if (ok != true) return;
   await controller.softDelete(plan.id);
-}
-
-class _KpiGrid extends StatelessWidget {
-  const _KpiGrid({required this.columns, required this.items});
-
-  final int columns;
-  final List<KpiCardData> items;
-
-  @override
-  Widget build(BuildContext context) {
-    const gap = 12.0;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalGap = gap * (columns - 1);
-        final cardWidth = (constraints.maxWidth - totalGap) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final item in items)
-              SizedBox(
-                width: cardWidth,
-                child: KpiCard(data: item),
-              ),
-          ],
-        );
-      },
-    );
-  }
 }
 
 class _PlansGrid extends StatelessWidget {
@@ -849,15 +800,25 @@ String _fmtInt(int v) {
 }
 
 String _fmtMoney(num v) {
-  final asInt = v.round();
-  return _fmtInt(asInt);
+  final s = v.round().toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    final idx = s.length - i;
+    buf.write(s[i]);
+    if (idx > 1 && idx % 3 == 1) buf.write(',');
+  }
+  return buf.toString();
 }
 
-String _prettyKey(String key) {
-  final raw = key.replaceAll(RegExp(r'[_-]+'), ' ').trim();
-  if (raw.isEmpty) return key;
-  final parts = raw.split(RegExp(r'\s+'));
-  return parts
-      .map((p) => p.isEmpty ? p : (p[0].toUpperCase() + p.substring(1)))
-      .join(' ');
+String _prettyKey(String k) {
+  if (k.isEmpty) return k;
+  final parts = k.split('_');
+  final buf = StringBuffer();
+  for (final p in parts) {
+    if (p.isEmpty) continue;
+    buf.write(p[0].toUpperCase());
+    buf.write(p.substring(1).toLowerCase());
+    buf.write(' ');
+  }
+  return buf.toString().trim();
 }

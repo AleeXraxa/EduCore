@@ -1,4 +1,4 @@
-import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/analytics/analytics_controller.dart';
 import 'package:flutter/material.dart';
@@ -12,13 +12,6 @@ class AnalyticsKpisSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = screenSizeForWidth(constraints.maxWidth);
-        final columns = switch (size) {
-          ScreenSize.compact => 1,
-          ScreenSize.medium => 2,
-          ScreenSize.expanded => 3,
-        };
-
         final items = [
           KpiCardData(
             label: 'Total Revenue',
@@ -64,18 +57,7 @@ class AnalyticsKpisSection extends StatelessWidget {
           ),
         ];
 
-        const gap = 12.0;
-        final totalGap = gap * (columns - 1);
-        final cardWidth = (constraints.maxWidth - totalGap) / columns;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final kpi in items)
-              SizedBox(width: cardWidth, child: KpiCard(data: kpi)),
-          ],
-        );
+        return AppKpiGrid(columns: 3, items: items);
       },
     );
   }

@@ -106,25 +106,31 @@ class _LoginViewState extends State<LoginView>
       floatingActionButton: kDebugMode
           ? FloatingActionButton.extended(
               onPressed: () async {
+                // ignore: use_build_context_synchronously
+                final ctx = context;
                 AppDialogs.showLoading(
-                  context,
+                  ctx,
                   message: 'Seeding Super Admin...',
                 );
                 try {
                   await _controller.seedSuperAdmin();
                   if (!mounted) return;
-                  AppDialogs.hide(context);
+                  // ignore: use_build_context_synchronously
+                  AppDialogs.hide(ctx);
+                  // ignore: use_build_context_synchronously
                   AppDialogs.showSuccess(
-                    context,
+                    ctx,
                     title: 'Seed Success',
                     message:
                         'Super Admin account created: ${SuperAdminSeed.email}',
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  AppDialogs.hide(context);
+                  // ignore: use_build_context_synchronously
+                  AppDialogs.hide(ctx);
+                  // ignore: use_build_context_synchronously
                   AppDialogs.showError(
-                    context,
+                    ctx,
                     title: 'Seed Failed',
                     message: e.toString(),
                   );
@@ -147,6 +153,24 @@ class _LoginViewState extends State<LoginView>
         email: _email.text.trim(),
         password: _password.text,
       );
+
+      // Role guard: this shell is exclusively for Super Admins. If a valid
+      // Firebase account exists but belongs to a teacher/staff/institute admin,
+      // immediately sign them out and present an access-denied message.
+      final session = AppServices.instance.authService?.session;
+      if (session == null || !session.isSuperAdmin) {
+        await AppServices.instance.authService?.signOut();
+        if (!mounted) return;
+        AppDialogs.showError(
+          context,
+          title: 'Access Denied',
+          message:
+              'This portal is restricted to Super Administrators only. '
+              'Please use the correct application for your account role.',
+        );
+        return;
+      }
+
       // Persist the signed-in flag so the splash screen can route to the
       // dashboard on next app restart without waiting on the Firebase stream.
       await AppServices.instance.prefs.setBool(PrefsKeys.signedIn, true);

@@ -1,4 +1,5 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/analytics/analytics_controller.dart';
 import 'package:educore/src/features/analytics/widgets/analytics_charts_section.dart';
@@ -43,7 +44,7 @@ class _AnalyticsViewState extends State<AnalyticsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 0,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -121,23 +122,23 @@ class _AnalyticsViewState extends State<AnalyticsView> {
                 ),
               ),
               const SizedBox(height: 32),
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 1,
                 child: AnalyticsKpisSection(snapshot: snap),
               ),
               const SizedBox(height: 24),
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 2,
                 child: AnalyticsChartsSection(snapshot: snap),
               ),
               const SizedBox(height: 24),
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 3,
                 child: AnalyticsInsightsSection(snapshot: snap),
               ),
               if (controller.busy) ...[
                 const SizedBox(height: 24),
-                _AnimatedSlideIn(
+                AppAnimatedSlide(
                   delayIndex: 4,
                   child: Row(
                     children: [
@@ -162,31 +163,6 @@ class _AnalyticsViewState extends State<AnalyticsView> {
           ),
         );
       },
-    );
-  }
-}
-
-class _AnimatedSlideIn extends StatelessWidget {
-  const _AnimatedSlideIn({required this.child, required this.delayIndex});
-  final Widget child;
-  final int delayIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
-      curve: Curves.easeOutQuart,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: child,
     );
   }
 }

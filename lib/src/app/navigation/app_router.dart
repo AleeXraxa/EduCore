@@ -19,9 +19,14 @@ abstract final class AppRouter {
           builder: (_) => const LoginView(),
         );
       case AppRoutes.dashboard:
-        final isSignedIn =
-            AppServices.instance.authService?.currentUser != null;
-        if (!isSignedIn) {
+        final authService = AppServices.instance.authService;
+        final isSignedIn = authService?.currentUser != null;
+        // Role guard: only Super Admins may access the admin shell.
+        // A regular teacher/staff who is Firebase-authenticated must not
+        // reach this view — they are redirected to login instead.
+        final isSuperAdmin = authService?.session?.isSuperAdmin ?? false;
+
+        if (!isSignedIn || !isSuperAdmin) {
           return MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => const LoginView(),

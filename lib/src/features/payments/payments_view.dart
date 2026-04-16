@@ -1,6 +1,9 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
+import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
+import 'package:educore/src/core/ui/widgets/app_pagination_bar.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
@@ -51,7 +54,7 @@ class _PaymentsViewState extends State<PaymentsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 0,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -62,7 +65,9 @@ class _PaymentsViewState extends State<PaymentsView> {
                         children: [
                           Text(
                             'Payments',
-                            style: Theme.of(context).textTheme.titleLarge
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
                                 ?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.8,
@@ -71,7 +76,9 @@ class _PaymentsViewState extends State<PaymentsView> {
                           const SizedBox(height: 6),
                           Text(
                             'Review and manage all payment transactions.',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
                                   color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
@@ -151,7 +158,7 @@ class _PaymentsViewState extends State<PaymentsView> {
                 ),
               ),
               const SizedBox(height: 32),
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 1,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -189,27 +196,12 @@ class _PaymentsViewState extends State<PaymentsView> {
                       ),
                     ];
 
-                    const gap = 12.0;
-                    final totalGap = gap * (columns - 1);
-                    final cardWidth =
-                        (constraints.maxWidth - totalGap) / columns;
-
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        for (final kpi in items)
-                          SizedBox(
-                            width: cardWidth,
-                            child: KpiCard(data: kpi),
-                          ),
-                      ],
-                    );
+                    return AppKpiGrid(columns: columns, items: items);
                   },
                 ),
               ),
               const SizedBox(height: 24),
-              _AnimatedSlideIn(
+              AppAnimatedSlide(
                 delayIndex: 2,
                 child: PaymentsTable(
                   items: controller.paged,
@@ -264,57 +256,43 @@ class _PaymentsViewState extends State<PaymentsView> {
                 ),
               ),
               const SizedBox(height: 20),
-              _PaginationBar(
-                total: controller.totalCount,
-                page: controller.page,
-                pageSize: controller.pageSize,
-                onPrev: controller.prevPage,
-                onNext: controller.nextPage,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.lock_outline_rounded, color: cs.primary, size: 14),
-                  const SizedBox(width: 8),
-                  Text(
-                    'SECURITY: Financial transitions are immutable once approved. Peer review recommended for large amounts.',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
+              AppAnimatedSlide(
+                delayIndex: 3,
+                child: Column(
+                  children: [
+                    AppPaginationBar(
+                      total: controller.totalCount,
+                      page: controller.page,
+                      pageSize: controller.pageSize,
+                      onPrev: controller.prevPage,
+                      onNext: controller.nextPage,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.lock_outline_rounded,
+                            color: cs.primary, size: 14),
+                        const SizedBox(width: 8),
+                        Text(
+                          'SECURITY: Financial transitions are immutable once approved. Peer review recommended for large amounts.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _AnimatedSlideIn extends StatelessWidget {
-  const _AnimatedSlideIn({required this.child, required this.delayIndex});
-  final Widget child;
-  final int delayIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 400 + (delayIndex * 100)),
-      curve: Curves.easeOutQuart,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: child,
     );
   }
 }
@@ -356,113 +334,15 @@ Future<bool> _confirm(
   return result ?? false;
 }
 
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.total,
-    required this.page,
-    required this.pageSize,
-    required this.onPrev,
-    required this.onNext,
-  });
-
-  final int total;
-  final int page;
-  final int pageSize;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    final start = total == 0 ? 0 : (page * pageSize) + 1;
-    final end = (page * pageSize + pageSize).clamp(0, total);
-
-    return Row(
-      children: [
-        Text(
-          '$start–$end of $total',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const Spacer(),
-        _PagerIcon(
-          icon: Icons.chevron_left_rounded,
-          tooltip: 'Previous',
-          onTap: onPrev,
-        ),
-        const SizedBox(width: 8),
-        _PagerIcon(
-          icon: Icons.chevron_right_rounded,
-          tooltip: 'Next',
-          onTap: onNext,
-        ),
-      ],
-    );
-  }
-}
-
-class _PagerIcon extends StatefulWidget {
-  const _PagerIcon({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  State<_PagerIcon> createState() => _PagerIconState();
-}
-
-class _PagerIconState extends State<_PagerIcon> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = _hovered ? cs.surfaceContainerHighest : cs.surface;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOutCubic,
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: widget.onTap,
-            child: Icon(widget.icon, color: cs.onSurfaceVariant),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 String _fmtMoney(int pkr) => 'PKR ${_fmtInt(pkr)}';
 
 String _fmtInt(int v) {
   final s = v.toString();
-  final b = StringBuffer();
+  final buf = StringBuffer();
   for (var i = 0; i < s.length; i++) {
-    final idx = s.length - 1 - i;
-    b.write(s[idx]);
-    if ((i + 1) % 3 == 0 && idx != 0) b.write(',');
+    final idx = s.length - i;
+    buf.write(s[i]);
+    if (idx > 1 && idx % 3 == 1) buf.write(',');
   }
-  return b.toString().split('').reversed.join();
+  return buf.toString();
 }

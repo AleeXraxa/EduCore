@@ -4,8 +4,11 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
+import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
+import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/dashboard/dashboard_controller.dart';
 import 'package:educore/src/features/analytics/analytics_view.dart';
 import 'package:educore/src/features/features/features_view.dart';
@@ -89,10 +92,13 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
 }
 
 enum _SuperAdminNav {
-  dashboard('dashboard', 'Dashboard', 'Super Admin Overview', Icons.dashboard_rounded),
-  analytics('analytics', 'Analytics', 'Platform Analytics', Icons.trending_up_rounded),
+  dashboard('dashboard', 'Dashboard', 'Super Admin Overview',
+      Icons.dashboard_rounded),
+  analytics(
+      'analytics', 'Analytics', 'Platform Analytics', Icons.trending_up_rounded),
 
-  institutes('institutes', 'Institutes', 'Institute Management', Icons.apartment_rounded),
+  institutes(
+      'institutes', 'Institutes', 'Institute Management', Icons.apartment_rounded),
   users('users', 'Users', 'User Management', Icons.people_alt_rounded),
   notifications(
     'notifications',
@@ -107,13 +113,16 @@ enum _SuperAdminNav {
     'Subscription Management',
     Icons.verified_rounded,
   ),
-  payments('payments', 'Payments', 'Payment Verification', Icons.payments_rounded),
+  payments(
+      'payments', 'Payments', 'Payment Verification', Icons.payments_rounded),
   plans('plans', 'Plans', 'Subscription Plans', Icons.category_rounded),
 
   features('features', 'Features', 'Feature Registry', Icons.list_alt_rounded),
-  featureOverrides('overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
+  featureOverrides(
+      'overrides', 'Overrides', 'Feature Overrides', Icons.tune_rounded),
 
-  auditLogs('audit_logs', 'Audit Logs', 'Activity Logs', Icons.receipt_long_rounded),
+  auditLogs(
+      'audit_logs', 'Audit Logs', 'Activity Logs', Icons.receipt_long_rounded),
   settings('settings', 'Settings', 'Platform Settings', Icons.settings_rounded);
 
   const _SuperAdminNav(this.id, this.label, this.title, this.icon);
@@ -156,78 +165,6 @@ enum _SuperAdminNav {
 
   static _SuperAdminNav byId(String id) =>
       _SuperAdminNav.values.firstWhere((e) => e.id == id);
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'This section is ready for the next build step.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 16),
-          AppCard(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_rounded,
-                      color: cs.primary,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Coming next',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'We’ll build this screen with tables, filters, and actions.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _DashboardHomeBody extends StatelessWidget {
@@ -290,63 +227,94 @@ class _DashboardHomeBodyStatefulState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _HeaderRow(),
+                  const AppAnimatedSlide(
+                    delayIndex: 0,
+                    child: _HeaderRow(),
+                  ),
                   const SizedBox(height: 32),
-                  _KpiGrid(columns: columns, kpis: controller.kpis),
-                  const SizedBox(height: 48),
-                  const _SectionTitle(
-                    title: 'FINANCIAL OVERVIEW',
-                    subtitle: 'Real-time revenue streams and growth metrics.',
-                  ),
-                  const SizedBox(height: 24),
-                  Flex(
-                    direction: size == ScreenSize.compact
-                        ? Axis.vertical
-                        : Axis.horizontal,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _RevenueChart(values: controller.revenueHistory),
-                      ),
-                      SizedBox(
-                        width: size == ScreenSize.compact ? 0 : 24,
-                        height: size == ScreenSize.compact ? 24 : 0,
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: _GrowthChart(values: controller.growthHistory),
-                      ),
-                    ],
+                  AppAnimatedSlide(
+                    delayIndex: 1,
+                    child: _KpiGrid(columns: columns, kpis: controller.kpis),
                   ),
                   const SizedBox(height: 48),
-                  const _SectionTitle(
-                    title: 'PLATFORM ACTIVITY',
-                    subtitle:
-                        'Recent activity and pending subscription approvals.',
-                  ),
-                  const SizedBox(height: 24),
-                  Flex(
-                    direction: size == ScreenSize.compact
-                        ? Axis.vertical
-                        : Axis.horizontal,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _ActivityList(items: controller.recentActivity),
-                      ),
-                      SizedBox(
-                        width: size == ScreenSize.compact ? 0 : 24,
-                        height: size == ScreenSize.compact ? 24 : 0,
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: _PendingPaymentsTable(
-                          items: controller.pendingPaymentsTop,
+                  const AppAnimatedSlide(
+                    delayIndex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionTitle(
+                          title: 'FINANCIAL OVERVIEW',
+                          subtitle:
+                              'Real-time revenue streams and growth metrics.',
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                  AppAnimatedSlide(
+                    delayIndex: 3,
+                    child: Flex(
+                      direction: size == ScreenSize.compact
+                          ? Axis.vertical
+                          : Axis.horizontal,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child:
+                              _RevenueChart(values: controller.revenueHistory),
+                        ),
+                        SizedBox(
+                          width: size == ScreenSize.compact ? 0 : 24,
+                          height: size == ScreenSize.compact ? 24 : 0,
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: _GrowthChart(values: controller.growthHistory),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  const AppAnimatedSlide(
+                    delayIndex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionTitle(
+                          title: 'PLATFORM ACTIVITY',
+                          subtitle:
+                              'Recent activity and pending subscription approvals.',
+                        ),
+                        SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                  AppAnimatedSlide(
+                    delayIndex: 5,
+                    child: Flex(
+                      direction: size == ScreenSize.compact
+                          ? Axis.vertical
+                          : Axis.horizontal,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child:
+                              _ActivityList(items: controller.recentActivity),
+                        ),
+                        SizedBox(
+                          width: size == ScreenSize.compact ? 0 : 24,
+                          height: size == ScreenSize.compact ? 24 : 0,
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: _PendingPaymentsTable(
+                            items: controller.pendingPaymentsTop,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -373,17 +341,17 @@ class _HeaderRow extends StatelessWidget {
               Text(
                 'Super Admin Dashboard',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.2,
-                ),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.2,
+                    ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Manage institutes, subscriptions, and platform-wide configurations.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
           ),
@@ -404,133 +372,33 @@ class _KpiGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      _KpiData(
-        'Institutes',
-        _fmtInt(kpis.totalInstitutes),
-        Icons.apartment_rounded,
-        const [Color(0xFF0F172A), Color(0xFF1E293B)],
+      KpiCardData(
+        label: 'Institutes',
+        value: _fmtInt(kpis.totalInstitutes),
+        icon: Icons.apartment_rounded,
+        gradient: const [Color(0xFF0F172A), Color(0xFF1E293B)],
       ),
-      _KpiData(
-        'Active Subscriptions',
-        _fmtInt(kpis.activeSubscriptions),
-        Icons.verified_rounded,
-        const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+      KpiCardData(
+        label: 'Active Subscriptions',
+        value: _fmtInt(kpis.activeSubscriptions),
+        icon: Icons.verified_rounded,
+        gradient: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
       ),
-      _KpiData(
-        'Monthly Revenue',
-        'PKR ${_fmtInt(kpis.monthlyRevenuePkr)}',
-        Icons.payments_rounded,
-        const [Color(0xFF0D9488), Color(0xFF0F766E)],
+      KpiCardData(
+        label: 'Monthly Revenue',
+        value: 'PKR ${_fmtInt(kpis.monthlyRevenuePkr)}',
+        icon: Icons.payments_rounded,
+        gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
       ),
-      _KpiData(
-        'Pending Approvals',
-        _fmtInt(kpis.pendingPayments),
-        Icons.pending_actions_rounded,
-        const [Color(0xFFE11D48), Color(0xFFBE123C)],
+      KpiCardData(
+        label: 'Pending Approvals',
+        value: _fmtInt(kpis.pendingPayments),
+        icon: Icons.pending_actions_rounded,
+        gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final gap = 20.0;
-        final totalGap = gap * (columns - 1);
-        final cardWidth = (constraints.maxWidth - totalGap) / columns;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final item in items)
-              SizedBox(
-                width: cardWidth,
-                child: _KpiCard(data: item),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _KpiData {
-  const _KpiData(this.label, this.value, this.icon, this.gradient);
-  final String label;
-  final String value;
-  final IconData icon;
-  final List<Color> gradient;
-}
-
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.data});
-
-  final _KpiData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r20,
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: AppRadii.r16,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: data.gradient,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: data.gradient.first.withValues(alpha: 0.25),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Icon(data.icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.label.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  data.value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return AppKpiGrid(columns: columns, items: items);
   }
 }
 
@@ -564,10 +432,10 @@ class _RevenueChart extends StatelessWidget {
               Text(
                 'MONTHLY REVENUE',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.0,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
               ),
               const Spacer(),
               Container(
@@ -582,10 +450,10 @@ class _RevenueChart extends StatelessWidget {
                 child: Text(
                   'LIVE',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9,
-                  ),
+                        color: cs.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 9,
+                      ),
                 ),
               ),
             ],
@@ -626,10 +494,10 @@ class _GrowthChart extends StatelessWidget {
           Text(
             'INSTITUTE GROWTH',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.0,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
           ),
           const SizedBox(height: 28),
           SizedBox(height: 280, child: _MockBarChart(values: values)),
@@ -901,10 +769,10 @@ class _ActivityList extends StatelessWidget {
           Text(
             'RECENT ACTIVITY',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.0,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
           ),
           const SizedBox(height: 28),
           if (items.isEmpty)
@@ -976,17 +844,17 @@ class _ActivityRow extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.2,
-                ),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
           ),
@@ -995,10 +863,10 @@ class _ActivityRow extends StatelessWidget {
         Text(
           time.toUpperCase(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: cs.onSurfaceVariant,
-            fontWeight: FontWeight.w900,
-            fontSize: 10,
-          ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w900,
+                fontSize: 10,
+              ),
         ),
       ],
     );
@@ -1035,10 +903,10 @@ class _PendingPaymentsTable extends StatelessWidget {
               Text(
                 'PENDING PAYMENTS',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.0,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
               ),
               const Spacer(),
               TextButton(
@@ -1087,9 +955,9 @@ class _PendingPaymentsTable extends StatelessWidget {
               Text(
                 'Showing top ${items.length.clamp(0, 5)} pending payments',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const Spacer(),
               _PaginationTrigger(
@@ -1127,28 +995,28 @@ class _TableHeader extends StatelessWidget {
             child: Text(
               'INSTITUTE',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
             ),
           ),
           Text(
             'AMOUNT',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
           ),
           const SizedBox(width: 24),
           Text(
             'STATUS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
           ),
         ],
       ),
@@ -1182,17 +1050,17 @@ class _TableRow extends StatelessWidget {
             child: Text(
               name,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.2,
-              ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
+                  ),
             ),
           ),
           Text(
             amount,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.onSurface,
-              fontWeight: FontWeight.w900,
-            ),
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           const SizedBox(width: 24),
           Container(
@@ -1204,10 +1072,10 @@ class _TableRow extends StatelessWidget {
             child: Text(
               status.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: cs.primary,
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-              ),
+                    color: cs.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                  ),
             ),
           ),
         ],
@@ -1261,9 +1129,9 @@ class _EmptyState extends StatelessWidget {
               subtitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ],
         ),
@@ -1357,9 +1225,9 @@ class _NotReadyPanel extends StatelessWidget {
             Text(
               busy ? 'Loading Dashboard' : 'Connection Error',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1368,9 +1236,9 @@ class _NotReadyPanel extends StatelessWidget {
                   : 'Loading your EduCore dashboard. Please wait a moment while we fetch your platform data.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 32),
             SizedBox(
