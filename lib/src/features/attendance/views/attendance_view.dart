@@ -2,6 +2,7 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/attendance/controllers/attendance_controller.dart';
+import 'package:educore/src/features/attendance/controllers/attendance_report_controller.dart';
 import 'package:educore/src/features/attendance/models/attendance_record.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +16,7 @@ class AttendanceView extends StatefulWidget {
 
 class _AttendanceViewState extends State<AttendanceView> {
   late final AttendanceController _controller;
+  late final AttendanceReportController _reportController;
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -22,7 +24,10 @@ class _AttendanceViewState extends State<AttendanceView> {
   void initState() {
     super.initState();
     _controller = AttendanceController();
+    _reportController = AttendanceReportController();
+
     _controller.loadInitialData();
+    _reportController.fetchReport();
     _searchController.addListener(() {
       _controller.setSearchQuery(_searchController.text);
     });
@@ -31,6 +36,7 @@ class _AttendanceViewState extends State<AttendanceView> {
   @override
   void dispose() {
     _controller.dispose();
+    _reportController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -67,80 +73,43 @@ class _AttendanceViewState extends State<AttendanceView> {
             final size = screenSizeForWidth(constraints.maxWidth);
             final isMobile = size == ScreenSize.compact;
 
-            return Scaffold(
-              key: _scaffoldKey,
-              backgroundColor: cs.surfaceContainerLowest.withValues(alpha: 0.5),
-              endDrawer: !isMobile
-                  ? Drawer(
-                      width: 500,
-                      child: _AttendanceMarkingPanel(
-                        controller: controller,
-                        searchController: _searchController,
-                        onSave: () => Navigator.pop(context),
-                      ),
-                    )
-                  : null,
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _AttendanceControlPanel(
-                    controller: controller,
-                    searchController: _searchController,
-                    onMarkPressed: _openMarkingPanel,
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: controller.busy && controller.records.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
-                        : SingleChildScrollView(
-                            padding: EdgeInsets.fromLTRB(
-                              isMobile ? 16 : 32,
-                              24,
-                              isMobile ? 16 : 32,
-                              80,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _AttendanceAnalytics(controller: controller),
-                                const SizedBox(height: 32),
-                                if (controller.attentionNeeded.isNotEmpty) ...[
-                                  _AttentionNeededSection(
-                                    controller: controller,
-                                  ),
-                                  const SizedBox(height: 32),
-                                ],
-                                Row(
-                                  children: [
-                                    Text(
-                                      'CURRENT STATUS (OVERVIEW)',
-                                      style: TextStyle(
-                                        color: cs.onSurfaceVariant,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Divider(
-                                        color: cs.outlineVariant.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                if (controller.records.isEmpty)
-                                  _EmptyAttendance()
-                                else
-                                  _StatusOverviewGrid(controller: controller),
-                              ],
-                            ),
+            return DefaultTabController(
+              length: 2,
+              child: Scaffold(
+                key: _scaffoldKey,
+                backgroundColor: cs.surfaceContainerLowest.withValues(
+                  alpha: 0.5,
+                ),
+                endDrawer: !isMobile
+                    ? Drawer(
+                        width: 500,
+                        child: _AttendanceMarkingPanel(
+                          controller: _controller,
+                          searchController: _searchController,
+                          onSave: () => Navigator.pop(context),
+                        ),
+                      )
+                    : null,
+                body: Column(
+                  children: [
+                    _AttendanceHeader(
+                      controller: _controller,
+                      onMarkPressed: _openMarkingPanel,
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _MarkingOverviewTab(
+                            controller: _controller,
+                            isMobile: isMobile,
                           ),
-                  ),
-                ],
+                          _ReportsTab(controller: _reportController),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -150,15 +119,12 @@ class _AttendanceViewState extends State<AttendanceView> {
   }
 }
 
-class _AttendanceControlPanel extends StatelessWidget {
-  const _AttendanceControlPanel({
+class _AttendanceHeader extends StatelessWidget {
+  const _AttendanceHeader({
     required this.controller,
-    required this.searchController,
     required this.onMarkPressed,
   });
-
   final AttendanceController controller;
-  final TextEditingController searchController;
   final VoidCallback onMarkPressed;
 
   @override
@@ -170,7 +136,12 @@ class _AttendanceControlPanel extends StatelessWidget {
 
     return Container(
       color: cs.surface,
-      padding: EdgeInsets.all(isDesktop ? 32 : 16),
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? 32 : 16,
+        24,
+        isDesktop ? 32 : 16,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -179,9 +150,10 @@ class _AttendanceControlPanel extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Daily Attendance',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  const Text(
+                    'ATTENDANCE HUB',
+                    style: TextStyle(
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1.0,
                     ),
@@ -211,26 +183,436 @@ class _AttendanceControlPanel extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 24),
+          TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.normal,
+            ),
+            dividerColor: Colors.transparent,
+            tabs: const [
+              Tab(text: 'MARK ATTENDANCE'),
+              Tab(text: 'ADVANCED REPORTS'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarkingOverviewTab extends StatelessWidget {
+  const _MarkingOverviewTab({required this.controller, required this.isMobile});
+  final AttendanceController controller;
+  final bool isMobile;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 16 : 32,
+        24,
+        isMobile ? 16 : 32,
+        80,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AttendanceAnalytics(controller: controller),
           const SizedBox(height: 32),
-          _AttendanceInsights(controller: controller),
-          if (!isDesktop) ...[
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onMarkPressed,
-                icon: const Icon(Icons.edit_calendar_rounded, size: 18),
-                label: const Text('Mark Attendance'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+          if (controller.attentionNeeded.isNotEmpty) ...[
+            _AttentionNeededSection(controller: controller),
+            const SizedBox(height: 32),
+          ],
+          Row(
+            children: [
+              Text(
+                'CURRENT STATUS (OVERVIEW)',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
                 ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Divider(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (controller.records.isEmpty)
+            _EmptyAttendance()
+          else
+            _StatusOverviewGrid(controller: controller),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportsTab extends StatelessWidget {
+  const _ReportsTab({required this.controller});
+  final AttendanceReportController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop =
+        screenSizeForWidth(MediaQuery.sizeOf(context).width) !=
+        ScreenSize.compact;
+
+    return ControllerBuilder<AttendanceReportController>(
+      controller: controller,
+      builder: (context, controller, _) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            isDesktop ? 32 : 16,
+            24,
+            isDesktop ? 32 : 16,
+            80,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ReportFilters(controller: controller),
+              const SizedBox(height: 24),
+              _ReportSummaryCards(controller: controller),
+              const SizedBox(height: 32),
+              _ReportResultsTable(controller: controller),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReportFilters extends StatelessWidget {
+  const _ReportFilters({required this.controller});
+  final AttendanceReportController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SegmentedButton<ReportType>(
+          segments: const [
+            ButtonSegment(
+              value: ReportType.student,
+              label: Text('Student'),
+              icon: Icon(Icons.person_rounded, size: 16),
+            ),
+            ButtonSegment(
+              value: ReportType.teacher,
+              label: Text('Teacher'),
+              icon: Icon(Icons.school_rounded, size: 16),
+            ),
+            ButtonSegment(
+              value: ReportType.classroom,
+              label: Text('Class'),
+              icon: Icon(Icons.class_rounded, size: 16),
+            ),
+          ],
+          selected: {controller.currentType},
+          onSelectionChanged: (set) => controller.setReportType(set.first),
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _FilterChip(
+                label: 'Today',
+                selected: controller.currentFilter == DateFilter.today,
+                onTap: () => controller.setDateFilter(DateFilter.today),
+              ),
+              _FilterChip(
+                label: '7D',
+                selected: controller.currentFilter == DateFilter.last7,
+                onTap: () => controller.setDateFilter(DateFilter.last7),
+              ),
+              _FilterChip(
+                label: '30D',
+                selected: controller.currentFilter == DateFilter.last30,
+                onTap: () => controller.setDateFilter(DateFilter.last30),
+              ),
+              _FilterChip(
+                label:
+                    (controller.currentFilter == DateFilter.custom &&
+                        controller.customRange != null)
+                    ? '${DateFormat('MMM d').format(controller.customRange!.start)} - ${DateFormat('MMM d').format(controller.customRange!.end)}'
+                    : 'Custom',
+                selected: controller.currentFilter == DateFilter.custom,
+                onTap: () async {
+                  final range = await showDialog<DateTimeRange>(
+                    context: context,
+                    builder: (context) => _CustomRangeDialog(
+                      initialRange: controller.customRange,
+                    ),
+                  );
+                  if (range != null) {
+                    controller.setCustomRange(range.start, range.end);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        if (controller.busy)
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+      ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? cs.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportSummaryCards extends StatelessWidget {
+  const _ReportSummaryCards({required this.controller});
+  final AttendanceReportController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth > 1200
+            ? 4
+            : (constraints.maxWidth > 600 ? 2 : 1);
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 2.5,
+          children: [
+            KpiCard(
+              data: KpiCardData(
+                label: 'Total Records',
+                value: controller.totalRecords.toString(),
+                icon: Icons.analytics_rounded,
+                gradient: [Colors.blue, Colors.blue.shade700],
+              ),
+            ),
+            KpiCard(
+              data: KpiCardData(
+                label: 'Avg. Attendance',
+                value: '${controller.avgAttendance.toStringAsFixed(1)}%',
+                icon: Icons.percent_rounded,
+                gradient: [Colors.green, Colors.green.shade700],
+              ),
+            ),
+            KpiCard(
+              data: KpiCardData(
+                label: 'Highest',
+                value: controller.highestAttendance,
+                icon: Icons.trending_up_rounded,
+                gradient: [Colors.orange, Colors.orange.shade700],
+                trendText: 'Attendance Streak',
+                trendUp: true,
+              ),
+            ),
+            KpiCard(
+              data: KpiCardData(
+                label: 'Lowest',
+                value: controller.lowestAttendance,
+                icon: Icons.trending_down_rounded,
+                gradient: [Colors.red, Colors.red.shade700],
+                trendText: 'Needs Attention',
+                trendUp: false,
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _ReportResultsTable extends StatelessWidget {
+  const _ReportResultsTable({required this.controller});
+  final AttendanceReportController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(
+            cs.surfaceContainerHighest.withValues(alpha: 0.3),
+          ),
+          columns: _buildColumns(),
+          rows: controller.reportData
+              .map((data) => _buildRow(data, cs))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  List<DataColumn> _buildColumns() {
+    final type = controller.currentType;
+    if (type == ReportType.student) {
+      return const [
+        DataColumn(label: Text('STUDENT NAME')),
+        DataColumn(label: Text('PRESENT')),
+        DataColumn(label: Text('ABSENT')),
+        DataColumn(label: Text('LEAVE')),
+        DataColumn(label: Text('ATTENDANCE %')),
+      ];
+    } else if (type == ReportType.teacher) {
+      return const [
+        DataColumn(label: Text('TEACHER NAME')),
+        DataColumn(label: Text('CLASSES')),
+        DataColumn(label: Text('SESSIONS')),
+        DataColumn(label: Text('AVG %')),
+      ];
+    } else {
+      return const [
+        DataColumn(label: Text('CLASS NAME')),
+        DataColumn(label: Text('STUDENTS')),
+        DataColumn(label: Text('SUMMARY')),
+        DataColumn(label: Text('AVG %')),
+      ];
+    }
+  }
+
+  DataRow _buildRow(Map<String, dynamic> data, ColorScheme cs) {
+    final type = controller.currentType;
+    if (type == ReportType.student) {
+      return DataRow(
+        cells: [
+          DataCell(
+            Text(
+              data['name'],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          DataCell(Text((data['present'] ?? 0).toString())),
+          DataCell(Text((data['absent'] ?? 0).toString())),
+          DataCell(Text((data['leave'] ?? 0).toString())),
+          DataCell(
+            _buildPercentageCell((data['percentage'] ?? 0.0).toDouble()),
+          ),
         ],
+      );
+    } else if (type == ReportType.teacher) {
+      return DataRow(
+        cells: [
+          DataCell(
+            Text(
+              data['name'] ?? 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          DataCell(Text(data['classes'] ?? '-')),
+          DataCell(Text((data['sessions'] ?? 0).toString())),
+          DataCell(
+            _buildPercentageCell((data['percentage'] ?? 0.0).toDouble()),
+          ),
+        ],
+      );
+    } else {
+      return DataRow(
+        cells: [
+          DataCell(
+            Text(
+              data['name'] ?? 'N/A',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          DataCell(Text((data['students'] ?? 0).toString())),
+          DataCell(Text(data['summary'] ?? '-')),
+          DataCell(
+            _buildPercentageCell((data['percentage'] ?? 0.0).toDouble()),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildPercentageCell(double pct) {
+    final color = pct >= 90
+        ? Colors.green
+        : (pct >= 75 ? Colors.orange : Colors.red);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '${pct.toStringAsFixed(1)}%',
+        style: TextStyle(color: color, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -376,85 +758,6 @@ class _BulkActionButtons extends StatelessWidget {
   }
 }
 
-class _AttendanceInsights extends StatelessWidget {
-  const _AttendanceInsights({required this.controller});
-  final AttendanceController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        _KpiWrapper(
-          child: KpiCard(
-            data: KpiCardData(
-              label: 'Total',
-              value: controller.totalStudents.toString(),
-              icon: Icons.people_outline_rounded,
-              gradient: [cs.primary, cs.primary.withValues(alpha: 0.7)],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _KpiWrapper(
-          child: KpiCard(
-            data: KpiCardData(
-              label: 'Present',
-              value: controller.presentCount.toString(),
-              icon: Icons.check_circle_outline_rounded,
-              gradient: [const Color(0xFF10B981), const Color(0xFF34D399)],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _KpiWrapper(
-          child: KpiCard(
-            data: KpiCardData(
-              label: 'Absent',
-              value: controller.absentCount.toString(),
-              icon: Icons.cancel_outlined,
-              gradient: [const Color(0xFFEF4444), const Color(0xFFF87171)],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _KpiWrapper(
-          child: KpiCard(
-            data: KpiCardData(
-              label: 'Leaves',
-              value: controller.leaveCount.toString(),
-              icon: Icons.beach_access_rounded,
-              gradient: [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _KpiWrapper(
-          child: KpiCard(
-            data: KpiCardData(
-              label: 'Atten. %',
-              value: '${controller.attendancePercentage}%',
-              icon: Icons.analytics_outlined,
-              gradient: [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
-              trendUp: controller.attendancePercentage > 90,
-              trendText: controller.attendancePercentage > 90
-                  ? 'Excellent'
-                  : 'Average',
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _KpiWrapper extends StatelessWidget {
-  const _KpiWrapper({required this.child});
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => Expanded(child: child);
-}
-
 class _AttendanceListItem extends StatelessWidget {
   const _AttendanceListItem({required this.record, required this.onChanged});
   final AttendanceRecord record;
@@ -463,7 +766,6 @@ class _AttendanceListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isPresent = record.status == AttendanceStatus.present;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -970,9 +1272,8 @@ class _DonutChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeTotal = present + absent;
     final total = present + absent + leave;
-    final pct = activeTotal == 0 ? 0 : (present / activeTotal * 100).round();
+    final pct = total == 0 ? 0 : (present / total * 100).round();
 
     return Stack(
       children: [
@@ -1315,6 +1616,209 @@ class _AttendanceMarkingPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CustomRangeDialog extends StatefulWidget {
+  const _CustomRangeDialog({this.initialRange});
+  final DateTimeRange? initialRange;
+
+  @override
+  State<_CustomRangeDialog> createState() => _CustomRangeDialogState();
+}
+
+class _CustomRangeDialogState extends State<_CustomRangeDialog> {
+  late DateTime _start;
+  late DateTime _end;
+
+  @override
+  void initState() {
+    super.initState();
+    _start =
+        widget.initialRange?.start ??
+        DateTime.now().subtract(const Duration(days: 7));
+    _end = widget.initialRange?.end ?? DateTime.now();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 440,
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.date_range_rounded, color: cs.primary),
+                ),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Custom Range',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Choose start and end dates',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(
+                  child: _DateField(
+                    label: 'Start Date',
+                    value: _start,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _start,
+                        firstDate: DateTime(2020),
+                        lastDate: _end,
+                      );
+                      if (picked != null) setState(() => _start = picked);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: _DateField(
+                    label: 'End Date',
+                    value: _end,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _end,
+                        firstDate: _start,
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) setState(() => _end = picked);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(
+                  context,
+                  DateTimeRange(start: _start, end: _end),
+                ),
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Apply Selection',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+  final String label;
+  final DateTime value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: cs.onSurfaceVariant,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    DateFormat('MMM d, yyyy').format(value),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Icon(Icons.calendar_today_rounded, size: 16, color: cs.primary),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
