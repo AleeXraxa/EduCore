@@ -10,6 +10,7 @@ import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/dashboard/institute_dashboard_controller.dart';
 import 'package:educore/src/features/dashboard/widgets/institute_charts.dart';
 import 'package:educore/src/features/students/views/students_view.dart';
+import 'package:educore/src/features/attendance/views/attendance_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -48,6 +49,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
           child: switch (current) {
             _InstituteNav.dashboard => const _InstituteDashboardHome(),
             _InstituteNav.students => const StudentsView(),
+            _InstituteNav.attendance => const AttendanceView(),
             _ => const Center(child: Text('Coming Soon...')),
           },
         ),
@@ -636,7 +638,10 @@ class _QuickActionsRow extends StatelessWidget {
               _QuickActionButton(
                 label: 'Mark Attendance',
                 icon: Icons.fact_check_rounded,
-                onPressed: () {},
+                onPressed: () {
+                  final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
+                  state?.setState(() => state._selected = _InstituteNav.attendance.id);
+                },
                 gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
               ),
             if (showCollectFee)
