@@ -11,6 +11,7 @@ import 'package:educore/src/features/dashboard/institute_dashboard_controller.da
 import 'package:educore/src/features/dashboard/widgets/institute_charts.dart';
 import 'package:educore/src/features/students/views/students_view.dart';
 import 'package:educore/src/features/attendance/views/attendance_view.dart';
+import 'package:educore/src/features/fees/views/fees_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -50,6 +51,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
             _InstituteNav.dashboard => const _InstituteDashboardHome(),
             _InstituteNav.students => const StudentsView(),
             _InstituteNav.attendance => const AttendanceView(),
+            _InstituteNav.fees => const FeesView(),
             _ => const Center(child: Text('Coming Soon...')),
           },
         ),

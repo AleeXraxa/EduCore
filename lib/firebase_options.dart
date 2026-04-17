@@ -51,7 +51,6 @@ class DefaultFirebaseOptions {
     appId: '1:7365321212:android:b9e3bd5c04374568d19279',
     messagingSenderId: '7365321212',
     projectId: 'educore-a97b1',
-    storageBucket: 'educore-a97b1.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -59,7 +58,6 @@ class DefaultFirebaseOptions {
     appId: '1:7365321212:ios:b83825eb22d45cf4d19279',
     messagingSenderId: '7365321212',
     projectId: 'educore-a97b1',
-    storageBucket: 'educore-a97b1.firebasestorage.app',
     iosBundleId: 'com.example.educore',
   );
 
@@ -69,7 +67,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '7365321212',
     projectId: 'educore-a97b1',
     authDomain: 'educore-a97b1.firebaseapp.com',
-    storageBucket: 'educore-a97b1.firebasestorage.app',
     measurementId: 'G-866D08J9LB',
   );
 }

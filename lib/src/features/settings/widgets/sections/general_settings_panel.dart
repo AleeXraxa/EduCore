@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/settings/settings_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 class GeneralSettingsPanel extends StatefulWidget {
   const GeneralSettingsPanel({super.key, required this.controller});
@@ -52,18 +50,8 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      await widget.controller.uploadLogo(File(image.path));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final settings = widget.controller.settings;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -74,55 +62,42 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
         ),
         const SizedBox(height: 20),
         _GroupCard(
-          title: 'PLATFORM BRANDING',
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: 'PLATFORM IDENTITY',
+          child: Column(
             children: [
-              _LogoPreview(
-                url: settings?.appLogoUrl,
-                onUpload: _pickImage,
-                isBusy: widget.controller.busy,
+              AppTextField(
+                controller: _appName,
+                label: 'Platform Name',
+                hintText: 'EduCore',
+                prefixIcon: Icons.edit_note_rounded,
               ),
-              const SizedBox(width: 32),
-              Expanded(
-                child: Column(
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.05),
+                  borderRadius: AppRadii.r16,
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Row(
                   children: [
-                    AppTextField(
-                      controller: _appName,
-                      label: 'Platform Name',
-                      hintText: 'EduCore',
-                      prefixIcon: Icons.edit_note_rounded,
+                    Icon(
+                      Icons.tips_and_updates_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
                     ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.05),
-                        borderRadius: AppRadii.r16,
-                        border: Border.all(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.tips_and_updates_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'The platform name is displayed across login portals and email notifications.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'The platform name is displayed across login portals and email notifications.',
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -249,62 +224,3 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-class _LogoPreview extends StatelessWidget {
-  const _LogoPreview({this.url, required this.onUpload, this.isBusy = false});
-
-  final String? url;
-  final VoidCallback onUpload;
-  final bool isBusy;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final hasLogo = url != null && url!.isNotEmpty;
-
-    return Column(
-      children: [
-        Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
-            borderRadius: AppRadii.r20,
-            border: Border.all(color: cs.outlineVariant),
-            image: hasLogo
-                ? DecorationImage(
-                    image: NetworkImage(url!),
-                    fit: BoxFit.contain,
-                  )
-                : null,
-          ),
-          child: !hasLogo
-              ? Icon(
-                  Icons.business_rounded,
-                  size: 48,
-                  color: cs.onSurfaceVariant,
-                )
-              : null,
-        ),
-        const SizedBox(height: 12),
-        TextButton.icon(
-          onPressed: isBusy ? null : onUpload,
-          icon: isBusy
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.cloud_upload_outlined, size: 18),
-          label: const Text('Update Logo'),
-          style: TextButton.styleFrom(
-            foregroundColor: cs.primary,
-            textStyle: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

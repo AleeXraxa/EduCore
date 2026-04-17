@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 
@@ -71,16 +70,6 @@ class SettingsController extends BaseController {
   void updateSettings(GlobalSettings newSettings) {
     _settings = newSettings;
     notifyListeners();
-  }
-
-  Future<void> uploadLogo(File file) async {
-    await runBusy(() async {
-      final url = await _service?.uploadLogo(file);
-      if (url != null) {
-        _settings = _settings!.copyWith(appLogoUrl: url);
-        notifyListeners();
-      }
-    });
   }
 
   Future<void> save() async {

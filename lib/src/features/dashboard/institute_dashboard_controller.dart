@@ -10,6 +10,10 @@ class InstituteDashboardController extends BaseController {
   int pendingFeesCount = 0;
   int totalStaff = 0;
 
+  double admissionCollected = 0;
+  double monthlyCollected = 0;
+  double miscCollected = 0;
+
   List<Map<String, dynamic>> recentStudents = [];
   List<Map<String, dynamic>> recentPayments = [];
 
@@ -69,6 +73,23 @@ class InstituteDashboardController extends BaseController {
 
       final staffCountFuture = staffRef.count().get();
 
+      // Use simple get() queries for fee summation (cloud_firestore 5.x compatible).
+      // Aggregate sum() was only added in cloud_firestore 6.x.
+      final admissionSumFuture = feesRef
+          .where('type', isEqualTo: 'admission')
+          .where('status', isEqualTo: 'paid')
+          .get();
+
+      final monthlySumFuture = feesRef
+          .where('type', isEqualTo: 'monthly')
+          .where('status', isEqualTo: 'paid')
+          .get();
+
+      final miscSumFuture = feesRef
+          .where('type', isEqualTo: 'misc')
+          .where('status', isEqualTo: 'paid')
+          .get();
+
       final recentStudentsFuture = studentsRef
           .orderBy('createdAt', descending: true)
           .limit(5)
@@ -87,6 +108,9 @@ class InstituteDashboardController extends BaseController {
         attendanceCountFuture,
         feesCountFuture,
         staffCountFuture,
+        admissionSumFuture,
+        monthlySumFuture,
+        miscSumFuture,
         recentStudentsFuture,
         recentPaymentsFuture,
       ]);
@@ -107,14 +131,28 @@ class InstituteDashboardController extends BaseController {
       pendingFeesCount = (results[4] as AggregateQuerySnapshot).count ?? 0;
       totalStaff = (results[5] as AggregateQuerySnapshot).count ?? 0;
 
-      final stdSnaps = results[6] as QuerySnapshot;
+      // Manually sum 'amount' field from fee documents (5.x compatible approach).
+      double sumAmount(QuerySnapshot snap) {
+        return snap.docs.fold(0.0, (total, doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final amt = data['amount'];
+          if (amt is num) return total + amt.toDouble();
+          return total;
+        });
+      }
+
+      admissionCollected = sumAmount(results[6] as QuerySnapshot);
+      monthlyCollected = sumAmount(results[7] as QuerySnapshot);
+      miscCollected = sumAmount(results[8] as QuerySnapshot);
+
+      final stdSnaps = results[9] as QuerySnapshot;
       recentStudents = stdSnaps.docs.map((e) {
         final data = e.data() as Map<String, dynamic>;
         data['id'] = e.id;
         return data;
       }).toList();
 
-      final paySnaps = results[7] as QuerySnapshot;
+      final paySnaps = results[10] as QuerySnapshot;
       recentPayments = paySnaps.docs.map((e) {
         final data = e.data() as Map<String, dynamic>;
         data['id'] = e.id;

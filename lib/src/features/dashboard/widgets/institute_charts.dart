@@ -93,6 +93,28 @@ class InstituteChartsSection extends StatelessWidget {
                 ),
               ],
             ),
+             const SizedBox(height: 20),
+            AppCard(
+              padding: const EdgeInsets.all(20),
+              child: _ChartBox(
+                title: 'Revenue Streams',
+                subtitle: 'Breakdown of collected funds',
+                child: _SimpleBarChart(
+                  labels: const ['Admission', 'Monthly', 'Misc'],
+                  values: [
+                    controller.admissionCollected,
+                    controller.monthlyCollected,
+                    controller.miscCollected,
+                  ],
+                  colors: const [
+                    Color(0xFF8B5CF6), // Purple for admission
+                    Color(0xFF0D9488), // Teal for monthly
+                    Color(0xFFF43F5E), // Rose for misc
+                  ],
+                  isCurrency: true,
+                ),
+              ),
+            ),
           ],
         );
       },
@@ -241,11 +263,13 @@ class _SimpleBarChart extends StatelessWidget {
     required this.labels,
     required this.values,
     required this.colors,
+    this.isCurrency = false,
   });
 
   final List<String> labels;
   final List<double> values;
   final List<Color> colors;
+  final bool isCurrency;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +292,7 @@ class _SimpleBarChart extends StatelessWidget {
             value: values[i],
             maxVal: values.reduce(max),
             color: colors[i],
+            isCurrency: isCurrency,
           ),
       ],
     );
@@ -275,11 +300,18 @@ class _SimpleBarChart extends StatelessWidget {
 }
 
 class _Bar extends StatelessWidget {
-  const _Bar({required this.label, required this.value, required this.maxVal, required this.color});
+  const _Bar({required this.label, required this.value, required this.maxVal, required this.color, this.isCurrency = false});
   final String label;
   final double value;
   final double maxVal;
   final Color color;
+  final bool isCurrency;
+
+  String _format(double v) {
+    if (!isCurrency) return v.toInt().toString();
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
+    return v.toInt().toString();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +319,7 @@ class _Bar extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Text(value.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        Text(_format(value), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
         const SizedBox(height: 4),
         Expanded(
           child: FractionallySizedBox(

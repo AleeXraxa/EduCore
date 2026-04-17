@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:educore/src/features/settings/models/global_settings.dart';
 
 import 'package:educore/src/core/services/audit_log_service.dart';
@@ -15,8 +13,6 @@ class SettingsService {
     required AuditLogService auditLogService,
   })  : _firestore = firestore,
         _audit = auditLogService;
-
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   Future<GlobalSettings?> getGlobalSettings() async {
     final doc = await _firestore.collection('settings').doc('global').get();
@@ -51,11 +47,5 @@ class SettingsService {
       after: data,
       severity: AuditSeverity.medium,
     );
-  }
-
-  Future<String> uploadLogo(File file) async {
-    final ref = _storage.ref().child('branding/logo_${DateTime.now().millisecondsSinceEpoch}.png');
-    final uploadTask = await ref.putFile(file);
-    return await uploadTask.ref.getDownloadURL();
   }
 }
