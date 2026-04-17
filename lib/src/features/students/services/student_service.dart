@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/features/students/models/student.dart';
+import 'package:educore/src/features/students/models/custom_field.dart';
 
 class StudentService {
   final FirebaseFirestore _firestore;
@@ -9,6 +10,13 @@ class StudentService {
 
   CollectionReference<Map<String, dynamic>> _studentsRef(String academyId) {
     return _firestore.collection('academies').doc(academyId).collection('students');
+  }
+
+  CollectionReference<Map<String, dynamic>> _customFieldsRef(String academyId) {
+    return _firestore
+        .collection('academies')
+        .doc(academyId)
+        .collection('student_custom_fields');
   }
 
   Future<Student> createStudent(String academyId, Student student) async {
@@ -42,13 +50,12 @@ class StudentService {
     String? statusFilter,
     String? searchQuery,
   }) async {
-    var query = _studentsRef(academyId)
-        .where('status', isNotEqualTo: 'deleted')
-        .orderBy('status', descending: true)
-        .orderBy('name', descending: false);
+    Query<Map<String, dynamic>> query = _studentsRef(academyId);
 
-    if (statusFilter != null && statusFilter.isNotEmpty) {
-      query = _studentsRef(academyId).where('status', isEqualTo: statusFilter).orderBy('name', descending: false);
+    if (statusFilter != null && statusFilter.isNotEmpty && statusFilter != 'all') {
+      query = query.where('status', isEqualTo: statusFilter).orderBy('name');
+    } else {
+      query = query.orderBy('status', descending: true).orderBy('name');
     }
     
     if (classFilter != null && classFilter.isNotEmpty) {
@@ -61,5 +68,36 @@ class StudentService {
 
     query = query.limit(limit);
     return await query.get();
+  }
+
+  Future<List<StudentCustomField>> getCustomFieldDefinitions(
+      String academyId) async {
+    final snapshot = await _customFieldsRef(academyId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: false)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => StudentCustomField.fromFirestore(doc))
+        .toList();
+  }
+
+  Future<StudentCustomField> createCustomFieldDefinition(
+    String academyId,
+    StudentCustomField field,
+  ) async {
+    final docRef = _customFieldsRef(academyId).doc();
+    final newField = StudentCustomField(
+      id: docRef.id,
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      isRequired: field.isRequired,
+      options: field.options,
+      isActive: field.isActive,
+      createdAt: DateTime.now(),
+    );
+    await docRef.set(newField.toFirestore());
+    return newField;
   }
 }

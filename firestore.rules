@@ -184,6 +184,19 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
 
       // ──────────────────────────────────────────────────
+      // SUBCOLLECTION: student_custom_fields/{fieldId}
+      // ──────────────────────────────────────────────────
+      match /student_custom_fields/{fieldId} {
+        allow read:   if isSuperAdmin() || belongsTo(academyId);
+        allow create: if isSuperAdmin() 
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow update: if isSuperAdmin() 
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow delete: if isSuperAdmin() 
+                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+      }
+
+      // ──────────────────────────────────────────────────
       // SUBCOLLECTION: students/{studentId}
       // ──────────────────────────────────────────────────
       match /students/{studentId} {

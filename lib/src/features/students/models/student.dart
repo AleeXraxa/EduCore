@@ -11,6 +11,7 @@ class Student {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.customFields = const {},
   });
 
   final String id;
@@ -22,6 +23,7 @@ class Student {
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final Map<String, dynamic> customFields;
 
   Student copyWith({
     String? id,
@@ -33,6 +35,7 @@ class Student {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Map<String, dynamic>? customFields,
   }) {
     return Student(
       id: id ?? this.id,
@@ -44,6 +47,7 @@ class Student {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      customFields: customFields ?? this.customFields,
     );
   }
 
@@ -57,6 +61,7 @@ class Student {
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'customFields': customFields,
     };
   }
 
@@ -67,10 +72,12 @@ class Student {
       fatherName: map['fatherName'] ?? '',
       phone: map['phone'] ?? '',
       className: map['className'] ?? '',
-      admissionDate: (map['admissionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      admissionDate:
+          (map['admissionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'active',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      customFields: Map<String, dynamic>.from(map['customFields'] ?? {}),
     );
   }
 }

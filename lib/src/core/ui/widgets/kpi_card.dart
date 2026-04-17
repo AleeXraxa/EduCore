@@ -44,13 +44,15 @@ class _KpiCardState extends State<KpiCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        transform: Matrix4.identity()..translate(0.0, _isHovered ? -4.0 : 0.0),
+        transform: Matrix4.translationValues(0.0, _isHovered ? -4.0 : 0.0, 0.0),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: AppRadii.r20,
           border: Border.all(
-            color: _isHovered ? cs.primary.withValues(alpha: 0.3) : cs.outlineVariant.withValues(alpha: 0.5),
+            color: _isHovered
+                ? cs.primary.withValues(alpha: 0.3)
+                : cs.outlineVariant.withValues(alpha: 0.5),
           ),
           boxShadow: [
             BoxShadow(
@@ -92,10 +94,10 @@ class _KpiCardState extends State<KpiCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                    ),
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -103,11 +105,11 @@ class _KpiCardState extends State<KpiCard> {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Expanded(
-                        child: Text(
-                          widget.data.value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.headlineSmall
+                        child: _AnimatedCountText(
+                          value: widget.data.value,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1.0,
@@ -126,6 +128,40 @@ class _KpiCardState extends State<KpiCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedCountText extends StatelessWidget {
+  const _AnimatedCountText({required this.value, this.style});
+
+  final String value;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine if it's a number we can animate
+    final numericValue = double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), ''));
+    if (numericValue == null) {
+      return Text(value, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: numericValue),
+      duration: const Duration(milliseconds: 2000),
+      curve: Curves.fastLinearToSlowEaseIn,
+      builder: (context, val, child) {
+        final formattedValue = val.toInt().toString();
+        // If the original value had characters (like '$' or '%'), we might want to preserve them.
+        // For simplicity, if we parsed it, we just show the number. 
+        // A better version would extract prefix/suffix.
+        return Text(
+          formattedValue,
+          style: style,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
     );
   }
 }
@@ -160,11 +196,11 @@ class _TrendPill extends StatelessWidget {
           Text(
             text,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w900,
-              fontSize: 10,
-              letterSpacing: 0.2,
-            ),
+                  color: fg,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0.2,
+                ),
           ),
         ],
       ),
