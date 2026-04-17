@@ -20,95 +20,111 @@ class KpiCardData {
   final bool? trendUp;
 }
 
-class KpiCard extends StatelessWidget {
+class KpiCard extends StatefulWidget {
   const KpiCard({super.key, required this.data});
 
   final KpiCardData data;
 
   @override
+  State<KpiCard> createState() => _KpiCardState();
+}
+
+class _KpiCardState extends State<KpiCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final trendText = data.trendText;
-    final trendUp = data.trendUp;
+    final trendText = widget.data.trendText;
+    final trendUp = widget.data.trendUp;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r20,
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, _isHovered ? -4.0 : 0.0),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: AppRadii.r20,
+          border: Border.all(
+            color: _isHovered ? cs.primary.withValues(alpha: 0.3) : cs.outlineVariant.withValues(alpha: 0.5),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: AppRadii.r16,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: data.gradient,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: data.gradient.first.withValues(alpha: 0.25),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: _isHovered ? 0.06 : 0.02),
+              blurRadius: _isHovered ? 32 : 24,
+              offset: Offset(0, _isHovered ? 12 : 8),
             ),
-            child: Icon(data.icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data.label.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                borderRadius: AppRadii.r16,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: widget.data.gradient,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.data.gradient.first.withValues(alpha: 0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        data.value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1.0,
-                            ),
-                      ),
-                    ),
-                    if (trendText != null && trendUp != null) ...[
-                      const SizedBox(width: 12),
-                      _TrendPill(text: trendText, up: trendUp),
-                    ],
-                  ],
-                ),
-              ],
+                ],
+              ),
+              child: Icon(widget.data.icon, color: Colors.white, size: 24),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.data.label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.data.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1.0,
+                              ),
+                        ),
+                      ),
+                      if (trendText != null && trendUp != null) ...[
+                        const SizedBox(width: 12),
+                        _TrendPill(text: trendText, up: trendUp),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

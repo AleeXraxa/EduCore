@@ -105,7 +105,6 @@ class _LoginViewState extends State<LoginView>
       floatingActionButton: kDebugMode
           ? FloatingActionButton.extended(
               onPressed: () async {
-                // ignore: use_build_context_synchronously
                 final ctx = context;
                 AppDialogs.showLoading(
                   ctx,
@@ -113,10 +112,9 @@ class _LoginViewState extends State<LoginView>
                 );
                 try {
                   await _controller.seedSuperAdmin();
-                  if (!mounted) return;
-                  // ignore: use_build_context_synchronously
+                  if (!ctx.mounted) return;
                   AppDialogs.hide(ctx);
-                  // ignore: use_build_context_synchronously
+                  if (!ctx.mounted) return;
                   AppDialogs.showSuccess(
                     ctx,
                     title: 'Seed Success',
@@ -124,10 +122,9 @@ class _LoginViewState extends State<LoginView>
                         'Super Admin account created: ${SuperAdminSeed.email}',
                   );
                 } catch (e) {
-                  if (!mounted) return;
-                  // ignore: use_build_context_synchronously
+                  if (!ctx.mounted) return;
                   AppDialogs.hide(ctx);
-                  // ignore: use_build_context_synchronously
+                  if (!ctx.mounted) return;
                   AppDialogs.showError(
                     ctx,
                     title: 'Seed Failed',
@@ -154,27 +151,27 @@ class _LoginViewState extends State<LoginView>
         rememberMe: _rememberMe,
       );
 
-      // Role guard: this shell is exclusively for Super Admins. If a valid
-      // Firebase account exists but belongs to a teacher/staff/institute admin,
-      // immediately sign them out and present an access-denied message.
       final session = AppServices.instance.authService?.session;
-      if (session == null || !session.isSuperAdmin) {
-        await AppServices.instance.authService?.signOut();
-        if (!mounted) return;
-        AppDialogs.showError(
-          context,
-          title: 'Access Denied',
-          message:
-              'This portal is restricted to Super Administrators only. '
-              'Please use the correct application for your account role.',
-        );
-        return;
+      if (session == null) {
+        throw AuthException('Session failed to initialize.', 'session-init-error');
       }
 
       if (!mounted) return;
+      
+      String targetRoute = AppRoutes.dashboard;
+      if (session.isSuperAdmin) {
+        targetRoute = AppRoutes.dashboard;
+      } else if (session.isInstituteAdmin) {
+        targetRoute = AppRoutes.instituteDashboard;
+      } else if (session.isStaff) {
+        targetRoute = AppRoutes.staffDashboard;
+      } else if (session.isTeacher) {
+        targetRoute = AppRoutes.teacherDashboard;
+      }
+
       Navigator.of(
         context,
-      ).pushNamedAndRemoveUntil(AppRoutes.dashboard, (route) => false);
+      ).pushNamedAndRemoveUntil(targetRoute, (route) => false);
     } on AuthException catch (e) {
       if (!mounted) return;
       AppDialogs.showError(

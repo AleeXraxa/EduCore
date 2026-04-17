@@ -3,44 +3,31 @@ import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
-import 'package:educore/src/features/features/models/feature_flag.dart';
-import 'package:educore/src/features/plans/models/plan.dart';
-import 'package:educore/src/core/models/subscription_access.dart';
 
-/// [FeatureAccessService] Decision-making system for EduCore features.
-/// 
-/// Priority Logic:
-/// 1. Overrides (Disabled) -> DENY
-/// 2. Overrides (Enabled) -> ALLOW
-/// 3. Plan default features -> ALLOW
-/// 4. Else -> DENY
 class FeatureAccessService {
   FeatureAccessService({
     required FeatureService featureService,
     required PlanService planService,
     required SubscriptionService subscriptionService,
-  })  : _featureService = featureService,
-        _planService = planService,
-        _subscriptionService = subscriptionService;
+  }) : _featureService = featureService,
+       _planService = planService,
+       _subscriptionService = subscriptionService;
 
   final FeatureService _featureService;
   final PlanService _planService;
   final SubscriptionService _subscriptionService;
 
-  // Cache
   String? _currentAcademyId;
   bool _isSuperAdmin = false;
   Set<String> _allowedFeatures = {};
   bool _initialized = false;
-  
-  // Re-broadcast for UI reactivity
-  final StreamController<Set<String>> _accessStream = StreamController<Set<String>>.broadcast();
+
+  final StreamController<Set<String>> _accessStream =
+      StreamController<Set<String>>.broadcast();
   Stream<Set<String>> get accessStream => _accessStream.stream;
 
   bool get isInitialized => _initialized;
 
-  /// Explicitly sets the super admin status.
-  /// This can be used to enable the bypass immediately before full initialization.
   void setSuperAdmin(bool value) {
     _isSuperAdmin = value;
     if (value) {
@@ -48,8 +35,6 @@ class FeatureAccessService {
     }
   }
 
-  /// Initializes access control for a specific academy.
-  /// Fetches subscription, plan, and overrides once and caches them.
   Future<void> init(String academyId, {bool isSuperAdmin = false}) async {
     _currentAcademyId = academyId;
     _isSuperAdmin = isSuperAdmin;
@@ -58,20 +43,23 @@ class FeatureAccessService {
     _accessStream.add(_allowedFeatures);
   }
 
-  /// Synchronous access check.
   bool canAccess(String featureKey) {
     if (_isSuperAdmin) {
       debugPrint('FeatureAccess: $featureKey ALLOWED (Super Admin Bypass)');
       return true;
     }
-    
+
     if (!_initialized) {
-      debugPrint('Warning: FeatureAccessService not initialized. Defaulting to FALSE for $featureKey');
+      debugPrint(
+        'Warning: FeatureAccessService not initialized. Defaulting to FALSE for $featureKey',
+      );
       return false;
     }
-    
+
     final allowed = _allowedFeatures.contains(featureKey);
-    debugPrint('FeatureAccess: $featureKey -> ${allowed ? 'ALLOWED' : 'DENIED'}');
+    debugPrint(
+      'FeatureAccess: $featureKey -> ${allowed ? 'ALLOWED' : 'DENIED'}',
+    );
     return allowed;
   }
 
@@ -90,12 +78,17 @@ class FeatureAccessService {
     try {
       // 1. Load Registry (Always needed to know what features exist)
       final registry = await _featureService.watchFeatures().first;
-      final activeInRegistry = registry.where((f) => f.isActive).map((f) => f.key).toSet();
+      final activeInRegistry = registry
+          .where((f) => f.isActive)
+          .map((f) => f.key)
+          .toSet();
 
       // OPTION: Super Admin bypass
       if (_isSuperAdmin) {
         _allowedFeatures = activeInRegistry;
-        debugPrint('FeatureAccess: Super Admin identified. All active features allowed.');
+        debugPrint(
+          'FeatureAccess: Super Admin identified. All active features allowed.',
+        );
         return;
       }
 
@@ -105,8 +98,10 @@ class FeatureAccessService {
       }
 
       // 2. Load Subscription & Overrides
-      final subscription = await _subscriptionService.watchSubscription(_currentAcademyId!).first;
-      
+      final subscription = await _subscriptionService
+          .watchSubscription(_currentAcademyId!)
+          .first;
+
       // 3. Load Plan Default Features
       Set<String> planFeatures = {};
       if (subscription?.planId != null && subscription!.planId.isNotEmpty) {
@@ -123,7 +118,7 @@ class FeatureAccessService {
       for (final key in activeInRegistry) {
         // Priority 1: disabled override
         if (overrides != null && overrides.isDisabled(key)) {
-          continue; 
+          continue;
         }
 
         // Priority 2: enabled override
@@ -139,7 +134,9 @@ class FeatureAccessService {
       }
 
       _allowedFeatures = allowed;
-      debugPrint('FeatureAccess initialized for $_currentAcademyId: $_allowedFeatures');
+      debugPrint(
+        'FeatureAccess initialized for $_currentAcademyId: $_allowedFeatures',
+      );
     } catch (e) {
       debugPrint('Error loading feature access: $e');
       _allowedFeatures = {};

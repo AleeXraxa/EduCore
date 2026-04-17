@@ -81,8 +81,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
           // This ensures that even if credentials are locally cached,
           // we still check against server-side status (Blocked Academy, Expired Sub, etc.)
           await authService.refreshSession();
-          // Only route to dashboard if the restored session belongs to a Super Admin.
-          // Any other role (institute admin, teacher, etc.) is bounced to login.
+          // We no longer bounce non-super admins. We accept all authenticated roles.
           actualSignIn = authService.isAuthenticated;
         } catch (_) {
           actualSignIn = false;
@@ -90,10 +89,24 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       }
     }
 
+    String targetRoute = AppRoutes.login;
+    if (actualSignIn) {
+      final session = AppServices.instance.authService?.session;
+      if (session != null) {
+        if (session.isSuperAdmin) {
+          targetRoute = AppRoutes.dashboard;
+        } else if (session.isInstituteAdmin) {
+          targetRoute = AppRoutes.instituteDashboard;
+        } else if (session.isStaff) {
+          targetRoute = AppRoutes.staffDashboard;
+        } else if (session.isTeacher) {
+          targetRoute = AppRoutes.teacherDashboard;
+        }
+      }
+    }
+
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(
-      actualSignIn ? AppRoutes.dashboard : AppRoutes.login,
-    );
+    Navigator.of(context).pushReplacementNamed(targetRoute);
   }
 
   @override

@@ -14,4 +14,16 @@ class AuthSession {
   bool get isSuperAdmin {
     return user.role == AppUserRole.superAdmin;
   }
+
+  bool get isInstituteAdmin {
+    return user.role == AppUserRole.instituteAdmin;
+  }
+
+  bool get isStaff {
+    return user.role == AppUserRole.staff;
+  }
+
+  bool get isTeacher {
+    return user.role == AppUserRole.teacher;
+  }
 }

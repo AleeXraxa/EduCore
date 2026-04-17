@@ -86,7 +86,7 @@ class _SessionChip extends StatelessWidget {
     final session = AppServices.instance.authService?.session;
     final name = session?.user.name.isNotEmpty == true
         ? session!.user.name
-        : 'Super Admin';
+        : (session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'Super Admin');
     final initials = _initials(name);
 
     return Container(
@@ -143,7 +143,7 @@ class _SessionChip extends StatelessWidget {
                 ),
               ),
               Text(
-                'SUPER ADMIN',
+                (session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'SUPER ADMIN'),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: cs.primary,
                   fontWeight: FontWeight.w900,

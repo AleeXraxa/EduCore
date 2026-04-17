@@ -67,7 +67,8 @@ class AuthService extends ChangeNotifier {
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
-        await validateSubscription(appUser.academyId);
+        // Requirement: DO NOT block full login if subscription is inactive (read-only allowed)
+        // Subscription checks should be done at the UI level for banners and write actions.
       } else {
         dev.log(
           'Bypassing multi-tenant validation for Super Admin: ${appUser.uid}',
@@ -196,7 +197,6 @@ class AuthService extends ChangeNotifier {
 
       if (!isPlatformAdmin) {
         await validateInstitute(appUser.academyId);
-        await validateSubscription(appUser.academyId);
       }
 
       _session = buildSessionContext(appUser);

@@ -214,7 +214,7 @@ class _BrandRow extends StatelessWidget {
                             ),
                       ),
                       Text(
-                        'PLATFORM ADMIN',
+                        (AppServices.instance.authService?.session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'PLATFORM ADMIN'),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w900,
@@ -245,7 +245,7 @@ class _AccountSection extends StatelessWidget {
     final session = AppServices.instance.authService?.session;
     final displayName = session?.user.name.isNotEmpty == true
         ? session!.user.name
-        : 'Super Admin';
+        : (session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'Admin');
     final displayEmail = session?.user.email.isNotEmpty == true
         ? session!.user.email
         : '';

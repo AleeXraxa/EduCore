@@ -1,6 +1,9 @@
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/dashboard/super_admin_dashboard_view.dart';
+import 'package:educore/src/features/dashboard/institute_dashboard_view.dart';
+import 'package:educore/src/features/dashboard/staff_dashboard_view.dart';
+import 'package:educore/src/features/dashboard/teacher_dashboard_view.dart';
 import 'package:educore/src/features/login/login_view.dart';
 import 'package:educore/src/features/splash/splash_view.dart';
 import 'package:flutter/material.dart';
@@ -21,9 +24,6 @@ abstract final class AppRouter {
       case AppRoutes.dashboard:
         final authService = AppServices.instance.authService;
         final isSignedIn = authService?.currentUser != null;
-        // Role guard: only Super Admins may access the admin shell.
-        // A regular teacher/staff who is Firebase-authenticated must not
-        // reach this view — they are redirected to login instead.
         final isSuperAdmin = authService?.session?.isSuperAdmin ?? false;
 
         if (!isSignedIn || !isSuperAdmin) {
@@ -35,6 +35,51 @@ abstract final class AppRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const SuperAdminDashboardView(),
+        );
+      case AppRoutes.instituteDashboard:
+        final authService = AppServices.instance.authService;
+        final isSignedIn = authService?.currentUser != null;
+        final isInstituteAdmin = authService?.session?.isInstituteAdmin ?? false;
+        
+        if (!isSignedIn || !isInstituteAdmin) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const LoginView(),
+          );
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const InstituteDashboardView(),
+        );
+      case AppRoutes.staffDashboard:
+        final authService = AppServices.instance.authService;
+        final isSignedIn = authService?.currentUser != null;
+        final isStaff = authService?.session?.isStaff ?? false;
+        
+        if (!isSignedIn || !isStaff) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const LoginView(),
+          );
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const StaffDashboardView(),
+        );
+      case AppRoutes.teacherDashboard:
+        final authService = AppServices.instance.authService;
+        final isSignedIn = authService?.currentUser != null;
+        final isTeacher = authService?.session?.isTeacher ?? false;
+        
+        if (!isSignedIn || !isTeacher) {
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const LoginView(),
+          );
+        }
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const TeacherDashboardView(),
         );
     }
 
