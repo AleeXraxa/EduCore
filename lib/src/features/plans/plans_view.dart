@@ -10,6 +10,7 @@ import 'package:educore/src/features/plans/plans_controller.dart';
 import 'package:educore/src/features/plans/widgets/feature_toggle_dialog.dart';
 import 'package:educore/src/features/plans/widgets/plan_editor_dialog.dart';
 import 'package:educore/src/features/plans/widgets/plan_status_badge.dart';
+import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
 import 'package:educore/src/core/ui/widgets/app_button.dart';
@@ -464,47 +465,33 @@ class _PlanCardState extends State<_PlanCard> {
                   const SizedBox(width: 10),
                   PlanStatusBadge(active: plan.isActive),
                   const SizedBox(width: 6),
-                  PopupMenuButton<String>(
-                    tooltip: 'Actions',
-                    onSelected: (v) {
-                      switch (v) {
-                        case 'edit':
-                          widget.onEdit();
-                          break;
-                        case 'features':
-                          widget.onFeatures();
-                          break;
-                        case 'toggle':
-                          widget.onToggleActive();
-                          break;
-                        case 'archive':
-                          widget.onArchive();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Text('Edit plan'),
+                  AppActionMenu(
+                    actions: [
+                      AppActionItem(
+                        label: 'Edit Plan',
+                        icon: Icons.edit_rounded,
+                        type: AppActionType.edit,
+                        onTap: widget.onEdit,
                       ),
-                      const PopupMenuItem(
-                        value: 'features',
-                        child: Text('Toggle features'),
+                      AppActionItem(
+                        label: 'Toggle Features',
+                        icon: Icons.tune_rounded,
+                        onTap: widget.onFeatures,
                       ),
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Text(plan.isActive ? 'Deactivate' : 'Activate'),
+                      AppActionItem(
+                        label: plan.isActive ? 'Deactivate' : 'Activate',
+                        icon: plan.isActive
+                            ? Icons.pause_circle_outline_rounded
+                            : Icons.play_circle_outline_rounded,
+                        onTap: widget.onToggleActive,
                       ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(
-                        value: 'archive',
-                        child: Text('Archive (soft delete)'),
+                      AppActionItem(
+                        label: 'Archive Plan',
+                        icon: Icons.archive_outlined,
+                        type: AppActionType.delete,
+                        onTap: widget.onArchive,
                       ),
                     ],
-                    child: Icon(
-                      Icons.more_horiz_rounded,
-                      color: cs.onSurfaceVariant,
-                    ),
                   ),
                 ],
               ),

@@ -1,15 +1,16 @@
+import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 
 class StudentFormDialog extends StatefulWidget {
-  const StudentFormDialog({
-    super.key,
-    this.student,
-    required this.controller,
-  });
+  const StudentFormDialog({super.key, this.student, required this.controller});
 
   final Student? student;
   final StudentController controller;
@@ -20,7 +21,7 @@ class StudentFormDialog extends StatefulWidget {
 
 class _StudentFormDialogState extends State<StudentFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameCtrl;
   late TextEditingController _fatherNameCtrl;
   late TextEditingController _phoneCtrl;
@@ -28,14 +29,22 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   late String _status;
   bool _isLoading = false;
 
-  final List<String> _classes = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
+  final List<String> _classes = [
+    'Grade 1',
+    'Grade 2',
+    'Grade 3',
+    'Grade 4',
+    'Grade 5',
+  ];
   final Map<String, TextEditingController> _dynamicControllers = {};
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.student?.name ?? '');
-    _fatherNameCtrl = TextEditingController(text: widget.student?.fatherName ?? '');
+    _fatherNameCtrl = TextEditingController(
+      text: widget.student?.fatherName ?? '',
+    );
     _phoneCtrl = TextEditingController(text: widget.student?.phone ?? '');
     _selectedClass = widget.student?.className ?? _classes.first;
     _status = widget.student?.status ?? 'active';
@@ -70,7 +79,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       status: _status,
       createdAt: widget.student?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
-      customFields: Map<String, dynamic>.from(widget.controller.dynamicFormState),
+      customFields: Map<String, dynamic>.from(
+        widget.controller.dynamicFormState,
+      ),
     );
 
     bool success;
@@ -82,21 +93,16 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
     if (success && mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Student ${widget.student == null ? 'added' : 'updated'} successfully.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.green,
-        ),
+      AppToasts.showSuccess(
+        context,
+        message:
+            'Student ${widget.student == null ? 'added' : 'updated'} successfully.',
       );
     } else if (mounted) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save student. Please try again.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ),
+      AppToasts.showError(
+        context,
+        message: 'Failed to save student. Please try again.',
       );
     }
   }
@@ -138,7 +144,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
-                      isEditing ? Icons.edit_note_rounded : Icons.person_add_rounded,
+                      isEditing
+                          ? Icons.edit_note_rounded
+                          : Icons.person_add_rounded,
                       color: cs.primary,
                     ),
                   ),
@@ -149,13 +157,16 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                       children: [
                         Text(
                           isEditing ? 'Edit Profile' : 'New Enrollment',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.5,
                               ),
                         ),
                         Text(
-                          isEditing ? 'Update student details' : 'Add a new student to system',
+                          isEditing
+                              ? 'Update student details'
+                              : 'Add a new student to system',
                           style: TextStyle(color: cs.onSurfaceVariant),
                         ),
                       ],
@@ -186,7 +197,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         label: 'Student Full Name',
                         hint: 'Enter official name',
                         icon: Icons.person_outline_rounded,
-                        validator: (v) => v!.isEmpty ? 'Name is required' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Name is required' : null,
                       ),
                       const SizedBox(height: 20),
                       _buildField(
@@ -194,13 +206,14 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         label: 'Father\'s Name',
                         hint: 'Enter guardian name',
                         icon: Icons.family_restroom_outlined,
-                        validator: (v) => v!.isEmpty ? 'Father name is required' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Father name is required' : null,
                       ),
-                      
+
                       const SizedBox(height: 32),
                       _sectionTitle('ENROLLMENT DETAILS'),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           Expanded(
@@ -209,7 +222,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                               label: 'Class',
                               icon: Icons.school_outlined,
                               items: _classes,
-                              onChanged: (v) => setState(() => _selectedClass = v!),
+                              onChanged: (v) =>
+                                  setState(() => _selectedClass = v!),
                             ),
                           ),
                           if (isEditing) ...[
@@ -226,7 +240,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                           ],
                         ],
                       ),
-                      
+
                       const SizedBox(height: 20),
                       _buildField(
                         controller: _phoneCtrl,
@@ -235,7 +249,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         validator: (val) {
-                          if (val == null || val.trim().isEmpty) return 'Required';
+                          if (val == null || val.trim().isEmpty)
+                            return 'Required';
                           if (!RegExp(r'^03\d{9}$').hasMatch(val.trim())) {
                             return 'Enter valid 11-digit mobile number';
                           }
@@ -261,18 +276,26 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                 onPressed: _isLoading ? null : _submit,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
                         isEditing ? 'Update Student' : 'Enroll Student',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
               ),
             ),
@@ -324,11 +347,17 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 20, color: cs.onSurfaceVariant),
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: cs.onSurfaceVariant,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -339,32 +368,40 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               ],
             ),
           ),
-        ...definitions.map((field) => Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _buildDynamicField(field),
-            )),
+        ...definitions.map(
+          (field) => Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _buildDynamicField(field),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildDynamicField(StudentCustomField field) {
     final value = widget.controller.dynamicFormState[field.key];
-    
+
     switch (field.type) {
       case CustomFieldType.text:
       case CustomFieldType.number:
         final ctrl = _dynamicControllers.putIfAbsent(
-          field.key, 
-          () => TextEditingController(text: value?.toString() ?? '')
+          field.key,
+          () => TextEditingController(text: value?.toString() ?? ''),
         );
-        
+
         return _buildField(
           controller: ctrl,
           label: field.label,
           hint: 'Enter ${field.label.toLowerCase()}',
-          icon: field.type == CustomFieldType.number ? Icons.numbers_rounded : Icons.text_fields_rounded,
-          keyboardType: field.type == CustomFieldType.number ? TextInputType.number : TextInputType.text,
-          validator: field.isRequired ? (v) => v!.isEmpty ? 'Required' : null : null,
+          icon: field.type == CustomFieldType.number
+              ? Icons.numbers_rounded
+              : Icons.text_fields_rounded,
+          keyboardType: field.type == CustomFieldType.number
+              ? TextInputType.number
+              : TextInputType.text,
+          validator: field.isRequired
+              ? (v) => v!.isEmpty ? 'Required' : null
+              : null,
           onChanged: (v) => widget.controller.updateDynamicField(field.key, v),
         );
       case CustomFieldType.date:
@@ -382,13 +419,18 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
   Widget _buildDateField(StudentCustomField field) {
     final value = widget.controller.dynamicFormState[field.key];
-    final dateStr = value is DateTime ? DateFormat('yyyy-MM-dd').format(value) : (value?.toString() ?? 'Select Date');
+    final dateStr = value is DateTime
+        ? DateFormat('yyyy-MM-dd').format(value)
+        : (value?.toString() ?? 'Select Date');
     final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(field.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(
+          field.label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
         const SizedBox(height: 8),
         InkWell(
           onTap: () async {
@@ -407,13 +449,24 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today_rounded, size: 20, color: cs.primary.withValues(alpha: 0.7)),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 20,
+                  color: cs.primary.withValues(alpha: 0.7),
+                ),
                 const SizedBox(width: 12),
-                Text(dateStr, style: TextStyle(color: value == null ? cs.onSurfaceVariant : cs.onSurface)),
+                Text(
+                  dateStr,
+                  style: TextStyle(
+                    color: value == null ? cs.onSurfaceVariant : cs.onSurface,
+                  ),
+                ),
               ],
             ),
           ),
@@ -459,22 +512,33 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, size: 20, color: cs.primary.withValues(alpha: 0.7)),
+            prefixIcon: Icon(
+              icon,
+              size: 20,
+              color: cs.primary.withValues(alpha: 0.7),
+            ),
             filled: true,
             fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: cs.primary, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
       ],
@@ -498,19 +562,27 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 20, color: cs.primary.withValues(alpha: 0.7)),
+            prefixIcon: Icon(
+              icon,
+              size: 20,
+              color: cs.primary.withValues(alpha: 0.7),
+            ),
             filled: true,
             fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -518,10 +590,14 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          items: items.map((e) => DropdownMenuItem(
-            value: e,
-            child: Text(e.substring(0, 1).toUpperCase() + e.substring(1)),
-          )).toList(),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e.substring(0, 1).toUpperCase() + e.substring(1)),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
         ),
       ],
@@ -534,88 +610,239 @@ class _AddCustomFieldDefinitionDialog extends StatefulWidget {
   const _AddCustomFieldDefinitionDialog({required this.onSave});
 
   @override
-  State<_AddCustomFieldDefinitionDialog> createState() => __AddCustomFieldDefinitionDialogState();
+  State<_AddCustomFieldDefinitionDialog> createState() =>
+      __AddCustomFieldDefinitionDialogState();
 }
 
-class __AddCustomFieldDefinitionDialogState extends State<_AddCustomFieldDefinitionDialog> {
+class __AddCustomFieldDefinitionDialogState
+    extends State<_AddCustomFieldDefinitionDialog> {
   final _labelCtrl = TextEditingController();
   final _optionsCtrl = TextEditingController();
   CustomFieldType _type = CustomFieldType.text;
   bool _isRequired = false;
 
   @override
+  void dispose() {
+    _labelCtrl.dispose();
+    _optionsCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Custom Field', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      content: SingleChildScrollView(
+    final cs = Theme.of(context).colorScheme;
+    final typeLabels = {
+      CustomFieldType.text: 'Text',
+      CustomFieldType.number: 'Number',
+      CustomFieldType.date: 'Date',
+      CustomFieldType.dropdown: 'Dropdown',
+    };
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _labelCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Field Label',
-                hintText: 'e.g. Guardian CNIC',
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<CustomFieldType>(
-              value: _type,
-              items: CustomFieldType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name.toUpperCase()))).toList(),
-              onChanged: (v) => setState(() => _type = v!),
-              decoration: const InputDecoration(
-                labelText: 'Field Type',
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-              ),
-            ),
-            if (_type == CustomFieldType.dropdown) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: _optionsCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Options (comma separated)',
-                  hintText: 'A+, B+, O-',
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
+            // ── Header ────────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: cs.outlineVariant.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
-            ],
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Required Field', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              value: _isRequired,
-              onChanged: (v) => setState(() => _isRequired = v),
-              contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.1),
+                      borderRadius: AppRadii.r12,
+                    ),
+                    child: Icon(
+                      Icons.add_box_rounded,
+                      color: cs.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Custom Field',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                        ),
+                        Text(
+                          'Define a custom data field for students.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Body ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextField(
+                    controller: _labelCtrl,
+                    label: 'Field Label',
+                    hintText: 'e.g. Guardian CNIC',
+                    prefixIcon: Icons.label_outline_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppDropdown<CustomFieldType>(
+                    label: 'Field Type',
+                    items: CustomFieldType.values,
+                    value: _type,
+                    itemLabel: (t) => typeLabels[t] ?? t.name,
+                    prefixIcon: Icons.category_outlined,
+                    onChanged: (v) => setState(() => _type = v ?? _type),
+                  ),
+                  if (_type == CustomFieldType.dropdown) ...[
+                    const SizedBox(height: 12),
+                    AppTextField(
+                      controller: _optionsCtrl,
+                      label: 'Options (comma separated)',
+                      hintText: 'A+, B+, O-',
+                      prefixIcon: Icons.list_rounded,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  // Required toggle
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: AppRadii.r12,
+                      border: Border.all(color: cs.outlineVariant),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isRequired
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: _isRequired ? cs.primary : cs.onSurfaceVariant,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Required Field',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 0.85,
+                          child: Switch(
+                            value: _isRequired,
+                            onChanged: (v) => setState(() => _isRequired = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+            // ── Footer ────────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+                border: Border(
+                  top: BorderSide(
+                    color: cs.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AppPrimaryButton(
+                    label: 'Create Field',
+                    icon: Icons.add_rounded,
+                    onPressed: () {
+                      if (_labelCtrl.text.trim().isEmpty) return;
+                      final key = _labelCtrl.text
+                          .trim()
+                          .toLowerCase()
+                          .replaceAll(' ', '_')
+                          .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+                      final options = _optionsCtrl.text
+                          .split(',')
+                          .map((e) => e.trim())
+                          .where((e) => e.isNotEmpty)
+                          .toList();
+
+                      widget.onSave(
+                        StudentCustomField(
+                          id: '',
+                          key: key,
+                          label: _labelCtrl.text.trim(),
+                          type: _type,
+                          isRequired: _isRequired,
+                          options: options,
+                          createdAt: DateTime.now(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () {
-            if (_labelCtrl.text.isEmpty) return;
-            final key = _labelCtrl.text.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
-            final options = _optionsCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-            
-            widget.onSave(StudentCustomField(
-              id: '',
-              key: key,
-              label: _labelCtrl.text.trim(),
-              type: _type,
-              isRequired: _isRequired,
-              options: options,
-              createdAt: DateTime.now(),
-            ));
-          },
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: const Text('Create Field'),
-        ),
-      ],
     );
   }
 }

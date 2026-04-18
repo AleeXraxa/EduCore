@@ -19,6 +19,7 @@ import 'package:educore/src/core/services/admin_payments_service.dart';
 import 'package:educore/src/core/services/notification_service.dart';
 import 'package:educore/src/core/services/feature_override_service.dart';
 import 'package:educore/src/core/services/settings_service.dart';
+import 'package:educore/src/core/services/class_service.dart';
 
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
@@ -47,6 +48,7 @@ class AppServices {
   SubscriptionService? subscriptionService;
   FeatureAccessService? featureAccessService;
   InstituteService? instituteService;
+  ClassService? classService;
   AdminUsersService? adminUsersService;
   AdminSubscriptionsService? adminSubscriptionsService;
   AdminPaymentsService? adminPaymentsService;
@@ -116,6 +118,11 @@ class AppServices {
         firestore: firestore!,
         primaryApp: firebaseApp!,
         primaryAuth: auth!,
+        auditLogService: auditLogService!,
+      );
+      
+      classService = ClassService(
+        firestore: firestore!,
         auditLogService: auditLogService!,
       );
       

@@ -1,6 +1,10 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/app_button.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
 import 'package:educore/src/features/students/models/student.dart';
@@ -69,42 +73,24 @@ class _StudentsViewState extends State<StudentsView> {
   }
 
   Future<void> _handleDelete(Student student) async {
-    final cs = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surface,
-        title: const Text('Delete Student'),
-        content: Text(
-          'Are you sure you want to delete ${student.name}? This action cannot be fully undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.error,
-              foregroundColor: cs.onError,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await AppDialogs.showConfirm(
+      context,
+      title: 'Delete Student',
+      message: 'Are you sure you want to delete ${student.name}? This action cannot be fully undone.',
+      confirmLabel: 'Delete',
+      isDanger: true,
     );
 
     if (confirmed == true) {
+      if (mounted) AppDialogs.showLoading(context, message: 'Deleting student...');
       final success = await _controller.deleteStudent(student.id);
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Student deleted successfully.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: cs.error,
-          ),
-        );
+      if (mounted) {
+        AppDialogs.hide(context);
+        if (success) {
+          AppToasts.showSuccess(context, message: 'Student deleted successfully.');
+        } else {
+          AppToasts.showError(context, message: 'Failed to delete student.');
+        }
       }
     }
   }
@@ -803,7 +789,14 @@ class _CardActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    if (onEdit == null && onDelete == null) {
+      return IconButton(
+        onPressed: onView,
+        icon: const Icon(Icons.visibility_outlined, size: 20),
+        tooltip: 'View Profile',
+      );
+    }
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -812,22 +805,21 @@ class _CardActions extends StatelessWidget {
           icon: const Icon(Icons.visibility_outlined, size: 20),
           tooltip: 'View Profile',
         ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          onSelected: (val) {
-            if (val == 'edit' && onEdit != null) onEdit!();
-            if (val == 'delete' && onDelete != null) onDelete!();
-          },
-          itemBuilder: (context) => [
+        AppActionMenu(
+          actions: [
             if (onEdit != null)
-              const PopupMenuItem(value: 'edit', child: Text('Edit Student')),
+              AppActionItem(
+                label: 'Edit Student',
+                icon: Icons.edit_rounded,
+                type: AppActionType.edit,
+                onTap: onEdit!,
+              ),
             if (onDelete != null)
-              PopupMenuItem(
-                value: 'delete',
-                child: Text('Delete', style: TextStyle(color: cs.error)),
+              AppActionItem(
+                label: 'Delete Student',
+                icon: Icons.delete_forever_rounded,
+                type: AppActionType.delete,
+                onTap: onDelete!,
               ),
           ],
         ),

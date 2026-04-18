@@ -1,8 +1,13 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
-import 'package:educore/src/core/services/app_services.dart';
+
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:educore/src/features/fees/models/fee_record.dart';
 import 'package:flutter/material.dart';
@@ -318,109 +323,245 @@ class _CollectFeeDialogState extends State<_CollectFeeDialog> {
   FeeType _selectedType = FeeType.monthly;
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
-  final _studentIdController = TextEditingController();
   final _studentNameController = TextEditingController();
-  String _selectedMonth = DateFormat('MMMM yyyy').format(DateTime.now());
+  bool _loading = false;
+
+  final List<String> _months = List.generate(6, (i) {
+    final m = DateTime.now().subtract(Duration(days: 30 * i));
+    return DateFormat('MMMM yyyy').format(m);
+  });
+  late String _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMonth = _months.first;
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descController.dispose();
+    _studentNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+    if (amount <= 0 || _studentNameController.text.trim().isEmpty) {
+      AppToasts.showError(context, message: 'Please fill in all required fields.');
+      return;
+    }
+
+    setState(() => _loading = true);
+    String? error;
+    if (_selectedType == FeeType.admission) {
+      error = await widget.controller.createAdmissionFee(
+        studentId: 'MOCK_ID',
+        studentName: _studentNameController.text.trim(),
+        amount: amount,
+      );
+    } else if (_selectedType == FeeType.monthly) {
+      error = await widget.controller.createMonthlyFee(
+        studentId: 'MOCK_ID',
+        studentName: _studentNameController.text.trim(),
+        amount: amount,
+        month: _selectedMonth,
+      );
+    } else {
+      error = await widget.controller.createMiscFee(
+        title: _studentNameController.text.trim(),
+        description: _descController.text.trim(),
+        amount: amount,
+      );
+    }
+    setState(() => _loading = false);
+
+    if (!mounted) return;
+    if (error != null) {
+      AppToasts.showError(context, message: error);
+    } else {
+      AppToasts.showSuccess(context, message: 'Fee recorded successfully.');
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final feeTypeLabels = {
+      FeeType.monthly: 'Monthly',
+      FeeType.admission: 'Admission',
+      FeeType.misc: 'Misc / Other',
+    };
 
-    return AlertDialog(
-      title: const Text('Create Fee Entry', style: TextStyle(fontWeight: FontWeight.w900)),
-      content: SingleChildScrollView(
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Fee Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 8),
-            SegmentedButton<FeeType>(
-              segments: const [
-                ButtonSegment(value: FeeType.monthly, label: Text('Monthly')),
-                ButtonSegment(value: FeeType.admission, label: Text('Admission')),
-                ButtonSegment(value: FeeType.misc, label: Text('Misc')),
-              ],
-              selected: {_selectedType},
-              onSelectionChanged: (set) => setState(() => _selectedType = set.first),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _studentNameController,
-              decoration: const InputDecoration(labelText: 'Student / Payer Name', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (PKR)', border: OutlineInputBorder()),
-            ),
-            if (_selectedType == FeeType.monthly) ...[
-              const SizedBox(height: 12),
-              const Text('Select Month', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedMonth,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-                items: [0, 1, 2, 3, 4, 5].map((i) {
-                  final m = DateTime.now().add(Duration(days: -30 * i));
-                  final val = DateFormat('MMMM yyyy').format(m);
-                  return DropdownMenuItem(value: val, child: Text(val));
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedMonth = val!),
+            // ── Header ──────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 24, 16, 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                ),
               ),
-            ],
-            if (_selectedType == FeeType.misc) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descController,
-                maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.1),
+                      borderRadius: AppRadii.r12,
+                    ),
+                    child: Icon(Icons.payments_rounded, color: cs.primary, size: 22),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Create Fee Entry',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Record a new payment against a student.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+            // ── Body ────────────────────────────────────────────────
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FEE TYPE',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                      color: cs.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<FeeType>(
+                    style: SegmentedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                    ),
+                    segments: FeeType.values
+                        .map((t) => ButtonSegment(
+                              value: t,
+                              label: Text(feeTypeLabels[t]!),
+                            ))
+                        .toList(),
+                    selected: {_selectedType},
+                    onSelectionChanged: (set) =>
+                        setState(() => _selectedType = set.first),
+                  ),
+                  const SizedBox(height: 20),
+                  AppTextField(
+                    controller: _studentNameController,
+                    label: 'Student / Payer Name',
+                    hintText: 'e.g. Ali Hassan',
+                    prefixIcon: Icons.person_outline_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: _amountController,
+                    label: 'Amount (PKR)',
+                    hintText: '0.00',
+                    prefixIcon: Icons.currency_rupee_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+                  if (_selectedType == FeeType.monthly) ...[
+                    const SizedBox(height: 12),
+                    AppDropdown<String>(
+                      label: 'Select Month',
+                      items: _months,
+                      value: _selectedMonth,
+                      itemLabel: (m) => m,
+                      prefixIcon: Icons.calendar_month_rounded,
+                      onChanged: (v) => setState(() => _selectedMonth = v ?? _selectedMonth),
+                    ),
+                  ],
+                  if (_selectedType == FeeType.misc) ...[
+                    const SizedBox(height: 12),
+                    AppTextField(
+                      controller: _descController,
+                      label: 'Description',
+                      hintText: 'What is this payment for?',
+                      prefixIcon: Icons.notes_rounded,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+            // ── Footer ──────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow.withValues(alpha: 0.5),
+                border: Border(
+                  top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _loading ? null : () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AppPrimaryButton(
+                    label: 'Record Payment',
+                    icon: Icons.check_rounded,
+                    onPressed: _loading ? null : _submit,
+                    busy: _loading,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () async {
-            final amount = double.tryParse(_amountController.text) ?? 0;
-            if (amount <= 0 || _studentNameController.text.isEmpty) return;
-
-            String? error;
-            if (_selectedType == FeeType.admission) {
-              error = await widget.controller.createAdmissionFee(
-                studentId: 'MOCK_ID', // In real app, pick from list
-                studentName: _studentNameController.text,
-                amount: amount,
-              );
-            } else if (_selectedType == FeeType.monthly) {
-              error = await widget.controller.createMonthlyFee(
-                studentId: 'MOCK_ID',
-                studentName: _studentNameController.text,
-                amount: amount,
-                month: _selectedMonth,
-              );
-            } else {
-              error = await widget.controller.createMiscFee(
-                title: _studentNameController.text,
-                description: _descController.text,
-                amount: amount,
-              );
-            }
-
-            if (error != null) {
-              if (mounted) {
-                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error), backgroundColor: cs.error));
-              }
-            } else {
-              if (mounted) Navigator.pop(context);
-            }
-          },
-          child: const Text('Create Entry'),
-        ),
-      ],
     );
   }
 }
+

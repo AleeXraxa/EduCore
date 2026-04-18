@@ -4,6 +4,7 @@ import 'package:educore/src/core/ui/widgets/app_text_area.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
@@ -283,12 +284,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
     }
 
     if (_group.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please create and select a feature group first.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToasts.showError(context, message: 'Please create and select a feature group first.');
       return;
     }
 

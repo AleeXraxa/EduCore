@@ -2,6 +2,7 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/features/features_controller.dart';
 import 'package:educore/src/features/features/models/feature_group.dart';
@@ -90,9 +91,7 @@ class _FeatureGroupManagementDialogState
       }
       _clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Group saved successfully')),
-        );
+        AppToasts.showSuccess(context, message: 'Group saved successfully');
       }
     } catch (e) {
       if (mounted) {

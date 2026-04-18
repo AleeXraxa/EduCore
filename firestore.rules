@@ -205,6 +205,11 @@ service cloud.firestore {
         allow read:   if belongsTo(academyId);
         allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
       }
+      
+      match /classes/{classId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+      }
     }
 
     // ======================================================
