@@ -81,19 +81,18 @@ class UsersController extends BaseController {
     _lastDoc = null;
     _hasMore = true;
     _all.clear();
-    
+
     await runBusy<void>(() async {
       await _fetchNextBatch();
     });
   }
 
-  /// Pagination: Fetch next batch and append.
   Future<void> loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    
+
     _isLoadingMore = true;
     notifyListeners();
-    
+
     try {
       await _fetchNextBatch();
     } finally {
@@ -108,7 +107,8 @@ class UsersController extends BaseController {
     try {
       final core_models.AppUserRole? roleFilter = switch (_role) {
         UsersRoleFilter.superAdmin => core_models.AppUserRole.superAdmin,
-        UsersRoleFilter.instituteAdmin => core_models.AppUserRole.instituteAdmin,
+        UsersRoleFilter.instituteAdmin =>
+          core_models.AppUserRole.instituteAdmin,
         UsersRoleFilter.staff => core_models.AppUserRole.staff,
         UsersRoleFilter.teacher => core_models.AppUserRole.teacher,
         UsersRoleFilter.all => null,
@@ -119,7 +119,7 @@ class UsersController extends BaseController {
         UsersStatusFilter.active => 'active',
         UsersStatusFilter.blocked => 'blocked',
       };
-      
+
       final results = await _repository!.getUsersBatch(
         limit: _pageSize,
         lastDoc: _lastDoc,
@@ -134,12 +134,15 @@ class UsersController extends BaseController {
 
       if (results.isNotEmpty) {
         final lastUser = results.last;
-        final lastDocSnap = await FirebaseFirestore.instance.collection('users').doc(lastUser.uid).get();
+        final lastDocSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(lastUser.uid)
+            .get();
         _lastDoc = lastDocSnap;
-        
+
         _all.addAll(results.map(_mapToUi));
       }
-      
+
       errorMessage = null;
     } catch (e) {
       errorMessage = e.toString();
@@ -149,29 +152,37 @@ class UsersController extends BaseController {
 
   // --- UI Mappings & Filters ---
 
-  List<AppUser> get list => filtered; 
+  List<AppUser> get list => filtered;
 
   List<AppUser> get filtered {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return _all;
     return _all.where((e) {
-      return e.name.toLowerCase().contains(q) || 
-             e.email.toLowerCase().contains(q) ||
-             e.phone.toLowerCase().contains(q);
+      return e.name.toLowerCase().contains(q) ||
+          e.email.toLowerCase().contains(q) ||
+          e.phone.toLowerCase().contains(q);
     }).toList();
   }
 
   int get allCount => _all.length;
   int get totalCount => _all.length;
-  int get activeCount => _all.where((e) => e.status == AppUserStatus.active).length;
-  int get instituteAdminsCount => _all.where((e) => e.role == AppUserRole.instituteAdmin).length;
-  int get staffTeachersCount => _all.where((e) => e.role == AppUserRole.teacher || e.role == AppUserRole.staff).length;
+  int get activeCount =>
+      _all.where((e) => e.status == AppUserStatus.active).length;
+  int get instituteAdminsCount =>
+      _all.where((e) => e.role == AppUserRole.instituteAdmin).length;
+  int get staffTeachersCount => _all
+      .where(
+        (e) => e.role == AppUserRole.teacher || e.role == AppUserRole.staff,
+      )
+      .length;
 
   List<String> get institutes {
     final ids = <String>{..._all.map((e) => e.instituteId)};
     ids.add('all');
     final sortedList = ids.toList(growable: true);
-    sortedList.sort((a, b) => instituteNameForId(a).compareTo(instituteNameForId(b)));
+    sortedList.sort(
+      (a, b) => instituteNameForId(a).compareTo(instituteNameForId(b)),
+    );
     if (sortedList.remove('all')) {
       sortedList.insert(0, 'all');
     }
@@ -204,7 +215,7 @@ class UsersController extends BaseController {
   }
 
   // Action Handlers
-  
+
   Future<void> addUser(CreateUserDraft draft) async {
     if (_repository == null) return;
 
@@ -234,12 +245,14 @@ class UsersController extends BaseController {
   Future<void> toggleBlocked(String userId) async {
     final idx = _all.indexWhere((e) => e.id == userId);
     if (idx < 0 || _repository == null) return;
-    
+
     final current = _all[idx];
-    final nextStatus = current.status == AppUserStatus.blocked ? 'active' : 'blocked';
-    
+    final nextStatus = current.status == AppUserStatus.blocked
+        ? 'active'
+        : 'blocked';
+
     await _repository!.setStatus(userId, nextStatus);
-    
+
     _all[idx] = AppUser(
       id: current.id,
       name: current.name,
@@ -248,7 +261,9 @@ class UsersController extends BaseController {
       role: current.role,
       instituteId: current.instituteId,
       instituteName: current.instituteName,
-      status: nextStatus == 'blocked' ? AppUserStatus.blocked : AppUserStatus.active,
+      status: nextStatus == 'blocked'
+          ? AppUserStatus.blocked
+          : AppUserStatus.active,
       lastLoginAt: current.lastLoginAt,
     );
     notifyListeners();
@@ -332,7 +347,9 @@ class UsersController extends BaseController {
         ? AppUserStatus.blocked
         : AppUserStatus.active;
 
-    final name = u.name.trim().isNotEmpty ? u.name.trim() : _nameFromEmail(u.email);
+    final name = u.name.trim().isNotEmpty
+        ? u.name.trim()
+        : _nameFromEmail(u.email);
     final phone = u.phone.trim().isNotEmpty ? u.phone.trim() : 'â€”';
 
     return AppUser(

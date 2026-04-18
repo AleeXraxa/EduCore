@@ -74,6 +74,11 @@ const _items = <_SettingsNavItem>[
     icon: Icons.tune_rounded,
   ),
   _SettingsNavItem(
+    section: SettingsSection.planAndFeatures,
+    label: 'Plan & Features',
+    icon: Icons.verified_user_rounded,
+  ),
+  _SettingsNavItem(
     section: SettingsSection.paymentSettings,
     label: 'Payment Methods',
     icon: Icons.payments_rounded,

@@ -9,9 +9,11 @@ import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/dashboard/institute_dashboard_controller.dart';
 import 'package:educore/src/features/dashboard/widgets/institute_charts.dart';
+import 'package:educore/src/features/classes/views/classes_view.dart';
 import 'package:educore/src/features/students/views/students_view.dart';
 import 'package:educore/src/features/attendance/views/attendance_view.dart';
 import 'package:educore/src/features/fees/views/fees_view.dart';
+import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -50,8 +52,10 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
           child: switch (current) {
             _InstituteNav.dashboard => const _InstituteDashboardHome(),
             _InstituteNav.students => const StudentsView(),
+            _InstituteNav.classes => const ClassesView(),
             _InstituteNav.attendance => const AttendanceView(),
             _InstituteNav.fees => const FeesView(),
+            _InstituteNav.settings => const SettingsView(),
             _ => const Center(child: Text('Coming Soon...')),
           },
         ),
@@ -72,24 +76,35 @@ enum _InstituteNav {
     'Students',
     'Student Directory',
     Icons.people_alt_rounded,
+    featureKey: 'student_view',
+  ),
+  classes(
+    'classes',
+    'Classes',
+    'Class Management',
+    Icons.class_rounded,
+    featureKey: 'class_view',
   ),
   attendance(
     'attendance',
     'Attendance',
     'Daily Attendance',
     Icons.fact_check_rounded,
+    featureKey: 'attendance_mark',
   ),
   fees(
     'fees',
     'Fees / Payments',
     'Fee Collection',
     Icons.request_quote_rounded,
+    featureKey: 'fee_view',
   ),
   staff(
     'staff',
     'Staff',
     'Staff Directory',
     Icons.badge_rounded,
+    featureKey: 'staff_view',
   ),
   settings(
     'settings',
@@ -98,14 +113,16 @@ enum _InstituteNav {
     Icons.settings_rounded,
   );
 
-  const _InstituteNav(this.id, this.label, this.title, this.icon);
+  const _InstituteNav(this.id, this.label, this.title, this.icon,
+      {this.featureKey});
   final String id;
   final String label;
   final String title;
   final IconData icon;
+  final String? featureKey;
 
   SidebarItemData toSidebarItem() =>
-      SidebarItemData(id: id, label: label, icon: icon);
+      SidebarItemData(id: id, label: label, icon: icon, requiredFeature: featureKey);
 
   static List<SidebarSectionData> get sections => [
     SidebarSectionData(
@@ -116,6 +133,7 @@ enum _InstituteNav {
       title: 'Management',
       items: [
         students.toSidebarItem(),
+        classes.toSidebarItem(),
         attendance.toSidebarItem(),
         fees.toSidebarItem(),
         staff.toSidebarItem(),

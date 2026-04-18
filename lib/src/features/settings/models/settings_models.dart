@@ -1,6 +1,6 @@
 enum SettingsSection {
   general,
-
+  planAndFeatures,
   paymentSettings,
   notificationSettings,
   security,
