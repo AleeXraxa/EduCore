@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/staff/controllers/staff_controller.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
@@ -355,17 +356,21 @@ class _ActivityTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<AuditLog>>(
-      future: AppServices.instance.auditLogService?.getLogs(
+    return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      future: AppServices.instance.auditLogService?.getPaginatedLogs(
+        academyId: AppServices.instance.authService?.session?.academyId ?? '',
         limit: 20,
-        targetDoc: staffId,
+        targetId: staffId,
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final logs = snapshot.data ?? [];
+        final logs = snapshot.data?.docs
+                .map((doc) => AuditLog.fromFirestore(doc))
+                .toList() ??
+            [];
 
         if (logs.isEmpty) {
           return const Center(
@@ -430,7 +435,7 @@ class _ActivityTile extends StatelessWidget {
           ),
         ),
         Text(
-          DateFormat('HH:mm, dd MMM').format(log.timestamp),
+          DateFormat('HH:mm, dd MMM').format(log.createdAt),
           style: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.5), fontSize: 11),
         ),
       ],

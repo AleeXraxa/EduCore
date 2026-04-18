@@ -20,11 +20,14 @@ class AuditLogsController extends BaseController {
   String? selectedModule;
   AuditSeverity? selectedSeverity;
   String? searchAcademyId;
+  String? searchActorId;
+  DateTime? startDate;
+  DateTime? endDate;
 
   DocumentSnapshot? _lastDoc;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  final int _pageSize = 50;
+  final int _pageSize = 20;
 
   bool get ready => _repository != null;
   bool get hasMore => _hasMore;
@@ -52,9 +55,6 @@ class AuditLogsController extends BaseController {
     });
   }
 
-  /// Alias for refresh used by some views.
-  Future<void> refreshLogs() => refresh();
-
   Future<void> loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
     
@@ -73,30 +73,25 @@ class AuditLogsController extends BaseController {
     if (_repository == null) return;
 
     try {
-      final results = await _repository!.getLogsBatch(
+      final snapshot = await _repository!.getRawLogsBatch(
         limit: _pageSize,
         lastDoc: _lastDoc,
         module: selectedModule,
         severity: selectedSeverity?.name,
         academyId: searchAcademyId?.isEmpty == true ? null : searchAcademyId,
+        actorId: searchActorId,
+        startDate: startDate,
+        endDate: endDate,
       );
+
+      final results = snapshot.docs.map((doc) => AuditLog.fromFirestore(doc)).toList();
 
       if (results.length < _pageSize) {
         _hasMore = false;
       }
 
       if (results.isNotEmpty) {
-        // Get the DocumentSnapshot to use as the pagination cursor
-        final lastLog = results.last;
-        final lastDocSnap = await FirebaseFirestore.instance
-            .collection('auditLogs')
-            .doc(lastLog.id)
-            .get();
-            
-        if (lastDocSnap.exists) {
-          _lastDoc = lastDocSnap;
-        }
-        
+        _lastDoc = snapshot.docs.last;
         _logs.addAll(results);
       }
       notifyListeners();
@@ -115,15 +110,31 @@ class AuditLogsController extends BaseController {
     unawaited(refresh());
   }
 
-  void setSearchAcademy(String id) {
+  void setSearchAcademy(String? id) {
     searchAcademyId = id;
     unawaited(refresh());
   }
 
+  void setActor(String? id) {
+    searchActorId = id;
+    unawaited(refresh());
+  }
+
+  void setDateRange(DateTime? start, DateTime? end) {
+    startDate = start;
+    endDate = end;
+    unawaited(refresh());
+  }
+
   List<String> get availableModules => [
-    'payments',
-    'subscriptions',
+    'staff',
+    'classes',
+    'students',
+    'fees',
+    'attendance',
     'academies',
+    'subscriptions',
+    'payments',
     'plans',
     'features',
     'settings',

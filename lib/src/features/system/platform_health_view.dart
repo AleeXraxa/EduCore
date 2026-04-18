@@ -121,37 +121,37 @@ class _HealthKpiSection extends StatelessWidget {
       ScreenSize.expanded => 4,
     };
     final kpis = [
-      KpiCardData(
+      const KpiCardData(
         label: 'Firestore Reads',
         value: '14.2K',
         trendText: '12% of daily',
         trendUp: true,
         icon: Icons.storage_rounded,
-        gradient: [const Color(0xFF0EA5E9), const Color(0xFF0284C7)],
+        gradient: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
       ),
-      KpiCardData(
+      const KpiCardData(
         label: 'Firestore Writes',
         value: '2.8K',
         trendText: '4% of daily',
         trendUp: true,
         icon: Icons.edit_document,
-        gradient: [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
+        gradient: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
       ),
-      KpiCardData(
+      const KpiCardData(
         label: 'Avg. Auth Latency',
         value: '184ms',
         trendText: 'Optimal',
         trendUp: true,
         icon: Icons.speed_rounded,
-        gradient: [const Color(0xFF10B981), const Color(0xFF059669)],
+        gradient: [Color(0xFF10B981), Color(0xFF059669)],
       ),
-      KpiCardData(
+      const KpiCardData(
         label: 'Active Sessions',
         value: '1,242',
         trendText: '+18%',
         trendUp: true,
         icon: Icons.bolt_rounded,
-        gradient: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+        gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
       ),
     ];
 

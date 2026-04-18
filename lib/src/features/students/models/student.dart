@@ -6,7 +6,8 @@ class Student {
     required this.name,
     required this.fatherName,
     required this.phone,
-    required this.className,
+    required this.classId,
+    this.className = '',
     required this.admissionDate,
     required this.status,
     required this.createdAt,
@@ -18,7 +19,8 @@ class Student {
   final String name;
   final String fatherName;
   final String phone;
-  final String className;
+  final String classId; // Source of truth
+  final String className; // Optional cache
   final DateTime admissionDate;
   final String status;
   final DateTime createdAt;
@@ -30,6 +32,7 @@ class Student {
     String? name,
     String? fatherName,
     String? phone,
+    String? classId,
     String? className,
     DateTime? admissionDate,
     String? status,
@@ -42,6 +45,7 @@ class Student {
       name: name ?? this.name,
       fatherName: fatherName ?? this.fatherName,
       phone: phone ?? this.phone,
+      classId: classId ?? this.classId,
       className: className ?? this.className,
       admissionDate: admissionDate ?? this.admissionDate,
       status: status ?? this.status,
@@ -56,6 +60,7 @@ class Student {
       'name': name,
       'fatherName': fatherName,
       'phone': phone,
+      'classId': classId,
       'className': className,
       'admissionDate': Timestamp.fromDate(admissionDate),
       'status': status,
@@ -71,6 +76,7 @@ class Student {
       name: map['name'] ?? '',
       fatherName: map['fatherName'] ?? '',
       phone: map['phone'] ?? '',
+      classId: map['classId'] ?? '', // Required now
       className: map['className'] ?? '',
       admissionDate:
           (map['admissionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),

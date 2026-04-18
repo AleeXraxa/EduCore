@@ -20,7 +20,7 @@ class AuditLogDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final timeStr = DateFormat('MMMM dd, yyyy • HH:mm:ss').format(log.timestamp);
+    final timeStr = DateFormat('MMMM dd, yyyy • HH:mm:ss').format(log.createdAt);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -109,13 +109,13 @@ class AuditLogDetailsDialog extends StatelessWidget {
                 child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                    children: [
-                     _SectionTitle(title: 'Activity Information', icon: Icons.info_outline_rounded),
+                     const _SectionTitle(title: 'Activity Information', icon: Icons.info_outline_rounded),
                      const SizedBox(height: 16),
                      _InfoGrid(log: log),
                      const SizedBox(height: 40),
                      
                      if (log.before != null || log.after != null) ...[
-                       _SectionTitle(title: 'State Comparison', icon: Icons.compare_arrows_rounded),
+                       const _SectionTitle(title: 'State Comparison', icon: Icons.compare_arrows_rounded),
                        const SizedBox(height: 20),
                        _StateComparisonLayout(
                          before: log.before,
@@ -200,12 +200,12 @@ class _InfoGrid extends StatelessWidget {
       runSpacing: 24,
       children: [
         _InfoItem(label: 'Module', value: log.module.toUpperCase(), icon: Icons.extension_rounded),
-        _InfoItem(label: 'Performing User', value: log.userName, icon: Icons.person_rounded, subValue: log.uid),
+        _InfoItem(label: 'Performing User', value: log.userName, icon: Icons.person_rounded, subValue: log.actorId),
         _InfoItem(label: 'User Role', value: log.role.toUpperCase(), icon: Icons.admin_panel_settings_rounded),
-        _InfoItem(label: 'Institute ID', value: log.academyId ?? 'GLOBAL SYSTEM', icon: Icons.business_rounded),
+        _InfoItem(label: 'Institute ID', value: log.academyId, icon: Icons.business_rounded),
         _InfoItem(label: 'Source', value: log.source.name.toUpperCase(), icon: Icons.devices_rounded),
-        if (log.targetDoc != null)
-           _InfoItem(label: 'Target Resource', value: log.targetDoc!, icon: Icons.data_object_rounded),
+        if (log.targetId != null)
+           _InfoItem(label: 'Target Resource', value: log.targetId!, icon: Icons.data_object_rounded),
       ],
     );
   }
@@ -221,7 +221,7 @@ class _InfoItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Container(
+    return SizedBox(
       width: 220,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,9 +355,9 @@ class _SeverityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (severity) {
-      AuditSeverity.high => Colors.red,
-      AuditSeverity.medium => Colors.orange,
-      AuditSeverity.low => Colors.blueGrey,
+      AuditSeverity.critical => Colors.red,
+      AuditSeverity.warning => Colors.orange,
+      AuditSeverity.info => Colors.blueGrey,
     };
 
     return Container(

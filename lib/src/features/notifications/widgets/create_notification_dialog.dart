@@ -124,7 +124,7 @@ class _CreateNotificationDialogState extends State<CreateNotificationDialog> {
               const SizedBox(height: 24),
               if (!_isBroadcast) ...[
                 DropdownButtonFormField<Academy>(
-                  value: _selectedAcademy,
+                  initialValue: _selectedAcademy,
                   decoration: const InputDecoration(
                     labelText: 'Select Institute',
                     prefixIcon: Icon(Icons.business_rounded),

@@ -130,7 +130,7 @@ class _FeesHeader extends StatelessWidget {
                 label: 'Collected (${controller.currentType.name.toUpperCase()})',
                 value: 'Rs. ${NumberFormat('#,###').format(controller.totalCollected)}',
                 icon: Icons.account_balance_wallet_rounded,
-                gradient: [const Color(0xFF0D9488), const Color(0xFF0F766E)],
+                gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
                 trendText: 'This month',
                 trendUp: true,
               ),
@@ -138,7 +138,7 @@ class _FeesHeader extends StatelessWidget {
                 label: 'Pending (${controller.currentType.name.toUpperCase()})',
                 value: 'Rs. ${NumberFormat('#,###').format(controller.totalPending)}',
                 icon: Icons.pending_actions_rounded,
-                gradient: [const Color(0xFFE11D48), const Color(0xFFBE123C)],
+                gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
                 trendText: 'Requires action',
                 trendUp: false,
               ),
@@ -472,7 +472,7 @@ class _CollectFeeDialogState extends State<_CollectFeeDialog> {
                   const SizedBox(height: 10),
                   SegmentedButton<FeeType>(
                     style: SegmentedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
                     ),
                     segments: FeeType.values
                         .map((t) => ButtonSegment(

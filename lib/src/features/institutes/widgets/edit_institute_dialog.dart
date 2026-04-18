@@ -143,7 +143,7 @@ class _EditInstituteDialogState extends State<EditInstituteDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       backgroundColor: cs.surface,
       surfaceTintColor: Colors.transparent,
       child: ConstrainedBox(
@@ -566,7 +566,7 @@ class _PickTile extends StatelessWidget {
           FilledButton.tonal(
             onPressed: onPick,
             style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppRadii.r12,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

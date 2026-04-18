@@ -53,19 +53,19 @@ class ClassDetailsView extends StatelessWidget {
               // ── Tab Bar ────────────────────────────────────────────
               Container(
                 color: cs.surface,
-                child: TabBar(
+                child: const TabBar(
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   indicatorWeight: 3,
-                  labelStyle: const TextStyle(
+                  labelStyle: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 13,
                   ),
-                  unselectedLabelStyle: const TextStyle(
+                  unselectedLabelStyle: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
-                  tabs: const [
+                  tabs: [
                     Tab(text: 'Overview'),
                     Tab(text: 'Students'),
                     Tab(text: 'Subjects'),
@@ -80,17 +80,17 @@ class ClassDetailsView extends StatelessWidget {
                 child: TabBarView(
                   children: [
                     _OverviewTab(classData: classData),
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       title: 'Students List',
                       icon: Icons.groups_rounded,
                       message: 'Manage students enrolled in this class.',
                     ),
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       title: 'Subjects',
                       icon: Icons.book_outlined,
                       message: 'Map subjects and teachers to this class.',
                     ),
-                    _PlaceholderTab(
+                    const _PlaceholderTab(
                       title: 'Timetable',
                       icon: Icons.calendar_view_week_rounded,
                       message: 'Setup the weekly schedule for this class.',
@@ -434,7 +434,7 @@ class _TeacherTab extends StatelessWidget {
         classData.classTeacherName!.isNotEmpty;
 
     if (!hasTeacher) {
-      return _PlaceholderTab(
+      return const _PlaceholderTab(
         title: 'No Teacher Assigned',
         icon: Icons.person_off_outlined,
         message: 'Edit this class to assign a class teacher.',

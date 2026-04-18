@@ -165,10 +165,10 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                      Align(
+                      const Align(
                         alignment: Alignment.bottomCenter,
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
+                          padding: EdgeInsets.only(bottom: 18),
                           child: PoweredByFooter(
                             primary: 'Alee',
                             secondary: 'TryUnity Solutions',

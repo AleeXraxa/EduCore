@@ -54,7 +54,7 @@ class StudentService {
     required String academyId,
     DocumentSnapshot? startAfter,
     int limit = 20,
-    String? classFilter,
+    String? classIdFilter,
     String? statusFilter,
     String? searchQuery,
   }) async {
@@ -66,8 +66,8 @@ class StudentService {
       query = query.orderBy('status', descending: true).orderBy('name');
     }
     
-    if (classFilter != null && classFilter.isNotEmpty) {
-      query = query.where('className', isEqualTo: classFilter);
+    if (classIdFilter != null && classIdFilter.isNotEmpty) {
+      query = query.where('classId', isEqualTo: classIdFilter);
     }
 
     if (startAfter != null) {
@@ -107,5 +107,41 @@ class StudentService {
     );
     await docRef.set(newField.toFirestore());
     return newField;
+  }
+
+  /// Migrates legacy student data from className-based to classId-based.
+  /// This should be run once during the normalization process.
+  Future<void> migrateClassData(String academyId, List<dynamic> classes) async {
+    final studentsSnapshot = await _studentsRef(academyId).get();
+    final batch = _firestore.batch();
+    int migratedCount = 0;
+
+    for (final doc in studentsSnapshot.docs) {
+      final data = doc.data();
+      if (data.containsKey('classId') && (data['classId'] as String).isNotEmpty) {
+        continue; // Already migrated
+      }
+
+      final legacyClassName = data['className'] as String? ?? '';
+      if (legacyClassName.isEmpty) continue;
+
+      // Find classId by name
+      final matchedClass = classes.firstWhere(
+        (c) => (c.name as String).toLowerCase() == legacyClassName.toLowerCase(),
+        orElse: () => null,
+      );
+
+      if (matchedClass != null) {
+        batch.update(doc.reference, {
+          'classId': matchedClass.id,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        migratedCount++;
+      }
+    }
+
+    if (migratedCount > 0) {
+      await batch.commit();
+    }
   }
 }

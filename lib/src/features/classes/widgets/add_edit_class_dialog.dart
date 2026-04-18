@@ -5,7 +5,6 @@ import 'package:educore/src/core/services/plan_limit_exception.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
-import 'package:educore/src/features/staff/models/staff_member.dart';
 import 'package:flutter/material.dart';
 
 class AddEditClassDialog extends StatefulWidget {
@@ -110,7 +109,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
 
     return Dialog(
       backgroundColor: cs.surface,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
@@ -167,7 +166,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                 
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
-                  value: _selectedTeacherId,
+                  initialValue: _selectedTeacherId,
                   decoration: InputDecoration(
                     labelText: 'Class Teacher',
                     hintText: 'Select a primary teacher',

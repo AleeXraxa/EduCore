@@ -58,7 +58,7 @@ class PlansImportController extends BaseController {
       lastCommit = null;
       parseResult = _parseInput();
       if (parseResult.drafts.isEmpty && parseResult.errors.isEmpty) {
-        parseResult = PlanImportParseResult(
+        parseResult = const PlanImportParseResult(
           drafts: [],
           errors: ['No plans found in input.'],
         );
@@ -91,7 +91,7 @@ class PlansImportController extends BaseController {
     try {
       final decoded = json.decode(rawInput);
       if (decoded is! List) {
-        return PlanImportParseResult(drafts: [], errors: ['JSON must be an array of plans.']);
+        return const PlanImportParseResult(drafts: [], errors: ['JSON must be an array of plans.']);
       }
 
       for (var i = 0; i < decoded.length; i++) {
@@ -128,7 +128,7 @@ class PlansImportController extends BaseController {
 
     final lines = rawInput.split('\n').where((l) => l.trim().isNotEmpty).toList();
     if (lines.length < 2) {
-      return PlanImportParseResult(drafts: [], errors: ['CSV must have a header and at least one data row.']);
+      return const PlanImportParseResult(drafts: [], errors: ['CSV must have a header and at least one data row.']);
     }
 
     // Basic CSV parser (comma separated, no quotes support for simplicity in this admin tool)

@@ -70,11 +70,9 @@ class AdminPaymentsService {
     await _audit.logAction(
       action: 'PAYMENT_APPROVED',
       module: 'payments',
-      academyId: academyId,
-      uid: reviewerUid,
-      role: 'super_admin',
-      targetDoc: 'payments/$paymentId',
-      severity: AuditSeverity.high,
+      targetId: paymentId,
+      targetType: 'payment',
+      severity: AuditSeverity.critical,
     );
   }
 
@@ -89,10 +87,9 @@ class AdminPaymentsService {
     await _audit.logAction(
       action: 'PAYMENT_REJECTED',
       module: 'payments',
-      uid: reviewerUid,
-      role: 'super_admin',
-      targetDoc: 'payments/$paymentId',
-      severity: AuditSeverity.high,
+      targetId: paymentId,
+      targetType: 'payment',
+      severity: AuditSeverity.critical,
     );
   }
 }

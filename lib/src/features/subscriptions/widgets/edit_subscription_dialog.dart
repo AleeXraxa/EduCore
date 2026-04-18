@@ -104,7 +104,7 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Form(

@@ -38,7 +38,7 @@ class FeatureList extends StatelessWidget {
       child: Column(
         children: [
           if (items.isEmpty)
-            AppEmptyState(
+            const AppEmptyState(
               title: 'No Features Found',
               description:
                   'Checked collection "/features". Found 0 records matching criteria.',
@@ -249,7 +249,7 @@ class _FeatureRowState extends State<_FeatureRow> {
                                 : Icons.check_circle_outline_rounded,
                             size: 18,
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text(item.isActive ? 'Disable' : 'Enable'),
                         ],
                       ),

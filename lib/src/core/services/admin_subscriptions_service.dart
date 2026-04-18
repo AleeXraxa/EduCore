@@ -54,12 +54,10 @@ class AdminSubscriptionsService {
     await _audit.logAction(
       action: 'FEATURE_OVERRIDES_UPDATED',
       module: 'subscriptions',
-      academyId: academyId,
-      uid: uid ?? 'super_admin_system',
-      role: 'super_admin',
-      targetDoc: 'subscriptions/$academyId',
+      targetId: academyId,
+      targetType: 'subscription',
       after: patch,
-      severity: AuditSeverity.medium,
+      severity: AuditSeverity.warning,
     );
   }
 
@@ -83,12 +81,10 @@ class AdminSubscriptionsService {
     await _audit.logAction(
       action: 'SUBSCRIPTION_UPDATED',
       module: 'subscriptions',
-      academyId: academyId,
-      uid: 'super_admin_system', // placeholder if not passed
-      role: 'super_admin',
-      targetDoc: 'subscriptions/$academyId',
+      targetId: academyId,
+      targetType: 'subscription',
       after: patch,
-      severity: AuditSeverity.medium,
+      severity: AuditSeverity.warning,
     );
   }
 
@@ -149,11 +145,9 @@ class AdminSubscriptionsService {
     await _audit.logAction(
       action: 'SUBSCRIPTION_CREATED',
       module: 'subscriptions',
-      academyId: academyId,
-      uid: superUid,
-      role: 'super_admin',
-      targetDoc: 'subscriptions/$academyId',
-      severity: AuditSeverity.high,
+      targetId: academyId,
+      targetType: 'subscription',
+      severity: AuditSeverity.critical,
     );
   }
 }

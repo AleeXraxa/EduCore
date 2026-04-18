@@ -108,14 +108,14 @@ class _TableHeader extends StatelessWidget {
           fontWeight: FontWeight.w900,
           letterSpacing: 0.5,
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const Expanded(flex: 24, child: Text('USER INFO')),
-            const Expanded(flex: 22, child: Text('CONTACT INFO')),
-            const Expanded(flex: 16, child: Text('ROLE')),
-            const Expanded(flex: 24, child: Text('INSTITUTE')),
-            const Expanded(flex: 14, child: Text('STATUS')),
-            const SizedBox(width: 48),
+            Expanded(flex: 24, child: Text('USER INFO')),
+            Expanded(flex: 22, child: Text('CONTACT INFO')),
+            Expanded(flex: 16, child: Text('ROLE')),
+            Expanded(flex: 24, child: Text('INSTITUTE')),
+            Expanded(flex: 14, child: Text('STATUS')),
+            SizedBox(width: 48),
           ],
         ),
       ),
@@ -387,29 +387,29 @@ class _RowMenu extends StatelessWidget {
             ),
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: UserMenuAction.editUser,
           height: 48,
           padding: EdgeInsets.zero,
-          child: const _MenuRow(
+          child: _MenuRow(
             icon: Icons.edit_note_rounded,
             label: 'Edit Account',
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: UserMenuAction.viewProfile,
           height: 48,
           padding: EdgeInsets.zero,
-          child: const _MenuRow(
+          child: _MenuRow(
             icon: Icons.person_rounded,
             label: 'View Profile',
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: UserMenuAction.viewInstitute,
           height: 48,
           padding: EdgeInsets.zero,
-          child: const _MenuRow(
+          child: _MenuRow(
             icon: Icons.apartment_rounded,
             label: 'View Institute',
           ),

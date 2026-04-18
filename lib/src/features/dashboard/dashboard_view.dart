@@ -75,7 +75,7 @@ class DashboardView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 48),
-                _SectionHeader(
+                const _SectionHeader(
                   title: 'Platform Activity',
                   subtitle:
                       'Recent system activities and pending subscription approvals.',
@@ -178,7 +178,7 @@ class _KpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
+    const items = [
       _KpiData(
         'Active Institutes',
         '68 Units',
@@ -484,19 +484,19 @@ class _PendingPaymentsTable extends StatelessWidget {
           const SizedBox(height: 20),
           _TableHeader(),
           const SizedBox(height: 12),
-          _TableRow(
+          const _TableRow(
             name: 'Green Valley',
             amount: 'PKR 18,000',
             status: 'PENDING',
           ),
           const SizedBox(height: 8),
-          _TableRow(
+          const _TableRow(
             name: 'City School',
             amount: 'PKR 12,500',
             status: 'REVIEW',
           ),
           const SizedBox(height: 8),
-          _TableRow(
+          const _TableRow(
             name: 'Apex Institute',
             amount: 'PKR 21,000',
             status: 'PENDING',
@@ -514,9 +514,9 @@ class _PendingPaymentsTable extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _PageNav(icon: Icons.chevron_left_rounded, enabled: false),
+              const _PageNav(icon: Icons.chevron_left_rounded, enabled: false),
               const SizedBox(width: 8),
-              _PageNav(icon: Icons.chevron_right_rounded, enabled: true),
+              const _PageNav(icon: Icons.chevron_right_rounded, enabled: true),
             ],
           ),
         ],

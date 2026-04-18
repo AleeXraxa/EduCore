@@ -41,11 +41,10 @@ class SettingsService {
     await _audit.logAction(
       action: 'SETTINGS_UPDATED',
       module: 'settings',
-      uid: userId ?? 'super_admin_system',
-      role: 'super_admin',
-      targetDoc: 'settings/global',
+      targetId: 'global',
+      targetType: 'settings',
       after: data,
-      severity: AuditSeverity.medium,
+      severity: AuditSeverity.warning,
     );
   }
 }

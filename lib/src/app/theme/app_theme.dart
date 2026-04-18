@@ -4,15 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
   static ThemeData light() {
-    final colorScheme = ColorScheme(
+    const colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: AppColors.primary,
       onPrimary: Colors.white,
-      secondary: const Color(0xFF6366F1), // indigo-500
+      secondary: Color(0xFF6366F1), // indigo-500
       onSecondary: Colors.white,
-      tertiary: const Color(0xFF8B5CF6), // purple-500
+      tertiary: Color(0xFF8B5CF6), // purple-500
       onTertiary: Colors.white,
-      error: const Color(0xFFEF4444),
+      error: Color(0xFFEF4444),
       onError: Colors.white,
       surface: AppColors.surface,
       onSurface: AppColors.text,

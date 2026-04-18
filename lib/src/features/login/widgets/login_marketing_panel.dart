@@ -49,8 +49,8 @@ class LoginMarketingPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          _FeatureGrid(
-            items: const [
+          const _FeatureGrid(
+            items: [
               _Feature(
                 icon: Icons.school_rounded,
                 title: 'Manage Students & Admissions Easily',

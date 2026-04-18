@@ -58,7 +58,7 @@ class Plan {
       id: id ?? this.id,
       name: name ?? this.name,
       price: price ?? this.price,
-      durationDays: durationDays ?? this.durationDays,
+      durationDays: durationDays ?? durationDays,
       description: description ?? this.description,
       isActive: isActive ?? this.isActive,
       features: features ?? this.features,

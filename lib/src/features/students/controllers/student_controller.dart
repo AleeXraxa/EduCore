@@ -24,7 +24,7 @@ class StudentController extends BaseController {
   bool get hasMore => _hasMore;
 
   String _searchQuery = '';
-  String? _classFilter;
+  String? _classIdFilter;
   String? _statusFilter;
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -103,7 +103,7 @@ class StudentController extends BaseController {
           snapshot = await _studentService.getStudentsBatch(
             academyId: _academyId,
             startAfter: _lastDoc,
-            classFilter: _classFilter,
+            classIdFilter: _classIdFilter,
             statusFilter: _statusFilter,
           );
         } on FirebaseException catch (e) {
@@ -165,9 +165,9 @@ class StudentController extends BaseController {
     loadInitialData();
   }
 
-  void setFilter(String? className, String? status) {
-    if (_classFilter == className && _statusFilter == status) return;
-    _classFilter = className;
+  void setFilter(String? classId, String? status) {
+    if (_classIdFilter == classId && _statusFilter == status) return;
+    _classIdFilter = classId;
     _statusFilter = status;
     loadInitialData();
   }

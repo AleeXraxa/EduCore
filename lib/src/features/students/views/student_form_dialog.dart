@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+import 'package:educore/src/features/classes/models/institute_class.dart';
 
 class StudentFormDialog extends StatefulWidget {
   const StudentFormDialog({super.key, this.student, required this.controller});
@@ -27,17 +29,11 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   late TextEditingController _nameCtrl;
   late TextEditingController _fatherNameCtrl;
   late TextEditingController _phoneCtrl;
-  late String _selectedClass;
+  late String _selectedClassId;
   late String _status;
   bool _isLoading = false;
 
-  final List<String> _classes = [
-    'Grade 1',
-    'Grade 2',
-    'Grade 3',
-    'Grade 4',
-    'Grade 5',
-  ];
+  List<InstituteClass> _availableClasses = [];
   final Map<String, TextEditingController> _dynamicControllers = {};
 
   @override
@@ -48,11 +44,27 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       text: widget.student?.fatherName ?? '',
     );
     _phoneCtrl = TextEditingController(text: widget.student?.phone ?? '');
-    _selectedClass = widget.student?.className ?? _classes.first;
+    _selectedClassId = widget.student?.classId ?? '';
     _status = widget.student?.status ?? 'active';
+    
+    _fetchClasses();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.resetDynamicForm(widget.student?.customFields);
     });
+  }
+
+  Future<void> _fetchClasses() async {
+    final academyId = AppServices.instance.authService!.session!.academyId;
+    final classes = await AppServices.instance.classService!.getClasses(academyId);
+    if (mounted) {
+      setState(() {
+        _availableClasses = classes;
+        if (_selectedClassId.isEmpty && classes.isNotEmpty) {
+          _selectedClassId = classes.first.id;
+        }
+      });
+    }
   }
 
   @override
@@ -71,12 +83,18 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
     setState(() => _isLoading = true);
 
+    final selectedClass = _availableClasses.firstWhere(
+      (c) => c.id == _selectedClassId,
+      orElse: () => const InstituteClass(id: '', name: 'Unknown', subjectIds: []),
+    );
+
     final newStudent = Student(
       id: widget.student?.id ?? '',
       name: _nameCtrl.text.trim(),
       fatherName: _fatherNameCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
-      className: _selectedClass,
+      classId: _selectedClassId,
+      className: selectedClass.displayName,
       admissionDate: widget.student?.admissionDate ?? DateTime.now(),
       status: _status,
       createdAt: widget.student?.createdAt ?? DateTime.now(),
@@ -233,15 +251,17 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
                       Row(
                         children: [
-                          Expanded(
-                            child: _buildDropdown(
-                              value: _selectedClass,
-                              label: 'Class',
-                              icon: Icons.school_outlined,
-                              items: _classes,
-                              onChanged: (v) =>
-                                  setState(() => _selectedClass = v!),
-                            ),
+                           Expanded(
+                            child: _availableClasses.isEmpty
+                                ? const Center(child: LinearProgressIndicator())
+                                : _buildClassDropdown(
+                                    value: _selectedClassId,
+                                    label: 'Class',
+                                    icon: Icons.school_outlined,
+                                    items: _availableClasses,
+                                    onChanged: (v) =>
+                                        setState(() => _selectedClassId = v!),
+                                  ),
                           ),
                           if (isEditing) ...[
                             const SizedBox(width: 16),
@@ -266,8 +286,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         validator: (val) {
-                          if (val == null || val.trim().isEmpty)
+                          if (val == null || val.trim().isEmpty) {
                             return 'Required';
+                          }
                           if (!RegExp(r'^03\d{9}$').hasMatch(val.trim())) {
                             return 'Enter valid 11-digit mobile number';
                           }
@@ -557,6 +578,65 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               vertical: 16,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClassDropdown({
+    required String value,
+    required String label,
+    required IconData icon,
+    required List<InstituteClass> items,
+    required void Function(String?) onChanged,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: value.isEmpty && items.isNotEmpty ? items.first.id : value,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          decoration: InputDecoration(
+            prefixIcon: Icon(
+              icon,
+              size: 20,
+              color: cs.primary.withValues(alpha: 0.7),
+            ),
+            filled: true,
+            fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: cs.primary, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e.id,
+                  child: Text(e.displayName),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
         ),
       ],
     );

@@ -13,7 +13,7 @@ class AnalyticsInsightsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(
+        const _SectionTitle(
           title: 'Insights',
           subtitle: 'Top performers and upcoming risk areas.',
         ),
@@ -102,7 +102,7 @@ class _TopInstitutesPanel extends StatelessWidget {
               ),
         ),
         const SizedBox(height: 12),
-        _MiniTableHeader(cols: const ['Institute', 'Revenue', 'Plan', 'Growth']),
+        const _MiniTableHeader(cols: ['Institute', 'Revenue', 'Plan', 'Growth']),
         const SizedBox(height: 6),
         for (final r in rows) _TopInstituteRowView(row: r),
       ],
@@ -135,7 +135,7 @@ class _UpcomingExpiriesPanel extends StatelessWidget {
               ),
         ),
         const SizedBox(height: 12),
-        _MiniTableHeader(cols: const ['Institute', 'Plan', 'Expiry', 'Days left']),
+        const _MiniTableHeader(cols: ['Institute', 'Plan', 'Expiry', 'Days left']),
         const SizedBox(height: 6),
         for (final r in rows) _ExpiryRowView(row: r),
       ],

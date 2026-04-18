@@ -226,11 +226,9 @@ class InstituteService {
       await _audit.logAction(
         action: 'INSTITUTE_CREATED',
         module: 'academies',
-        academyId: academyId,
-        uid: superUid,
-        role: 'super_admin',
-        targetDoc: 'academies/$academyId',
-        severity: AuditSeverity.high,
+        targetId: academyId,
+        targetType: 'academy',
+        severity: AuditSeverity.critical,
       );
 
       // Keep the secondary auth clean.
@@ -291,12 +289,10 @@ class InstituteService {
     await _audit.logAction(
       action: 'INSTITUTE_UPDATED',
       module: 'academies',
-      academyId: academyId,
-      uid: 'super_admin_system', // TODO: pass actual uid
-      role: 'super_admin',
-      targetDoc: 'academies/$academyId',
+      targetId: academyId,
+      targetType: 'academy',
       after: patch,
-      severity: AuditSeverity.medium,
+      severity: AuditSeverity.warning,
     );
   }
 
@@ -307,12 +303,10 @@ class InstituteService {
     await _audit.logAction(
       action: status == AcademyStatus.blocked ? 'INSTITUTE_BLOCKED' : 'INSTITUTE_STATUS_CHANGED',
       module: 'academies',
-      academyId: academyId,
-      uid: 'super_admin_system',
-      role: 'super_admin',
-      targetDoc: 'academies/$academyId',
+      targetId: academyId,
+      targetType: 'academy',
       after: {'status': status.value},
-      severity: status == AcademyStatus.blocked ? AuditSeverity.high : AuditSeverity.low,
+      severity: status == AcademyStatus.blocked ? AuditSeverity.critical : AuditSeverity.info,
     );
   }
 

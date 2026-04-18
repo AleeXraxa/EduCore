@@ -419,7 +419,7 @@ class _Footer extends StatelessWidget {
               onPressed: onClose,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+                shape: const RoundedRectangleBorder(borderRadius: AppRadii.r16),
                 side: BorderSide(color: cs.outlineVariant),
               ),
               child: Text(

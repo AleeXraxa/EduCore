@@ -16,7 +16,7 @@ class SystemPreferencesPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(
+        const _SectionHeader(
           title: 'App Preferences',
           subtitle:
               'Customize your interface theme and regional formatting.',

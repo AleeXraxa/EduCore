@@ -1,10 +1,10 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/services/app_services.dart';
-import 'package:educore/src/core/ui/widgets/app_button.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
 import 'package:educore/src/features/students/models/student.dart';
@@ -24,7 +24,7 @@ class _StudentsViewState extends State<StudentsView> {
   late final StudentController _controller;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedClass;
+  String? _selectedClassId;
   String _selectedStatus = 'all';
 
   @override
@@ -119,32 +119,32 @@ class _StudentsViewState extends State<StudentsView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Header & Insights
-                  _StudentsHeader(
+                   _StudentsHeader(
                     controller: controller,
                     searchController: _searchController,
                     onAddStudent: canCreate ? () => _showStudentForm() : null,
                     onRefresh: () => controller.loadInitialData(),
                     errorMessage: controller.errorMessage,
-                    selectedClass: _selectedClass,
+                    selectedClass: _selectedClassId,
                     selectedStatus: _selectedStatus,
                     onStatusFilter: (status) {
                       setState(() => _selectedStatus = status);
                       controller.setFilter(
-                        _selectedClass,
+                        _selectedClassId,
                         status == 'all' ? null : status,
                       );
                     },
                     onClassChanged: (val) {
-                      setState(() => _selectedClass = val);
+                      setState(() => _selectedClassId = val);
                       controller.setFilter(
-                        _selectedClass,
+                        _selectedClassId,
                         _selectedStatus == 'all' ? null : _selectedStatus,
                       );
                     },
                     onStatusChanged: (val) {
                       setState(() => _selectedStatus = val);
                       controller.setFilter(
-                        _selectedClass,
+                        _selectedClassId,
                         _selectedStatus == 'all' ? null : _selectedStatus,
                       );
                     },
@@ -259,7 +259,7 @@ class _QuickInsights extends StatelessWidget {
               label: 'Active',
               value: controller.activeCount.toString(),
               icon: Icons.check_circle_rounded,
-              gradient: [const Color(0xFF10B981), const Color(0xFF34D399)],
+              gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
               trendText: 'Healthy',
               trendUp: true,
             ),
@@ -270,7 +270,7 @@ class _QuickInsights extends StatelessWidget {
               label: 'Inactive',
               value: controller.inactiveCount.toString(),
               icon: Icons.pause_circle_rounded,
-              gradient: [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+              gradient: const [Color(0xFF64748B), Color(0xFF94A3B8)],
               trendText: 'Follow up',
               trendUp: false,
             ),
@@ -281,7 +281,7 @@ class _QuickInsights extends StatelessWidget {
               label: 'New Admissions',
               value: controller.newAdmissionsCount.toString(),
               icon: Icons.auto_awesome_rounded,
-              gradient: [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
+              gradient: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
               trendText: '+5 this month',
               trendUp: true,
             ),
@@ -547,15 +547,33 @@ class _FilterChips extends StatelessWidget {
   }
 }
 
-class _ClassSelector extends StatelessWidget {
+ class _ClassSelector extends StatefulWidget {
   const _ClassSelector({this.selected, required this.onChanged});
   final String? selected;
   final Function(String?) onChanged;
 
   @override
+  State<_ClassSelector> createState() => _ClassSelectorState();
+}
+
+class _ClassSelectorState extends State<_ClassSelector> {
+  List<InstituteClass> _classes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    final academyId = AppServices.instance.authService!.session!.academyId;
+    final classes = await AppServices.instance.classService!.getClasses(academyId);
+    if (mounted) setState(() => _classes = classes);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final classes = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5'];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -568,15 +586,15 @@ class _ClassSelector extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: selected,
+          value: widget.selected,
           hint: const Text('Filter by Class'),
           borderRadius: BorderRadius.circular(16),
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
           items: [
             const DropdownMenuItem(value: null, child: Text('All Classes')),
-            ...classes.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+            ..._classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.displayName))),
           ],
-          onChanged: onChanged,
+          onChanged: widget.onChanged,
         ),
       ),
     );

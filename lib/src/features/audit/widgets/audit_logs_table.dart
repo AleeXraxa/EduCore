@@ -42,11 +42,11 @@ class AuditLogsTable extends StatelessWidget {
           columns: const [
             DataColumn(label: Text('Action')),
             DataColumn(label: Text('Module')),
-            DataColumn(label: Text('User')),
+            DataColumn(label: Text('Actor')),
             DataColumn(label: Text('Institute')),
             DataColumn(label: Text('Severity')),
-            DataColumn(label: Text('Timestamp')),
-            DataColumn(label: Text('')), // detail arrow
+            DataColumn(label: Text('Created At')),
+            DataColumn(label: Text('')), 
           ],
           rows: logs.map((log) {
             return DataRow(
@@ -54,8 +54,8 @@ class AuditLogsTable extends StatelessWidget {
               cells: [
                 DataCell(
                   Text(
-                    log.action.replaceAll('_', ' '),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    log.action.replaceAll('_', ' ').toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
                 DataCell(
@@ -85,7 +85,7 @@ class AuditLogsTable extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       Text(
-                        log.uid.substring(0, min(8, log.uid.length)).toUpperCase(),
+                        log.actorId.substring(0, min(8, log.actorId.length)).toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
                           color: cs.onSurfaceVariant.withValues(alpha: 0.6),
@@ -95,12 +95,17 @@ class AuditLogsTable extends StatelessWidget {
                     ],
                   ),
                 ),
-                DataCell(Text(log.academyId ?? 'GLOBAL', style: const TextStyle(fontSize: 12))),
+                DataCell(
+                  Text(
+                    log.academyId.toUpperCase(), 
+                    style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                  ),
+                ),
                 DataCell(_SeverityBadge(log.severity)),
                 DataCell(
                   Text(
-                    DateFormat('MMM dd, HH:mm').format(log.timestamp),
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                    DateFormat('MMM dd, HH:mm:ss').format(log.createdAt),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                   ),
                 ),
                 const DataCell(Icon(Icons.chevron_right_rounded, size: 20)),
@@ -120,9 +125,9 @@ class _SeverityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (severity) {
-      AuditSeverity.high => Colors.red,
-      AuditSeverity.medium => Colors.orange,
-      AuditSeverity.low => Colors.blueGrey,
+      AuditSeverity.critical => Colors.red,
+      AuditSeverity.warning => Colors.orange,
+      AuditSeverity.info => Colors.blueGrey,
     };
 
     return Container(

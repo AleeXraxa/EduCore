@@ -90,7 +90,7 @@ class AppServices {
 
   Future<void> init() async {
     if (!_coreInitialized) {
-      final useSqlite = const bool.fromEnvironment(
+      const useSqlite = bool.fromEnvironment(
         'EDUCORE_USE_SQLITE',
         defaultValue: false,
       );

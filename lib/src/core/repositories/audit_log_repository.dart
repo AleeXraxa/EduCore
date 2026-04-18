@@ -13,45 +13,70 @@ class AuditLogRepository {
       _firestore.collection('auditLogs');
 
   /// Fetches a paginated batch of audit logs.
-  Future<List<AuditLog>> getLogsBatch({
-    int limit = 50,
+  Future<QuerySnapshot<Map<String, dynamic>>> getRawLogsBatch({
+    required int limit,
     DocumentSnapshot? lastDoc,
     String? module,
-    String? action,
+    String? actorId,
     String? academyId,
     String? severity,
+    String? targetId,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
-    Query query = _collection.orderBy('timestamp', descending: true);
+    Query<Map<String, dynamic>> query = 
+        _collection.orderBy('createdAt', descending: true);
 
-    if (module != null && module != 'all') {
-      query = query.where('module', isEqualTo: module);
-    }
-    if (action != null && action != 'all') {
-      query = query.where('action', isEqualTo: action);
-    }
     if (academyId != null && academyId != 'all') {
       query = query.where('academyId', isEqualTo: academyId);
     }
+    if (module != null && module != 'all') {
+      query = query.where('module', isEqualTo: module);
+    }
+    if (actorId != null && actorId != 'all') {
+      query = query.where('actorId', isEqualTo: actorId);
+    }
+    if (targetId != null && targetId != 'all') {
+      query = query.where('targetId', isEqualTo: targetId);
+    }
     if (severity != null && severity != 'all') {
-      query = query.where('severity', isEqualTo: severity);
+      query = query.where('severity', isEqualTo: severity.toLowerCase());
+    }
+
+    if (startDate != null) {
+      query = query.where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+    }
+    if (endDate != null) {
+      query = query.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
     }
 
     if (lastDoc != null) {
       query = query.startAfterDocument(lastDoc);
     }
 
-    final snapshot = await query.limit(limit).get();
-    
-    return snapshot.docs
-        .map((doc) => AuditLog.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
-        .toList();
+    return query.limit(limit).get();
   }
 
-  /// Low-level logging (usually called from services or other repositories).
-  Future<void> addLog(Map<String, dynamic> logData) async {
-    await _collection.add({
-      ...logData,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+  /// Convenience wrapper that returns AuditLog objects.
+  Future<List<AuditLog>> getLogsBatch({
+    int limit = 50,
+    DocumentSnapshot? lastDoc,
+    String? module,
+    String? actorId,
+    String? academyId,
+    String? severity,
+  }) async {
+    final snapshot = await getRawLogsBatch(
+      limit: limit,
+      lastDoc: lastDoc,
+      module: module,
+      actorId: actorId,
+      academyId: academyId,
+      severity: severity,
+    );
+    
+    return snapshot.docs
+        .map((doc) => AuditLog.fromFirestore(doc))
+        .toList();
   }
 }

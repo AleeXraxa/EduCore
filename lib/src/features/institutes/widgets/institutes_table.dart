@@ -95,28 +95,28 @@ class _TableHeader extends StatelessWidget {
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
             ),
-        child: Row(
+        child: const Row(
           children: [
-            const Expanded(flex: 22, child: Text('INSTITUTE NAME')),
-            const Expanded(flex: 16, child: Text('PRIMARY CONTACT')),
-            const Expanded(flex: 18, child: Text('CONTACT INFO')),
-            const Expanded(flex: 10, child: Text('PLAN TYPE')),
-            const Expanded(flex: 10, child: Text('STATUS')),
-            const Expanded(
+            Expanded(flex: 22, child: Text('INSTITUTE NAME')),
+            Expanded(flex: 16, child: Text('PRIMARY CONTACT')),
+            Expanded(flex: 18, child: Text('CONTACT INFO')),
+            Expanded(flex: 10, child: Text('PLAN TYPE')),
+            Expanded(flex: 10, child: Text('STATUS')),
+            Expanded(
               flex: 10,
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text('STUDENTS'),
               ),
             ),
-            const Expanded(
+            Expanded(
               flex: 10,
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text('CREATED ON'),
               ),
             ),
-            const SizedBox(width: 48),
+            SizedBox(width: 48),
           ],
         ),
       ),

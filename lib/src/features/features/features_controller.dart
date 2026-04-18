@@ -306,18 +306,17 @@ class FeaturesController extends BaseController {
     Map<String, dynamic>? after,
   }) {
     final audit = AppServices.instance.auditLogService;
-    final session = AppServices.instance.authService?.session;
-    if (audit == null || session == null) return;
+    if (audit == null) return;
 
     audit.logAction(
       action: action,
-      module: 'Features',
-      uid: session.user.uid,
-      role: session.user.role.name,
-      targetDoc: targetDoc,
+      module: 'features',
+      targetId: targetDoc ?? 'platform',
+      targetType: 'feature_management',
       before: before,
       after: after,
-      severity: AuditSeverity.medium,
+      severity: AuditSeverity.warning,
+      source: AuditSource.superAdmin,
     );
   }
 

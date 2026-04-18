@@ -9,7 +9,10 @@ class AuthSession {
     required this.user,
     required this.academyId,
     this.permissions = const [],
-  });
+    String? sessionId,
+  }) : sessionId = sessionId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+  final String sessionId;
 
   bool get isSuperAdmin {
     return user.role == AppUserRole.superAdmin;

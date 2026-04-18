@@ -96,7 +96,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       backgroundColor: cs.surface,
       surfaceTintColor: Colors.transparent,
       child: ConstrainedBox(

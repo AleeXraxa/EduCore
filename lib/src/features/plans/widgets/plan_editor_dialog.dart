@@ -142,7 +142,7 @@ class _PlanEditorDialogState extends State<PlanEditorDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 960),
         child: Column(

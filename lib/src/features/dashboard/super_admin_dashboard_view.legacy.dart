@@ -28,7 +28,7 @@ class SuperAdminDashboardView extends StatelessWidget {
                 const SizedBox(height: 16),
                 _KpiGrid(columns: columns),
                 const SizedBox(height: 24),
-                _SectionTitle(
+                const _SectionTitle(
                   title: 'Analytics',
                   subtitle: 'Revenue and institute growth at a glance.',
                 ),
@@ -48,7 +48,7 @@ class SuperAdminDashboardView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                _SectionTitle(
+                const _SectionTitle(
                   title: 'Operations',
                   subtitle: 'Recent activity and pending approvals.',
                 ),
@@ -131,7 +131,7 @@ class _KpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
+    const items = [
       _KpiData('Total Institutes', '68', Icons.apartment_rounded),
       _KpiData('Active Subscriptions', '52', Icons.verified_rounded),
       _KpiData('Monthly Revenue', 'PKR 420k', Icons.payments_rounded),
@@ -467,11 +467,11 @@ class _PendingPaymentsTable extends StatelessWidget {
         const SizedBox(height: 12),
         _TableHeader(),
         const SizedBox(height: 6),
-        _TableRow(name: 'Green Valley', amount: 'PKR 18,000', status: 'Pending'),
+        const _TableRow(name: 'Green Valley', amount: 'PKR 18,000', status: 'Pending'),
         const SizedBox(height: 6),
-        _TableRow(name: 'City School', amount: 'PKR 12,500', status: 'Review'),
+        const _TableRow(name: 'City School', amount: 'PKR 12,500', status: 'Review'),
         const SizedBox(height: 6),
-        _TableRow(name: 'Apex Institute', amount: 'PKR 21,000', status: 'Pending'),
+        const _TableRow(name: 'Apex Institute', amount: 'PKR 21,000', status: 'Pending'),
         const SizedBox(height: 12),
         Row(
           children: [

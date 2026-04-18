@@ -55,7 +55,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(
+        const _SectionHeader(
           title: 'Identity & Branding',
           subtitle:
               'Configure the public-facing attributes of the EduCore platform.',

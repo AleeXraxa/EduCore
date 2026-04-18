@@ -52,12 +52,10 @@ class FeatureOverrideService {
     await _audit.logAction(
       action: 'FEATURE_OVERRIDE_UPDATED',
       module: 'features',
-      academyId: academyId,
-      uid: 'super_admin_system', // TODO: pass actual uid
-      role: 'super_admin',
-      targetDoc: 'subscriptions/$academyId',
+      targetId: academyId,
+      targetType: 'feature_override',
       after: overrides.toMap(),
-      severity: AuditSeverity.high,
+      severity: AuditSeverity.critical,
     );
   }
 }

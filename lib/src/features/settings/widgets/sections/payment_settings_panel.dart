@@ -23,7 +23,7 @@ class _PaymentSettingsPanelState extends State<PaymentSettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(
+        const _SectionHeader(
           title: 'Payment Methods',
           subtitle: 'Manage payment methods for institute subscriptions.',
         ),

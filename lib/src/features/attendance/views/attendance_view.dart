@@ -184,18 +184,13 @@ class _AttendanceHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          TabBar(
+          const TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.normal,
-            ),
+            labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
             dividerColor: Colors.transparent,
-            tabs: const [
+            tabs: [
               Tab(text: 'MARK ATTENDANCE'),
               Tab(text: 'ADVANCED REPORTS'),
             ],
@@ -1211,7 +1206,7 @@ class _LineChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final dx = size.width / (values.length - 1);
-    final maxVal = 100.0;
+    const maxVal = 100.0;
 
     final points = <Offset>[];
     for (var i = 0; i < values.length; i++) {

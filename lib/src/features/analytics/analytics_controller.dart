@@ -728,7 +728,9 @@ List<TopInstituteRow> _topInstitutes({
       if (p.status != PaymentReviewStatus.approved) continue;
       if (p.academyId != academyId) continue;
       if (p.createdAt.isBefore(prevWindow.start) ||
-          !p.createdAt.isBefore(prevWindow.end)) continue;
+          !p.createdAt.isBefore(prevWindow.end)) {
+        continue;
+      }
       sum += p.amountPkr;
     }
     return sum;

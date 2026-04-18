@@ -15,7 +15,7 @@ class AnalyticsChartsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(
+        const _SectionTitle(
           title: 'Trends',
           subtitle: 'Revenue and growth signals over time.',
         ),
@@ -363,7 +363,7 @@ class _BarChartPainter extends CustomPainter {
     final maxV = values.reduce(max);
     final span = maxV <= 0 ? 1.0 : maxV;
 
-    final gap = 10.0;
+    const gap = 10.0;
     final barW = (size.width - gap * (values.length - 1)) / values.length;
 
     for (var i = 0; i < values.length; i++) {

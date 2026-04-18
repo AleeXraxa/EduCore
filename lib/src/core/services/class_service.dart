@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 
@@ -107,10 +108,9 @@ class ClassService {
     await _audit.logAction(
       action: 'class_created',
       module: 'classes',
-      targetDoc: docRef.id,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: docRef.id,
+      targetType: 'class',
+      severity: AuditSeverity.info,
     );
   }
 
@@ -176,15 +176,35 @@ class ClassService {
     updates['updatedAt'] = FieldValue.serverTimestamp();
     batch.update(docRef, updates);
 
+    // Update Students Cache if Name/Section changed
+    if (updates.containsKey('name') || updates.containsKey('section')) {
+      final newName = (updates['name'] as String?)?.trim() ?? currentDoc.data()?['name'] as String? ?? '';
+      final newSection = (updates['section'] as String?)?.trim() ?? currentDoc.data()?['section'] as String? ?? '';
+      final displayLabel = newSection.isEmpty ? newName : '$newName - $newSection';
+
+      final studentsSnapshot = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('students')
+          .where('classId', isEqualTo: classId)
+          .get();
+
+      for (final studentDoc in studentsSnapshot.docs) {
+        batch.update(studentDoc.reference, {
+          'className': displayLabel,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
     await batch.commit();
 
     await _audit.logAction(
       action: 'class_updated',
       module: 'classes',
-      targetDoc: classId,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: classId,
+      targetType: 'class',
+      severity: AuditSeverity.info,
     );
   }
 
@@ -217,10 +237,9 @@ class ClassService {
     await _audit.logAction(
       action: 'class_deleted',
       module: 'classes',
-      targetDoc: classId,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: classId,
+      targetType: 'class',
+      severity: AuditSeverity.critical,
     );
   }
 
@@ -261,11 +280,10 @@ class ClassService {
     await _audit.logAction(
       action: 'assign_class_teacher',
       module: 'classes',
-      targetDoc: classId,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: classId,
+      targetType: 'class',
       after: {'teacherId': teacherId, 'teacherName': teacherName},
+      severity: AuditSeverity.warning,
     );
   }
 
@@ -296,11 +314,10 @@ class ClassService {
     await _audit.logAction(
       action: 'assign_teachers',
       module: 'classes',
-      targetDoc: classId,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: classId,
+      targetType: 'class',
       after: {'teacherIds': teacherIds},
+      severity: AuditSeverity.info,
     );
   }
 
@@ -342,11 +359,10 @@ class ClassService {
     await _audit.logAction(
       action: 'remove_teachers',
       module: 'classes',
-      targetDoc: classId,
-      academyId: academyId,
-      uid: performedBy,
-      role: 'institute_admin',
+      targetId: classId,
+      targetType: 'class',
       after: {'removedIds': teacherIds},
+      severity: AuditSeverity.warning,
     );
   }
 }

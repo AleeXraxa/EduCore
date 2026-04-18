@@ -42,11 +42,11 @@ class DashboardPreviewMock extends StatelessWidget {
                 top: 14,
                 child: Row(
                   children: [
-                    _Dot(color: const Color(0xFFEF4444)),
+                    const _Dot(color: Color(0xFFEF4444)),
                     const SizedBox(width: 6),
-                    _Dot(color: const Color(0xFFF59E0B)),
+                    const _Dot(color: Color(0xFFF59E0B)),
                     const SizedBox(width: 6),
-                    _Dot(color: const Color(0xFF22C55E)),
+                    const _Dot(color: Color(0xFF22C55E)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Container(
@@ -91,8 +91,8 @@ class DashboardPreviewMock extends StatelessWidget {
                 bottom: 14,
                 child: Column(
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Expanded(child: _KpiChip(label: 'Students', value: '1,248')),
                         SizedBox(width: 10),
                         Expanded(child: _KpiChip(label: 'Revenue', value: 'PKR 420k')),

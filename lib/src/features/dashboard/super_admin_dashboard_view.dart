@@ -761,7 +761,7 @@ class _BarChartPainter extends CustomPainter {
     final maxV = values.reduce((a, b) => a > b ? a : b);
     final span = maxV <= 0 ? 1.0 : maxV;
 
-    final gap = 10.0;
+    const gap = 10.0;
     final barW = (size.width - gap * (values.length - 1)) / values.length;
 
     for (var i = 0; i < values.length; i++) {
@@ -856,7 +856,7 @@ class _ActivityList extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           if (items.isEmpty)
-            _EmptyState(
+            const _EmptyState(
               icon: Icons.history_rounded,
               label: 'No recent activity',
               subtitle:
@@ -1006,7 +1006,7 @@ class _PendingPaymentsTable extends StatelessWidget {
           const _TableHeader(),
           const SizedBox(height: 8),
           if (items.isEmpty)
-            _EmptyState(
+            const _EmptyState(
               icon: Icons.payments_rounded,
               label: 'No pending payments',
               subtitle: 'All subscription payments are up to date.',
@@ -1040,7 +1040,7 @@ class _PendingPaymentsTable extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _PaginationTrigger(
+              const _PaginationTrigger(
                 icon: Icons.chevron_left_rounded,
                 enabled: false,
               ),
@@ -1339,7 +1339,7 @@ class _NotReadyPanel extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: cs.primary,
                   foregroundColor: cs.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: AppRadii.r16),
+                  shape: const RoundedRectangleBorder(borderRadius: AppRadii.r16),
                   padding: const EdgeInsets.symmetric(vertical: 20),
                 ),
               ),

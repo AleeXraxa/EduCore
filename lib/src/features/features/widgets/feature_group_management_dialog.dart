@@ -189,7 +189,7 @@ class _FeatureGroupManagementDialogState
                                 subtitle: const Text(
                                   'Prevents deletion by other admins',
                                 ),
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: AppRadii.r12,
                                 ),
                               ),

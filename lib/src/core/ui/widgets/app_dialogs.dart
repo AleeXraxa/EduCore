@@ -443,7 +443,7 @@ class _ConfirmDialog extends StatelessWidget {
                       onPressed: () => Navigator.pop(context, false),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadii.r12,
                         ),
                       ),

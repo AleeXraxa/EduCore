@@ -12,7 +12,7 @@ class NotificationSettingsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(
+        const _SectionHeader(
           title: 'Notifications',
           subtitle: 'Manage platform notifications and automated alerts.',
         ),

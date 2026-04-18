@@ -109,13 +109,10 @@ class StaffService {
       await _auditLogService.logAction(
         action: 'staff_create',
         module: 'staff',
-        academyId: academyId,
-        uid: uid,
-        role: 'admin',
-        targetDoc: uid,
+        targetId: uid,
+        targetType: 'staff',
         after: staffMember.toFirestore(),
-        source: AuditSource.institute,
-        severity: AuditSeverity.medium,
+        severity: AuditSeverity.warning,
       );
     } catch (e) {
       if (userCred != null) {
@@ -167,12 +164,9 @@ class StaffService {
     await _auditLogService.logAction(
       action: 'staff_delete_soft',
       module: 'staff',
-      academyId: academyId,
-      uid: staffId,
-      role: 'admin',
-      targetDoc: staffId,
-      source: AuditSource.institute,
-      severity: AuditSeverity.high,
+      targetId: staffId,
+      targetType: 'staff',
+      severity: AuditSeverity.critical,
     );
   }
 
@@ -193,14 +187,11 @@ class StaffService {
     await _auditLogService.logAction(
       action: 'permissions_update',
       module: 'staff',
-      academyId: academyId,
-      uid: staffId,
-      role: 'admin',
-      targetDoc: staffId,
+      targetId: staffId,
+      targetType: 'staff',
       before: before,
       after: {'assignedFeatureKeys': allowed, 'deniedFeatureKeys': denied},
-      source: AuditSource.institute,
-      severity: AuditSeverity.high,
+      severity: AuditSeverity.critical,
     );
   }
 
@@ -223,12 +214,9 @@ class StaffService {
     await _auditLogService.logAction(
       action: isActive ? 'staff_unblock' : 'staff_block',
       module: 'staff',
-      academyId: academyId,
-      uid: staffId,
-      role: 'admin',
-      targetDoc: staffId,
-      source: AuditSource.institute,
-      severity: AuditSeverity.medium,
+      targetId: staffId,
+      targetType: 'staff',
+      severity: AuditSeverity.warning,
     );
   }
 }

@@ -344,7 +344,7 @@ class _AccountSection extends StatelessWidget {
         return AlertDialog(
           backgroundColor: cs.surface,
           surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
           title: Row(
             children: [
               Container(

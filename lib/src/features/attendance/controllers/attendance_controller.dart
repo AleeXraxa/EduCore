@@ -11,10 +11,10 @@ class AttendanceController extends BaseController {
   String _searchQuery = '';
   
   // In a real app, these would come from the service/database
-  List<double> _weeklyTrend = [85, 92, 88, 95, 90, 82, 88];
+  final List<double> _weeklyTrend = [85, 92, 88, 95, 90, 82, 88];
   List<double> get weeklyTrend => _weeklyTrend;
 
-  List<Map<String, dynamic>> _attentionNeeded = [
+  final List<Map<String, dynamic>> _attentionNeeded = [
     {'name': 'Alex Johnson', 'reason': 'Absent for 3 days', 'class': 'Grade 1', 'isCritical': true},
     {'name': 'Sofia Ramirez', 'reason': 'Attendance below 60%', 'class': 'Grade 2', 'isCritical': false},
   ];

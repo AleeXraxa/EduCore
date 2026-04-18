@@ -35,7 +35,7 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
 
     return Dialog(
       backgroundColor: cs.surface,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480, maxHeight: 600),
         child: Padding(
@@ -76,7 +76,7 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
 
                     return ListTile(
                       onTap: isSelected || _saving ? null : () => _assign(t),
-                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
                       tileColor: isSelected
                           ? cs.primaryContainer.withValues(alpha: 0.3)
                           : cs.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -168,7 +168,7 @@ class _AssignMultipleTeachersDialogState extends State<AssignMultipleTeachersDia
 
     return Dialog(
       backgroundColor: cs.surface,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540, maxHeight: 700),
         child: Padding(
@@ -214,7 +214,7 @@ class _AssignMultipleTeachersDialogState extends State<AssignMultipleTeachersDia
                       onDeleted: () => setState(() => _selectedIds.remove(id)),
                       backgroundColor: cs.primaryContainer.withValues(alpha: 0.5),
                       side: BorderSide.none,
-                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r8),
+                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r8),
                     );
                   }).toList(),
                 ),
@@ -240,7 +240,7 @@ class _AssignMultipleTeachersDialogState extends State<AssignMultipleTeachersDia
                         });
                       },
                       tileColor: cs.surfaceContainerHighest.withValues(alpha: 0.2),
-                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
                       title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(t.role.name.toUpperCase(),
                           style: TextStyle(
