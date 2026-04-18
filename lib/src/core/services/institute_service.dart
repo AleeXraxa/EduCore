@@ -203,6 +203,17 @@ class InstituteService {
         'createdBy': superUid,
       });
 
+      // Initialize default subscription
+      batch.set(subRef, {
+        'academyId': academyId,
+        'planId': planId.trim(),
+        'status': 'active', // Default to active for manually created institutes
+        'startDate': startDate,
+        'endDate': endTs,
+        'createdAt': now,
+        'createdBy': superUid,
+      });
+
       batch.set(bootstrapRef, {
         'createdAt': now,
         'createdBy': superUid,

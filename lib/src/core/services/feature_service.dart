@@ -69,15 +69,16 @@ class FeatureService {
     }
 
     final keyLower = cleanKey.toLowerCase();
-    final existing = await _col
-        .where('keyLower', isEqualTo: keyLower)
-        .limit(1)
-        .get();
-    if (existing.docs.isNotEmpty) {
-      final data = existing.docs.first.data();
+    
+    // We use keyLower as the document ID for features to ensure uniqueness
+    final docRef = _col.doc(keyLower);
+    final existing = await docRef.get();
+
+    if (existing.exists) {
+      final data = existing.data()!;
       if (data['isDeleted'] == true) {
         // Reuse the deleted record by updating it
-        await existing.docs.first.reference.update({
+        await docRef.update({
           'label': label.trim(),
           'description': description.trim(),
           'group': group.trim(),
@@ -89,13 +90,12 @@ class FeatureService {
           'order': order ?? 0,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        return existing.docs.first.id;
+        return existing.id;
       }
       throw StateError('A feature with this key already exists.');
     }
 
-    final doc = _col.doc();
-    await doc.set({
+    await docRef.set({
       'key': cleanKey,
       'keyLower': keyLower,
       'label': label.trim(),
@@ -111,7 +111,7 @@ class FeatureService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    return doc.id;
+    return docRef.id;
   }
 
   Future<void> updateFeature({
@@ -170,8 +170,21 @@ class FeatureService {
     if (items.isEmpty) return;
     final batch = _firestore.batch();
     for (final item in items) {
-      final doc = _col.doc();
-      batch.set(doc, item);
+      final key = (item['key'] as String?)?.trim() ?? (item['id'] as String?)?.trim();
+      final keyLower = key?.toLowerCase();
+      
+      final doc = keyLower != null && keyLower.isNotEmpty ? _col.doc(keyLower) : _col.doc();
+      
+      final data = Map<String, dynamic>.from(item);
+      data['keyLower'] = keyLower ?? (data['key'] as String?)?.toLowerCase() ?? '';
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      
+      // Ensure essential fields exist
+      data['isDeleted'] = data['isDeleted'] ?? false;
+      data['isActive'] = data['isActive'] ?? true;
+      
+      batch.set(doc, data);
     }
     await batch.commit();
   }

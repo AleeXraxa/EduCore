@@ -236,7 +236,33 @@ class PlansImportController extends BaseController {
     if (!canImport) return;
 
     await runBusy(() async {
+      // 1. Sync Features Registry first
+      final allFeatures = <String>{};
+      for (final draft in validation!.drafts) {
+        allFeatures.addAll(draft.features);
+      }
+
+      if (allFeatures.isNotEmpty) {
+        // Prepare list of features for bulk registration
+        // We use a simplified discovery approach
+        final featureItems = allFeatures.map((key) => {
+          'key': key,
+          'label': _prettyLabel(key),
+          'description': 'Auto-discovered from plan import',
+          'group': 'General',
+          'isActive': true,
+          'isSystem': false,
+        }).toList();
+
+        await _featureService!.createFeaturesBatch(featureItems);
+        
+        // Also sync groups for these features
+        await _featureService!.syncGroupsFromFeaturesBatch(['General']);
+      }
+
+      // 2. Import Plans
       final items = validation!.drafts.map((d) => {
+        'key': d.key, // Now supported by PlanService
         'name': d.name,
         'description': d.description,
         'price': d.price,
@@ -249,12 +275,21 @@ class PlansImportController extends BaseController {
 
       lastCommit = PlanImportCommitResult(
         created: items.length,
-        updated: 0, // Currently create only logic in batch
+        updated: 0,
       );
 
       // Clear after success
       parseResult = const PlanImportParseResult(drafts: [], errors: []);
       validation = null;
     });
+  }
+
+  String _prettyLabel(String key) {
+    if (key.isEmpty) return 'Unknown';
+    final items = key.split('_');
+    return items.map((e) {
+      if (e.isEmpty) return '';
+      return e[0].toUpperCase() + e.substring(1).toLowerCase();
+    }).join(' ');
   }
 }

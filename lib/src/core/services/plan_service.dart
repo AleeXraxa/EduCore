@@ -57,14 +57,21 @@ class PlanService {
     if (items.isEmpty) return;
     final batch = _firestore.batch();
     for (final item in items) {
-      final doc = _col.doc();
+      final key = (item['key'] as String?)?.trim() ?? (item['id'] as String?)?.trim();
+      final doc = key != null && key.isNotEmpty ? _col.doc(key) : _col.doc();
+      
       final data = Map<String, dynamic>.from(item);
-      final name = (data['name'] as String).trim();
+      final name = (data['name'] as String? ?? '').trim();
       data['name'] = name;
       data['nameLower'] = name.toLowerCase();
       data['features'] = _cleanFeatureKeys(List<String>.from(data['features'] ?? []));
       data['createdAt'] = FieldValue.serverTimestamp();
       data['updatedAt'] = FieldValue.serverTimestamp();
+      
+      // Remove key/id from data to avoid redundancy if it was used as docId
+      data.remove('key');
+      data.remove('id');
+      
       batch.set(doc, data);
     }
     await batch.commit();
