@@ -114,9 +114,11 @@ class FeatureAccessService {
         }
       }
 
-      // 4. Load Staff Overrides (New)
+      // 4. Load Staff Overrides & Role
       Set<String> staffAllowed = {};
       Set<String> staffDenied = {};
+      String? staffRole;
+      
       if (_currentStaffId != null) {
         final staffDoc = await FirebaseFirestore.instance
             .collection('academies')
@@ -127,6 +129,7 @@ class FeatureAccessService {
         
         if (staffDoc.exists) {
           final data = staffDoc.data()!;
+          staffRole = data['role']?.toString();
           staffAllowed = (data['assignedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
           staffDenied = (data['deniedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
         }
@@ -138,33 +141,34 @@ class FeatureAccessService {
       final isStaff = _currentStaffId != null;
 
       for (final key in activeInRegistry) {
-        // Priority 1: Staff level explicit deny (always honor)
-        if (staffDenied.contains(key)) continue;
+        // --- STEP 1: SUBSCRIPTION BOUNDARY (HARD LIMIT) ---
+        final inPlan = planFeatures.contains(key);
+        final forciblyEnabled = overrides?.isEnabled(key) ?? false;
+        
+        // If it's not in the plan AND not explicitly granted via SA override, DENY ALWAYS.
+        final academyHasAccess = inPlan || forciblyEnabled;
+        if (!academyHasAccess) continue;
 
-        // Priority 2: Staff level explicit allow (always honor)
-        if (staffAllowed.contains(key)) {
-          allowed.add(key);
-          continue;
-        }
+        // --- STEP 2: ACADEMY DISABILITY OVERRIDE ---
+        if (overrides?.isDisabled(key) ?? false) continue;
 
-        // If it's a staff member, they ONLY get what is explicitly allowed above.
-        // They do NOT inherit from academy plan or academy overrides by default.
-        if (isStaff) continue;
+        // --- STEP 3: STAFF LEVEL LOGIC ---
+        if (isStaff) {
+          // 3a. Explicit Deny (Priority 1)
+          if (staffDenied.contains(key)) continue;
 
-        // --- Owner/Admin Logic (Legacy Inheritance) ---
-        // Priority 3: Academy level disabled override
-        if (overrides != null && overrides.isDisabled(key)) {
-          continue;
-        }
+          // 3b. Explicit Allow (Priority 2)
+          if (staffAllowed.contains(key)) {
+            allowed.add(key);
+            continue;
+          }
 
-        // Priority 4: Academy level enabled override
-        if (overrides != null && overrides.isEnabled(key)) {
-          allowed.add(key);
-          continue;
-        }
-
-        // Priority 5: Plan default
-        if (planFeatures.contains(key)) {
+          // 3c. Fallback to Role Defaults (Priority 3)
+          if (staffRole != null && _hasRoleAccess(staffRole, key)) {
+            allowed.add(key);
+          }
+        } else {
+          // Owner/Admin inherits all academy-level active features
           allowed.add(key);
         }
       }
@@ -184,6 +188,27 @@ class FeatureAccessService {
 
   /// Helper to check multiple features (logic: ANY must be present)
   bool canAccessAny(List<String> keys) => keys.any(canAccess);
+
+  /// Role-based default permissions (Only used as a fallback)
+  bool _hasRoleAccess(String role, String featureKey) {
+    // These defaults are only applied WITHIN the academy's plan boundary
+    final defaults = {
+      'admin': {
+        'dashboard', 'staff_view', 'staff_manage', 'classes_view', 
+        'classes_manage', 'students_view', 'students_manage',
+        'attendance_view', 'exams_view', 'fees_view', 'expense_view'
+      },
+      'teacher': {
+        'dashboard', 'classes_view', 'students_view', 
+        'attendance_view', 'attendance_manage', 'exams_view', 'exams_manage'
+      },
+      'accountant': {
+        'dashboard', 'fees_view', 'fees_manage', 'expense_view', 'expense_manage'
+      },
+    };
+
+    return defaults[role.toLowerCase()]?.contains(featureKey) ?? false;
+  }
 
   /// Watches effective access for a specific academy.
   /// This is used for real-time UI updates (e.g. in FeatureAccessController).

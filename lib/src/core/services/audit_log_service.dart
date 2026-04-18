@@ -88,4 +88,25 @@ class AuditLogService {
       return snapshot.docs.map((doc) => AuditLog.fromFirestore(doc)).toList();
     });
   }
+
+  Future<List<AuditLog>> getLogs({
+    int limit = 100,
+    String? module,
+    String? action,
+    String? academyId,
+    String? targetDoc,
+    AuditSeverity? severity,
+  }) async {
+    Query query = _collection.orderBy('timestamp', descending: true).limit(limit);
+
+    if (module != null) query = query.where('module', isEqualTo: module);
+    if (action != null) query = query.where('action', isEqualTo: action);
+    if (academyId != null) query = query.where('academyId', isEqualTo: academyId);
+    if (targetDoc != null) query = query.where('targetDoc', isEqualTo: targetDoc);
+    if (severity != null)
+      query = query.where('severity', isEqualTo: severity.name);
+
+    final snapshot = await query.get();
+    return snapshot.docs.map((doc) => AuditLog.fromFirestore(doc)).toList();
+  }
 }

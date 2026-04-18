@@ -53,6 +53,35 @@ class FeatureService {
     });
   }
 
+  Future<List<FeatureFlag>> getFeatures() async {
+    final snap = await _col.get();
+    final list = snap.docs
+        .map(FeatureFlag.fromDoc)
+        .where((f) => !f.isDeleted)
+        .toList();
+
+    list.sort((a, b) {
+      final g = a.group.compareTo(b.group);
+      if (g != 0) return g;
+      final o = a.order.compareTo(b.order);
+      if (o != 0) return o;
+      return a.label.compareTo(b.label);
+    });
+
+    return List<FeatureFlag>.unmodifiable(list);
+  }
+
+  Future<List<FeatureGroup>> getGroups() async {
+    final snap = await _groupsCol.get();
+    final list = snap.docs
+        .map(FeatureGroup.fromDoc)
+        .where((g) => !g.isDeleted)
+        .toList();
+
+    list.sort((a, b) => a.order.compareTo(b.order));
+    return List<FeatureGroup>.unmodifiable(list);
+  }
+
   Future<String> createFeature({
     required String key,
     required String label,

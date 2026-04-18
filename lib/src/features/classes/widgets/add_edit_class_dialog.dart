@@ -1,6 +1,8 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
@@ -59,33 +61,45 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
     final section = _sectionController.text.trim();
     
     bool ok;
-    if (widget.existingClass == null) {
-      ok = await widget.controller.createClass(
-        name: name,
-        section: section,
-        classTeacherId: _selectedTeacherId,
-        classTeacherName: _selectedTeacherName,
-      );
-    } else {
-      ok = await widget.controller.updateClass(
-        classId: widget.existingClass!.id,
-        name: name,
-        section: section,
-        classTeacherId: _selectedTeacherId,
-        classTeacherName: _selectedTeacherName,
-        isActive: _isActive,
-      );
-    }
+    try {
+      if (widget.existingClass == null) {
+        ok = await widget.controller.createClass(
+          name: name,
+          section: section,
+          classTeacherId: _selectedTeacherId,
+          classTeacherName: _selectedTeacherName,
+        );
+      } else {
+        ok = await widget.controller.updateClass(
+          classId: widget.existingClass!.id,
+          name: name,
+          section: section,
+          classTeacherId: _selectedTeacherId,
+          classTeacherName: _selectedTeacherName,
+          isActive: _isActive,
+        );
+      }
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (ok) {
-      Navigator.of(context).pop(true);
-    } else {
+      if (ok) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _saving = false;
-        _errorMessage = widget.controller.errorMessage ?? 'Failed to save class.';
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
+      if (e is PlanLimitExceededException) {
+        AppDialogs.showLimitReached(
+          context,
+          message: e.message,
+          onUpgrade: () {
+            // TODO: Navigate to pricing/plans page
+          },
+        );
+      }
     }
   }
 

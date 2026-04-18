@@ -7,6 +7,8 @@ import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 
 class StudentFormDialog extends StatefulWidget {
@@ -84,26 +86,41 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       ),
     );
 
-    bool success;
-    if (widget.student == null) {
-      success = await widget.controller.addStudent(newStudent);
-    } else {
-      success = await widget.controller.updateStudent(newStudent);
-    }
+    try {
+      bool success;
+      if (widget.student == null) {
+        success = await widget.controller.addStudent(newStudent);
+      } else {
+        success = await widget.controller.updateStudent(newStudent);
+      }
 
-    if (success && mounted) {
-      Navigator.of(context).pop();
-      AppToasts.showSuccess(
-        context,
-        message:
-            'Student ${widget.student == null ? 'added' : 'updated'} successfully.',
-      );
-    } else if (mounted) {
+      if (success && mounted) {
+        Navigator.of(context).pop();
+        AppToasts.showSuccess(
+          context,
+          message:
+              'Student ${widget.student == null ? 'added' : 'updated'} successfully.',
+        );
+      } else if (mounted) {
+        setState(() => _isLoading = false);
+        AppToasts.showError(
+          context,
+          message: 'Failed to save student. Please try again.',
+        );
+      }
+    } catch (e) {
       setState(() => _isLoading = false);
-      AppToasts.showError(
-        context,
-        message: 'Failed to save student. Please try again.',
-      );
+      if (e is PlanLimitExceededException) {
+        if (mounted) {
+          AppDialogs.showLimitReached(
+            context,
+            message: e.message,
+            onUpgrade: () {
+              // TODO: Navigate to pricing
+            },
+          );
+        }
+      }
     }
   }
 

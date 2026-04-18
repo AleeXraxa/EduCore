@@ -2,30 +2,46 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/app_user.dart';
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/audit/models/audit_log.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StaffService {
   StaffService({
     required FirebaseFirestore firestore,
     required UserRepository userRepository,
     required AuditLogService auditLogService,
-  })  : _firestore = firestore,
-        _userRepository = userRepository,
-        _auditLogService = auditLogService;
+    required SubscriptionService subscriptionService,
+  }) : _firestore = firestore,
+       _userRepository = userRepository,
+       _auditLogService = auditLogService,
+       _subscriptionService = subscriptionService;
 
   final FirebaseFirestore _firestore;
   final UserRepository _userRepository;
   final AuditLogService _auditLogService;
+  final SubscriptionService _subscriptionService;
 
   CollectionReference<Map<String, dynamic>> _staffCol(String academyId) =>
       _firestore.collection('academies').doc(academyId).collection('staff');
 
+  DocumentReference<Map<String, dynamic>> _userRef(String uid) =>
+      _firestore.collection('users').doc(uid);
+
   Stream<List<StaffMember>> watchStaff(String academyId) {
     return _staffCol(academyId)
-        .orderBy('createdAt', descending: true)
+        .where('status', isNotEqualTo: 'deleted')
         .snapshots()
         .map((snap) => snap.docs.map(StaffMember.fromFirestore).toList());
+  }
+
+  Future<List<StaffMember>> getStaff(String academyId) async {
+    final snap = await _staffCol(academyId)
+        .where('status', isNotEqualTo: 'deleted')
+        .get();
+    return snap.docs.map(StaffMember.fromFirestore).toList();
   }
 
   Future<void> createStaff({
@@ -38,71 +54,126 @@ class StaffService {
     String? customRoleName,
     List<String> assignedFeatureKeys = const [],
   }) async {
-    // 1. Create User in Auth & Global Users via Repository
-    // Map StaffRole to AppUserRole
-    AppUserRole userRole = AppUserRole.staff;
-    if (role == StaffRole.teacher) {
-      userRole = AppUserRole.teacher;
+    // 1. Enforce Plan Limits
+    await _subscriptionService.checkLimit(academyId, 'maxStaff');
+
+    UserCredential? userCred;
+    try {
+      // 1. Provision Auth User first (cannot be batched)
+      userCred = await _userRepository.provisionAuthUser(
+        email: email,
+        password: password,
+      );
+
+      final uid = userCred.user!.uid;
+      final batch = _firestore.batch();
+
+      // Map StaffRole to AppUserRole
+      AppUserRole userRole = role == StaffRole.teacher
+          ? AppUserRole.teacher
+          : AppUserRole.staff;
+
+      // 2. Add to Global Users (Atomic Item 1)
+      _userRepository.batchCreateUser(
+        batch: batch,
+        uid: uid,
+        name: name,
+        email: email,
+        phone: phone,
+        role: userRole,
+        academyId: academyId,
+        status: 'active',
+        createdBy:
+            AppServices.instance.authService?.currentUser?.uid ?? 'system',
+      );
+
+      // 3. Add to Academy Staff (Atomic Item 2)
+      final staffMember = StaffMember(
+        id: uid,
+        name: name,
+        email: email,
+        phone: phone,
+        role: role,
+        customRoleName: customRoleName,
+        assignedFeatureKeys: assignedFeatureKeys,
+        deniedFeatureKeys: [],
+        isActive: true,
+        createdAt: DateTime.now(),
+      );
+      batch.set(_staffCol(academyId).doc(uid), staffMember.toFirestore());
+
+      // 4. Commit Both
+      await batch.commit();
+
+      // 5. Log Action
+      await _auditLogService.logAction(
+        action: 'staff_create',
+        module: 'staff',
+        academyId: academyId,
+        uid: uid,
+        role: 'admin',
+        targetDoc: uid,
+        after: staffMember.toFirestore(),
+        source: AuditSource.institute,
+        severity: AuditSeverity.medium,
+      );
+    } catch (e) {
+      if (userCred != null) {
+        try {
+          await userCred.user?.delete();
+        } catch (_) {}
+      }
+      rethrow;
     }
-
-    final appUser = await _userRepository.createUser(
-      name: name,
-      email: email,
-      password: password,
-      phone: phone,
-      role: userRole,
-      academyId: academyId,
-      status: 'active',
-    );
-
-    // 2. Create Staff Document in Academy
-    final staffMember = StaffMember(
-      id: appUser.uid, // Unified ID
-      name: name,
-      email: email,
-      phone: phone,
-      role: role,
-      customRoleName: customRoleName,
-      assignedFeatureKeys: assignedFeatureKeys,
-      deniedFeatureKeys: [],
-      isActive: true,
-      createdAt: DateTime.now(),
-    );
-
-    await _staffCol(academyId).doc(appUser.uid).set(staffMember.toFirestore());
-
-    // 3. Log Action
-    await _auditLogService.logAction(
-      action: 'staff_create',
-      module: 'staff',
-      academyId: academyId,
-      uid: appUser.uid,
-      role: 'admin',
-      targetDoc: appUser.uid,
-      after: staffMember.toFirestore(),
-      source: AuditSource.institute,
-      severity: AuditSeverity.medium,
-    );
   }
 
   Future<void> updateStaff(String academyId, StaffMember staff) async {
-    await _staffCol(academyId).doc(staff.id).update(staff.toFirestore());
+    final batch = _firestore.batch();
 
-    // Sync status to global user if changed
-    await _userRepository.setStatus(staff.id, staff.isActive ? 'active' : 'blocked');
-    
-    // Sync name/phone to global user
-    await _userRepository.updateUser(staff.id, {
+    // Update Staff Doc
+    batch.update(_staffCol(academyId).doc(staff.id), staff.toFirestore());
+
+    // Sync to Global User (Identity + Role)
+    batch.update(_userRef(staff.id), {
       'name': staff.name,
       'phone': staff.phone,
+      'role': staff.role == StaffRole.teacher
+          ? AppUserRole.teacher.value
+          : AppUserRole.staff.value,
+      'status': staff.isActive ? 'active' : 'blocked',
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    await batch.commit();
   }
 
   Future<void> deleteStaff(String academyId, String staffId) async {
-    // Note: We don't usually delete Auth users from here for safety, 
-    // but we block them. For a "hard delete" as requested:
-    await _staffCol(academyId).doc(staffId).delete();
-    await _userRepository.setStatus(staffId, 'deleted');
+    final batch = _firestore.batch();
+
+    // Soft delete in academy staff
+    batch.update(_staffCol(academyId).doc(staffId), {
+      'isActive': false,
+      'status': 'deleted', // Setting a status field for filtering
+    });
+
+    // Soft delete in global users
+    batch.update(_userRef(staffId), {
+      'status': 'deleted',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    await _auditLogService.logAction(
+      action: 'staff_delete_soft',
+      module: 'staff',
+      academyId: academyId,
+      uid: staffId,
+      role: 'admin',
+      targetDoc: staffId,
+      source: AuditSource.institute,
+      severity: AuditSeverity.high,
+    );
   }
 
   Future<void> updatePermissions({
@@ -127,20 +198,27 @@ class StaffService {
       role: 'admin',
       targetDoc: staffId,
       before: before,
-      after: {
-        'assignedFeatureKeys': allowed,
-        'deniedFeatureKeys': denied,
-      },
+      after: {'assignedFeatureKeys': allowed, 'deniedFeatureKeys': denied},
       source: AuditSource.institute,
       severity: AuditSeverity.high,
     );
   }
 
-  Future<void> toggleStatus(String academyId, String staffId, bool isActive) async {
-    await _staffCol(academyId).doc(staffId).update({
-      'isActive': isActive,
+  Future<void> toggleStatus(
+    String academyId,
+    String staffId,
+    bool isActive,
+  ) async {
+    final batch = _firestore.batch();
+    final status = isActive ? 'active' : 'blocked';
+
+    batch.update(_staffCol(academyId).doc(staffId), {'isActive': isActive});
+    batch.update(_userRef(staffId), {
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
-    await _userRepository.setStatus(staffId, isActive ? 'active' : 'blocked');
+
+    await batch.commit();
 
     await _auditLogService.logAction(
       action: isActive ? 'staff_unblock' : 'staff_block',

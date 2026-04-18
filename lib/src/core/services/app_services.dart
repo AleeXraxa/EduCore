@@ -22,6 +22,8 @@ import 'package:educore/src/core/services/settings_service.dart';
 import 'package:educore/src/core/services/class_service.dart';
 import 'package:educore/src/core/services/staff_service.dart';
 
+import 'package:educore/src/features/students/services/student_service.dart';
+
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
 import 'package:educore/src/core/repositories/payment_repository.dart';
@@ -57,6 +59,7 @@ class AppServices {
   FeatureOverrideService? featureOverrideService;
   SettingsService? settingsService;
   StaffService? staffService;
+  StudentService? studentService;
   AuditLogService? auditLogService;
   
   // Repositories
@@ -142,6 +145,7 @@ class AppServices {
       classService = ClassService(
         firestore: firestore!,
         auditLogService: auditLogService!,
+        subscriptionService: subscriptionService!,
       );
       
       adminUsersService = AdminUsersService(firestore: firestore!);
@@ -174,6 +178,12 @@ class AppServices {
           primaryAuth: auth!,
         ),
         auditLogService: auditLogService!,
+        subscriptionService: subscriptionService!,
+      );
+
+      studentService = StudentService(
+        firestore: firestore!,
+        subscriptionService: subscriptionService!,
       );
 
       // Initialize Repositories

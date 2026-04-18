@@ -57,8 +57,64 @@ class UserRepository {
         .toList();
   }
 
+  /// Internal helper to create an Auth user using a secondary app.
+  /// Returns the [UserCredential] and handles secondary app cleanup.
+  Future<UserCredential> provisionAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    final secondaryAppName = 'user_provision_${DateTime.now().millisecondsSinceEpoch}';
+    final secondaryApp = await Firebase.initializeApp(
+      name: secondaryAppName,
+      options: _primaryApp.options,
+    );
+
+    try {
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final cred = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await secondaryApp.delete();
+      return cred;
+    } catch (e) {
+      await secondaryApp.delete();
+      rethrow;
+    }
+  }
+
+  /// Adds a user creation operation to a Firestore [WriteBatch].
+  void batchCreateUser({
+    required WriteBatch batch,
+    required String uid,
+    required String name,
+    required String email,
+    required String phone,
+    required AppUserRole role,
+    required String academyId,
+    required String status,
+    required String createdBy,
+  }) {
+    final now = FieldValue.serverTimestamp();
+    final userRef = _collection.doc(uid);
+    
+    batch.set(userRef, {
+      'uid': uid,
+      'name': name.trim(),
+      'email': email.trim(),
+      'emailLower': email.trim().toLowerCase(),
+      'phone': phone.trim(),
+      'role': role.value,
+      'academyId': academyId,
+      'status': status.toLowerCase(),
+      'createdAt': now,
+      'updatedAt': now,
+      'createdBy': createdBy,
+    });
+  }
+
   /// Creates a new user in both Firebase Auth and Firestore.
-  /// This uses a secondary Firebase App to avoid signing out the current user.
+  /// This maintains backward compatibility but now uses the internal provisioning logic.
   Future<AppUser> createUser({
     required String name,
     required String email,
@@ -73,50 +129,25 @@ class UserRepository {
       throw StateError('Authentication required to create users.');
     }
 
-    // Initialize/Get secondary app for Auth management
-    final secondaryAppName = 'user_provision_${DateTime.now().millisecondsSinceEpoch}';
-    final secondaryApp = await Firebase.initializeApp(
-      name: secondaryAppName,
-      options: _primaryApp.options,
-    );
-
     UserCredential? userCred;
     try {
-      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
-      
-      // 1. Create Auth User
-      userCred = await secondaryAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
+      userCred = await provisionAuthUser(email: email, password: password);
+      final uid = userCred.user!.uid;
+
+      final batch = _firestore.batch();
+      batchCreateUser(
+        batch: batch,
+        uid: uid,
+        name: name,
+        email: email,
+        phone: phone,
+        role: role,
+        academyId: academyId,
+        status: status,
+        createdBy: currentUserRef.uid,
       );
+      await batch.commit();
 
-      final uid = userCred.user?.uid;
-      if (uid == null) {
-        throw Exception('Failed to retrieve UID for new user.');
-      }
-
-      // 2. Create Firestore Record
-      final now = FieldValue.serverTimestamp();
-      final userData = {
-        'uid': uid,
-        'name': name.trim(),
-        'email': email.trim(),
-        'emailLower': email.trim().toLowerCase(),
-        'phone': phone.trim(),
-        'role': role.value,
-        'academyId': academyId,
-        'status': status.toLowerCase(),
-        'createdAt': now,
-        'updatedAt': now,
-        'createdBy': currentUserRef.uid,
-      };
-
-      await _collection.doc(uid).set(userData);
-
-      // 3. Clean up secondary app
-      await secondaryApp.delete();
-
-      // Return local model
       return AppUser(
         uid: uid,
         name: name.trim(),
@@ -130,13 +161,11 @@ class UserRepository {
         createdBy: currentUserRef.uid,
       );
     } catch (e) {
-      // Cleanup: if Auth user was created but Firestore failed
-      try {
-        if (userCred != null) {
+      if (userCred != null) {
+        try {
           await userCred.user?.delete();
-        }
-        await secondaryApp.delete();
-      } catch (_) {}
+        } catch (_) {}
+      }
       rethrow;
     }
   }

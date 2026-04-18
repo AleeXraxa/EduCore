@@ -2,6 +2,8 @@ import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/staff/controllers/staff_controller.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
 import 'package:flutter/material.dart';
@@ -76,8 +78,18 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      // Error handled by controller usually, but we stop loading
       setState(() => _isBusy = false);
+      if (e is PlanLimitExceededException) {
+        if (mounted) {
+          AppDialogs.showLimitReached(
+            context,
+            message: e.message,
+            onUpgrade: () {
+              // TODO: Navigate to pricing/plans page
+            },
+          );
+        }
+      }
     }
   }
 

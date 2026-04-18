@@ -355,10 +355,11 @@ class _ActivityTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<AuditLog>>(
-      stream: AppServices.instance.auditLogService?.watchLogs(
+    return FutureBuilder<List<AuditLog>>(
+      future: AppServices.instance.auditLogService?.getLogs(
         limit: 20,
-      ).map((logs) => logs.where((l) => l.targetDoc == staffId).toList()),
+        targetDoc: staffId,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

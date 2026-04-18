@@ -16,6 +16,7 @@ class StaffMember {
   final String? customRoleName;
   final List<String> assignedFeatureKeys;
   final List<String> deniedFeatureKeys;
+  final List<String> assignedClassIds;
   final bool isActive;
   final DateTime createdAt;
 
@@ -28,6 +29,7 @@ class StaffMember {
     this.customRoleName,
     required this.assignedFeatureKeys,
     required this.deniedFeatureKeys,
+    this.assignedClassIds = const [],
     required this.isActive,
     required this.createdAt,
   });
@@ -53,6 +55,7 @@ class StaffMember {
       customRoleName: data['customRoleName'],
       assignedFeatureKeys: List<String>.from(data['assignedFeatureKeys'] ?? []),
       deniedFeatureKeys: List<String>.from(data['deniedFeatureKeys'] ?? []),
+      assignedClassIds: List<String>.from(data['assignedClassIds'] ?? []),
       isActive: data['isActive'] ?? true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -67,6 +70,7 @@ class StaffMember {
       'customRoleName': customRoleName,
       'assignedFeatureKeys': assignedFeatureKeys,
       'deniedFeatureKeys': deniedFeatureKeys,
+      'assignedClassIds': assignedClassIds,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -80,6 +84,7 @@ class StaffMember {
     String? customRoleName,
     List<String>? assignedFeatureKeys,
     List<String>? deniedFeatureKeys,
+    List<String>? assignedClassIds,
     bool? isActive,
   }) {
     return StaffMember(
@@ -91,6 +96,7 @@ class StaffMember {
       customRoleName: customRoleName ?? this.customRoleName,
       assignedFeatureKeys: assignedFeatureKeys ?? this.assignedFeatureKeys,
       deniedFeatureKeys: deniedFeatureKeys ?? this.deniedFeatureKeys,
+      assignedClassIds: assignedClassIds ?? this.assignedClassIds,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt,
     );

@@ -39,22 +39,29 @@ class StaffController extends BaseController {
     super.dispose();
   }
 
-  void init() {
-    _staffSub = _staffService.watchStaff(_academyId).listen((list) {
-      _staffList = list;
-      notifyListeners();
-    });
+  /// Fetches staff, features, and groups into local cache (One-time fetch)
+  Future<void> load() async {
+    if (_academyId.isEmpty) return;
+    
+    await runBusy(() async {
+      try {
+        final results = await Future.wait([
+          _staffService.getStaff(_academyId),
+          _featureService.getFeatures(),
+          _featureService.getGroups(),
+        ]);
 
-    _featureSub = _featureService.watchFeatures().listen((list) {
-      _allFeatures = list;
-      notifyListeners();
-    });
-
-    _groupSub = _featureService.watchGroups().listen((list) {
-      _featureGroups = list;
-      notifyListeners();
+        _staffList = results[0] as List<StaffMember>;
+        _allFeatures = results[1] as List<FeatureFlag>;
+        _featureGroups = results[2] as List<FeatureGroup>;
+      } catch (e) {
+        debugPrint('Error loading staff data: $e');
+      }
     });
   }
+
+  /// Legacy helper for views expecting 'init'
+  void init() => load();
 
   Future<void> addStaff({
     required String name,
@@ -76,18 +83,21 @@ class StaffController extends BaseController {
         customRoleName: customRoleName,
         assignedFeatureKeys: defaultFeatures,
       );
+      await load(); // Refresh local cache
     });
   }
 
   Future<void> updateStaff(StaffMember staff) async {
     await runBusy(() async {
       await _staffService.updateStaff(_academyId, staff);
+      await load(); // Refresh local cache
     });
   }
 
   Future<void> deleteStaff(String staffId) async {
     await runBusy(() async {
       await _staffService.deleteStaff(_academyId, staffId);
+      await load(); // Refresh local cache
     });
   }
 
@@ -95,10 +105,10 @@ class StaffController extends BaseController {
     try {
       await runBusy(() async {
         await _staffService.toggleStatus(_academyId, staffId, isActive);
+        await load(); // Refresh local cache
       });
     } catch (e) {
       debugPrint('Error toggling staff status: $e');
-      // Optionally show a toast or message to the user
     }
   }
 
@@ -114,6 +124,7 @@ class StaffController extends BaseController {
         allowed: allowed,
         denied: denied,
       );
+      await load(); // Refresh local cache
     });
   }
 

@@ -1,12 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 
 class StudentService {
   final FirebaseFirestore _firestore;
+  final SubscriptionService _subscriptionService;
 
-  StudentService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  StudentService({
+    FirebaseFirestore? firestore,
+    required SubscriptionService subscriptionService,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _subscriptionService = subscriptionService;
 
   CollectionReference<Map<String, dynamic>> _studentsRef(String academyId) {
     return _firestore.collection('academies').doc(academyId).collection('students');
@@ -20,6 +25,9 @@ class StudentService {
   }
 
   Future<Student> createStudent(String academyId, Student student) async {
+    // 1. Enforce Plan Limits
+    await _subscriptionService.checkLimit(academyId, 'maxStudents');
+
     final docRef = _studentsRef(academyId).doc();
     final newStudent = student.copyWith(
       id: docRef.id,

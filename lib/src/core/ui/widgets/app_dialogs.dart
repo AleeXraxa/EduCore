@@ -128,6 +128,34 @@ class AppDialogs {
     ).then((_) => _isLoadingVisible = false);
   }
 
+  static Future<void> showLimitReached(
+    BuildContext context, {
+    required String message,
+    VoidCallback? onUpgrade,
+  }) {
+    return showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, _, __) => _BaseDialog(
+        type: _DialogType.error,
+        title: 'Plan Limit Reached',
+        message: '$message\n\nUpgrade your plan to unlock more capacity.',
+        buttonLabel: 'Upgrade Now',
+        onConfirm: onUpgrade,
+      ),
+      transitionBuilder: (context, animation, secondAnimation, child) {
+        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+    );
+  }
+
   static void hide(BuildContext context) {
     if (_isLoadingVisible) {
       Navigator.pop(context);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/core/services/staff_service.dart';
@@ -62,44 +63,32 @@ class ClassesController extends BaseController {
     }).toList();
   }
 
-  void load() {
+  /// Unified fetch for classes and teachers (One-time)
+  Future<void> fetch() async {
     if (_academyId.isEmpty) {
       _errorMessage = 'Academy context not found.';
       notifyListeners();
       return;
     }
 
-    setBusy(true);
-    _errorMessage = null;
+    await runBusy(() async {
+      _errorMessage = null;
+      try {
+        final results = await Future.wait([
+          _classService.getClasses(_academyId),
+          _staffService.getStaff(_academyId),
+        ]);
 
-    _sub?.cancel();
-    _sub = _classService
-        .watchClasses(_academyId)
-        .listen(
-          (data) {
-            _classes = data;
-            setBusy(false);
-          },
-          onError: (e) {
-            _errorMessage = 'Failed to load classes: $e';
-            setBusy(false);
-          },
-        );
-
-    // Watch Staff for teacher assignment
-    _staffSub?.cancel();
-    _staffSub = _staffService
-        .watchStaff(_academyId)
-        .listen(
-          (data) {
-            _teachers = data;
-            notifyListeners();
-          },
-          onError: (e) {
-            debugPrint('Error watching staff: $e');
-          },
-        );
+        _classes = results[0] as List<InstituteClass>;
+        _teachers = results[1] as List<StaffMember>;
+      } catch (e) {
+        _errorMessage = 'Failed to load modules: $e';
+      }
+    });
   }
+
+  /// Legacy helper for views expecting 'load'
+  void load() => fetch();
 
   void setSearchQuery(String query) {
     if (_searchQuery == query) return;
@@ -134,8 +123,10 @@ class ClassesController extends BaseController {
         );
         success = true;
         _errorMessage = null;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
+        if (e is PlanLimitExceededException) rethrow;
       }
     });
     return success;
@@ -174,6 +165,7 @@ class ClassesController extends BaseController {
         );
         success = true;
         _errorMessage = null;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       }
@@ -200,6 +192,7 @@ class ClassesController extends BaseController {
         );
         success = true;
         _errorMessage = null;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       }
@@ -226,6 +219,7 @@ class ClassesController extends BaseController {
           performedBy: userId,
         );
         success = true;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString();
       }
@@ -250,6 +244,7 @@ class ClassesController extends BaseController {
           performedBy: userId,
         );
         success = true;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString();
       }
@@ -271,6 +266,7 @@ class ClassesController extends BaseController {
           performedBy: userId,
         );
         success = true;
+        await fetch(); // Refresh local cache
       } catch (e) {
         _errorMessage = e.toString();
       }

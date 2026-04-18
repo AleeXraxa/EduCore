@@ -6,13 +6,14 @@ import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/services/student_service.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
 
 class StudentController extends BaseController {
   final StudentService _studentService;
   final String _academyId;
 
   StudentController({StudentService? studentService})
-      : _studentService = studentService ?? StudentService(),
+      : _studentService = studentService ?? AppServices.instance.studentService!,
         _academyId = AppServices.instance.authService!.session!.academyId;
 
   final List<Student> _students = [];
@@ -180,6 +181,7 @@ class StudentController extends BaseController {
         success = true;
       } catch (e, st) {
         debugPrint('Error adding student: $e $st');
+        if (e is PlanLimitExceededException) rethrow;
       }
     });
     return success;
