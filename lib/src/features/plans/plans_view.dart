@@ -3,7 +3,7 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
 import 'package:educore/src/core/ui/widgets/app_kpi_grid.dart';
-import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
+import 'package:educore/src/core/ui/widgets/app_primary_button.dart' hide AppButtonVariant;
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/plans/plans_controller.dart';
@@ -12,6 +12,8 @@ import 'package:educore/src/features/plans/widgets/plan_editor_dialog.dart';
 import 'package:educore/src/features/plans/widgets/plan_status_badge.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_empty_state.dart';
+import 'package:educore/src/core/ui/widgets/app_button.dart';
+import 'package:educore/src/features/plans_import/plans_import_view.dart';
 import 'package:flutter/material.dart';
 
 class PlansView extends StatefulWidget {
@@ -70,11 +72,11 @@ class _PlansViewState extends State<PlansView> {
             icon: Icons.toggle_on_rounded,
             gradient: const [Color(0xFF7C3AED), Color(0xFF6366F1)],
           ),
-          KpiCardData(
+          const KpiCardData(
             label: 'Most Used Plan',
             value: '-',
             icon: Icons.auto_awesome_rounded,
-            gradient: const [Color(0xFF0EA5E9), Color(0xFF22D3EE)],
+            gradient: [Color(0xFF0EA5E9), Color(0xFF22D3EE)],
           ),
         ];
 
@@ -123,6 +125,13 @@ class _PlansViewState extends State<PlansView> {
                             ],
                           ),
                         ),
+                        AppButton(
+                          label: 'Bulk Import',
+                          icon: Icons.cloud_upload_rounded,
+                          variant: AppButtonVariant.secondary,
+                          onPressed: () => PlansImportView.show(context),
+                        ),
+                        const SizedBox(width: 12),
                         AppPrimaryButton(
                           label: 'Create plan',
                           icon: Icons.add_rounded,
@@ -132,7 +141,7 @@ class _PlansViewState extends State<PlansView> {
                               context,
                               availableFeatures: controller.registryFeatures,
                             );
-                            if (created == null) return;
+                            if (created == null || !context.mounted) return;
                             try {
                               AppDialogs.showLoading(context, message: 'Creating plan...');
                               await controller.createPlan(created);
@@ -186,7 +195,7 @@ class _PlansViewState extends State<PlansView> {
                           initial: plan,
                           availableFeatures: controller.registryFeatures,
                         );
-                        if (updated == null) return;
+                        if (updated == null || !context.mounted) return;
                         try {
                           AppDialogs.showLoading(context, message: 'Updating plan...');
                           await controller.updatePlan(updated);

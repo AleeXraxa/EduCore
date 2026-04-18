@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/core/services/auth_exceptions.dart';
 import 'package:educore/src/features/login/seed/super_admin_seed.dart';
@@ -106,10 +107,7 @@ class _LoginViewState extends State<LoginView>
           ? FloatingActionButton.extended(
               onPressed: () async {
                 final ctx = context;
-                AppDialogs.showLoading(
-                  ctx,
-                  message: 'Seeding Super Admin...',
-                );
+                AppDialogs.showLoading(ctx, message: 'Seeding Super Admin...');
                 try {
                   await _controller.seedSuperAdmin();
                   if (!ctx.mounted) return;
@@ -153,11 +151,14 @@ class _LoginViewState extends State<LoginView>
 
       final session = AppServices.instance.authService?.session;
       if (session == null) {
-        throw AuthException('Session failed to initialize.', 'session-init-error');
+        throw AuthException(
+          'Session failed to initialize.',
+          'session-init-error',
+        );
       }
 
       if (!mounted) return;
-      
+
       String targetRoute = AppRoutes.dashboard;
       if (session.isSuperAdmin) {
         targetRoute = AppRoutes.dashboard;
@@ -179,13 +180,26 @@ class _LoginViewState extends State<LoginView>
         title: 'Security Access Denied',
         message: e.message,
       );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message = 'Authentication failed.';
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'Invalid email or password. Please check your credentials.';
+      } else if (e.code == 'network-request-failed') {
+        message = 'Connection failed. Please check your internet connection.';
+      } else {
+        message = e.message ?? 'An unexpected authentication error occurred.';
+      }
+
+      AppDialogs.showError(context, title: 'Sign In Failed', message: message);
     } catch (e) {
       if (!mounted) return;
       AppDialogs.showError(
         context,
-        title: 'Sign In Failed',
-        message:
-            'We could not authenticate your credentials. Please verify your email and password and try again.',
+        title: 'Opps! Something went wrong',
+        message: e.toString(),
       );
     }
   }

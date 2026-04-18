@@ -142,7 +142,11 @@ class AppServices {
       );
 
       // Initialize Repositories
-      userRepository = UserRepository(firestore!);
+      userRepository = UserRepository(
+        firestore!,
+        primaryApp: firebaseApp!,
+        primaryAuth: auth!,
+      );
       
       final instService = instituteService;
       if (instService != null) {

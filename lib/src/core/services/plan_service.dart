@@ -53,6 +53,23 @@ class PlanService {
     return doc.id;
   }
 
+  Future<void> createPlansBatch(List<Map<String, dynamic>> items) async {
+    if (items.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final item in items) {
+      final doc = _col.doc();
+      final data = Map<String, dynamic>.from(item);
+      final name = (data['name'] as String).trim();
+      data['name'] = name;
+      data['nameLower'] = name.toLowerCase();
+      data['features'] = _cleanFeatureKeys(List<String>.from(data['features'] ?? []));
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      batch.set(doc, data);
+    }
+    await batch.commit();
+  }
+
   Future<void> updatePlan({
     required String planId,
     required String name,

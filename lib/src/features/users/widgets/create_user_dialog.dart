@@ -16,12 +16,12 @@ class CreateUserDialog extends StatefulWidget {
   final List<String> instituteIds;
   final String Function(String id) instituteLabelForId;
 
-  static Future<AppUser?> show(
+  static Future<CreateUserDraft?> show(
     BuildContext context, {
     required List<String> instituteIds,
     required String Function(String id) instituteLabelForId,
   }) {
-    return showDialog<AppUser?>(
+    return showDialog<CreateUserDraft?>(
       context: context,
       barrierDismissible: true,
       builder: (_) => CreateUserDialog(
@@ -38,12 +38,14 @@ class CreateUserDialog extends StatefulWidget {
 class _CreateUserDialogState extends State<CreateUserDialog> {
   final _name = TextEditingController();
   final _email = TextEditingController();
+  final _password = TextEditingController();
   final _phone = TextEditingController();
 
   AppUserRole _role = AppUserRole.staff;
   String _instituteId = '';
   AppUserStatus _status = AppUserStatus.active;
   final _formKey = GlobalKey<FormState>();
+  bool _showPassword = false;
 
   @override
   void initState() {
@@ -56,6 +58,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _password.dispose();
     _phone.dispose();
     super.dispose();
   }
@@ -67,36 +70,28 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 
     final name = _name.text.trim();
     final email = _email.text.trim();
+    final password = _password.text;
     final phone = _phone.text.trim();
 
     final instituteId =
         _role == AppUserRole.superAdmin ? 'all' : _instituteId.trim();
-    final instituteName = _role == AppUserRole.superAdmin
-        ? 'EduCore Platform'
-        : widget.instituteLabelForId(instituteId);
 
-    final user = AppUser(
-      id: 'u_${DateTime.now().microsecondsSinceEpoch}',
+    final draft = CreateUserDraft(
       name: name,
       email: email,
+      password: password,
       phone: phone.isEmpty ? '—' : phone,
       role: _role,
       instituteId: instituteId,
-      instituteName: instituteName,
       status: _status,
-      lastLoginAt: null,
     );
 
-    Navigator.of(context).pop(user);
+    Navigator.of(context).pop(draft);
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
-    final instituteEnabled = _role != AppUserRole.superAdmin;
-    final instituteIds =
-        widget.instituteIds.where((e) => e != 'all').toList(growable: false);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -122,178 +117,206 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
                   child: Column(
                     children: [
-                    _AnimatedSlideIn(
-                      delayIndex: 0,
-                      child: _GroupCard(
-                        title: 'USER INFORMATION',
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                controller: _name,
-                                label: 'Full Name',
-                                hintText: 'e.g. Sara Ali',
-                                prefixIcon: Icons.person_rounded,
-                                textInputAction: TextInputAction.next,
-                                validator: (v) => Validators.validateText(v, label: 'Full Name'),
+                      _AnimatedSlideIn(
+                        delayIndex: 0,
+                        child: _GroupCard(
+                          title: 'USER INFORMATION',
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: AppTextField(
+                                  controller: _name,
+                                  label: 'Full Name',
+                                  hintText: 'e.g. Sara Ali',
+                                  prefixIcon: Icons.person_rounded,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (v) => Validators.validateText(v,
+                                      label: 'Full Name'),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: AppTextField(
-                                controller: _phone,
-                                label: 'Phone number',
-                                hintText: '03001234567',
-                                prefixIcon: Icons.phone_iphone_rounded,
-                                keyboardType: TextInputType.phone,
-                                textInputAction: TextInputAction.next,
-                                validator: Validators.validatePhone,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: AppTextField(
+                                  controller: _phone,
+                                  label: 'Phone number',
+                                  hintText: '03001234567',
+                                  prefixIcon: Icons.phone_iphone_rounded,
+                                  keyboardType: TextInputType.phone,
+                                  textInputAction: TextInputAction.next,
+                                  validator: Validators.validatePhone,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _AnimatedSlideIn(
-                      delayIndex: 1,
-                      child: _GroupCard(
-                        title: 'ACCOUNT SETTINGS',
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _email,
-                                    label: 'Email Address',
-                                    hintText: 'user@institute.com',
-                                    prefixIcon: Icons.alternate_email_rounded,
-                                    keyboardType: TextInputType.emailAddress,
-                                    textInputAction: TextInputAction.next,
-                                    validator: Validators.validateEmail,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: AppDropdown<AppUserRole>(
-                                    label: 'User Role',
-                                    items: const [
-                                      AppUserRole.superAdmin,
-                                      AppUserRole.instituteAdmin,
-                                      AppUserRole.staff,
-                                      AppUserRole.teacher,
-                                    ],
-                                    value: _role,
-                                    hintText: 'Select role',
-                                    prefixIcon: Icons.badge_rounded,
-                                    itemLabel: (r) => switch (r) {
-                                      AppUserRole.superAdmin => 'Platform Admin',
-                                      AppUserRole.instituteAdmin =>
-                                        'Institute Admin',
-                                      AppUserRole.staff => 'Staff Member',
-                                      AppUserRole.teacher => 'Teacher',
-                                    },
-                                    onChanged: (v) => setState(() {
-                                      _role = v ?? _role;
-                                      if (_role == AppUserRole.superAdmin) {
-                                        _instituteId = 'all';
-                                      } else if (_instituteId == 'all' &&
-                                          instituteIds.isNotEmpty) {
-                                        _instituteId = instituteIds.first;
-                                      }
-                                    }),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AppDropdown<String>(
-                                    label: 'Institute',
-                                    items: instituteIds,
-                                    value:
-                                        (instituteEnabled && instituteIds.contains(_instituteId)) ? _instituteId : null,
-                                    enabled: instituteEnabled,
-                                    hintText:
-                                        instituteEnabled
-                                            ? 'Select institute'
-                                            : 'EduCore Platform (Global)',
-                                    prefixIcon: Icons.hub_rounded,
-                                    itemLabel: widget.instituteLabelForId,
-                                    onChanged: (v) {
-                                      if (!instituteEnabled) return;
-                                      if (v == null) return;
-                                      if (v == _instituteId) return;
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                        if (!mounted) return;
-                                        setState(() => _instituteId = v);
-                                      });
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: AppDropdown<AppUserStatus>(
-                                    label: 'Account Status',
-                                    items: const [
-                                      AppUserStatus.active,
-                                      AppUserStatus.blocked,
-                                    ],
-                                    value: _status,
-                                    hintText: 'Select status',
-                                    prefixIcon: Icons.verified_user_rounded,
-                                    itemLabel: (s) => switch (s) {
-                                      AppUserStatus.active => 'Permit Access',
-                                      AppUserStatus.blocked => 'Suspend Access',
-                                    },
-                                    onChanged: (v) => setState(
-                                      () => _status = v ?? _status,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _AnimatedSlideIn(
-                      delayIndex: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withValues(alpha: 0.05),
-                          borderRadius: AppRadii.r12,
-                          border: Border.all(
-                            color: cs.primary.withValues(alpha: 0.1),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, size: 16, color: cs.primary),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'All account creation events are logged for security purposes.',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: cs.primary.withValues(alpha: 0.8),
-                                      fontWeight: FontWeight.w700,
+                      ),
+                      const SizedBox(height: 16),
+                      _AnimatedSlideIn(
+                        delayIndex: 1,
+                        child: _GroupCard(
+                          title: 'ACCOUNT SETTINGS',
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller: _email,
+                                      label: 'Email Address',
+                                      hintText: 'user@institute.com',
+                                      prefixIcon: Icons.alternate_email_rounded,
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      validator: Validators.validateEmail,
                                     ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller: _password,
+                                      label: 'Initial Password',
+                                      hintText: '••••••••',
+                                      prefixIcon: Icons.lock_rounded,
+                                      obscureText: !_showPassword,
+                                      validator: Validators.validatePassword,
+                                      suffix: IconButton(
+                                        onPressed: () => setState(
+                                          () => _showPassword = !_showPassword,
+                                        ),
+                                        icon: Icon(
+                                          _showPassword
+                                              ? Icons.visibility_off_rounded
+                                              : Icons.visibility_rounded,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppDropdown<AppUserRole>(
+                                      label: 'User Role',
+                                      items: const [
+                                        AppUserRole.superAdmin,
+                                        AppUserRole.instituteAdmin,
+                                        AppUserRole.staff,
+                                        AppUserRole.teacher,
+                                      ],
+                                      value: _role,
+                                      hintText: 'Select role',
+                                      prefixIcon: Icons.badge_rounded,
+                                      itemLabel: (r) => switch (r) {
+                                        AppUserRole.superAdmin =>
+                                          'Platform Admin',
+                                        AppUserRole.instituteAdmin =>
+                                          'Institute Admin',
+                                        AppUserRole.staff => 'Staff Member',
+                                        AppUserRole.teacher => 'Teacher',
+                                      },
+                                      onChanged: (v) => setState(() {
+                                        _role = v ?? _role;
+                                        if (_role == AppUserRole.superAdmin) {
+                                          _instituteId = 'all';
+                                        } else if (_instituteId == 'all' &&
+                                            widget.instituteIds.isNotEmpty) {
+                                          _instituteId = widget.instituteIds
+                                              .where((e) => e != 'all')
+                                              .first;
+                                        }
+                                      }),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: AppDropdown<AppUserStatus>(
+                                      label: 'Account Status',
+                                      items: const [
+                                        AppUserStatus.active,
+                                        AppUserStatus.blocked,
+                                      ],
+                                      value: _status,
+                                      hintText: 'Select status',
+                                      prefixIcon: Icons.verified_user_rounded,
+                                      itemLabel: (s) => switch (s) {
+                                        AppUserStatus.active => 'Permit Access',
+                                        AppUserStatus.blocked =>
+                                          'Suspend Access',
+                                      },
+                                      onChanged: (v) => setState(
+                                        () => _status = v ?? _status,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              AppDropdown<String>(
+                                label: 'Institute Attachment',
+                                items: widget.instituteIds,
+                                value: _role == AppUserRole.superAdmin
+                                    ? 'all'
+                                    : (widget.instituteIds
+                                            .contains(_instituteId)
+                                        ? _instituteId
+                                        : null),
+                                enabled: _role != AppUserRole.superAdmin,
+                                hintText: _role == AppUserRole.superAdmin
+                                    ? 'EduCore Platform (Global)'
+                                    : 'Select institute',
+                                prefixIcon: Icons.hub_rounded,
+                                itemLabel: widget.instituteLabelForId,
+                                onChanged: (v) {
+                                  if (_role == AppUserRole.superAdmin) return;
+                                  if (v == null) return;
+                                  setState(() => _instituteId = v);
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      _AnimatedSlideIn(
+                        delayIndex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.05),
+                            borderRadius: AppRadii.r12,
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline_rounded,
+                                  size: 16, color: cs.primary),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'All account creation events are logged for security purposes.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: cs.primary.withValues(alpha: 0.8),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             ),
             _Footer(
               onCancel: () => Navigator.of(context).pop(),

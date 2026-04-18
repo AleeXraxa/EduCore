@@ -11,6 +11,15 @@ import 'package:flutter/services.dart';
 class PlansImportView extends StatefulWidget {
   const PlansImportView({super.key});
 
+  static Future<void> show(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      useSafeArea: false,
+      barrierDismissible: true,
+      builder: (_) => const PlansImportView(),
+    );
+  }
+
   @override
   State<PlansImportView> createState() => _PlansImportViewState();
 }
@@ -52,162 +61,190 @@ class _PlansImportViewState extends State<PlansImportView> {
           );
         }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
+        return Dialog.fullscreen(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Plan Import Manager',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.4,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Bulk create or update plans from JSON or CSV.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (Navigator.of(context).canPop())
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Close import manager',
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final twoCol = constraints.maxWidth >= 1080;
+                    return Flex(
+                      direction: twoCol ? Axis.horizontal : Axis.vertical,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Plan Import Manager',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.4,
+                        Expanded(
+                          flex: twoCol ? 6 : 0,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _InputCard(
+                                source: controller.source,
+                                inputController: _inputController,
+                                busy: controller.busy,
+                                onSourceChanged: (value) {
+                                  controller.setSource(value);
+                                  final template =
+                                      value == PlanImportSource.json
+                                      ? _jsonTemplate
+                                      : _csvTemplate;
+                                  _inputController.text = template;
+                                  controller.setInput(template);
+                                },
+                                onPreview: controller.preview,
+                                onCopyTemplate: () async {
+                                  final template =
+                                      controller.source == PlanImportSource.json
+                                      ? _jsonTemplate
+                                      : _csvTemplate;
+                                  await Clipboard.setData(
+                                    ClipboardData(text: template),
+                                  );
+                                  if (!context.mounted) return;
+                                  AppDialogs.showSuccess(
+                                    context,
+                                    title: 'Template Copied',
+                                    message:
+                                        'The plan import template has been copied to your clipboard. You can now paste your data into it.',
+                                  );
+                                },
                               ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Bulk create or update plans from JSON or CSV.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: cs.onSurfaceVariant),
+                        SizedBox(
+                          width: twoCol ? 18 : 0,
+                          height: twoCol ? 0 : 18,
+                        ),
+                        Expanded(
+                          flex: twoCol ? 7 : 0,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SummaryCard(
+                                parse: controller.parseResult,
+                                validation: controller.validation,
+                                commit: controller.lastCommit,
+                              ),
+                              const SizedBox(height: 14),
+                              _PreviewCard(
+                                drafts: controller.parseResult.drafts,
+                                validation: controller.validation,
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      controller.validation?.canImport == true
+                                          ? 'All plans valid. Ready to import.'
+                                          : 'Fix validation errors before importing.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: cs.onSurfaceVariant,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                  FilledButton.icon(
+                                    onPressed:
+                                        controller.busy || !controller.canImport
+                                        ? null
+                                        : () async {
+                                            try {
+                                              AppDialogs.showLoading(
+                                                context,
+                                                message: 'Importing plans...',
+                                              );
+                                              await controller.importPlans();
+                                              if (!context.mounted) return;
+                                              AppDialogs.hide(context);
+                                              AppDialogs.showSuccess(
+                                                context,
+                                                title: 'Import Successful',
+                                                message:
+                                                    'All valid plans have been successfully synchronized to the system catalog.',
+                                              );
+                                            } catch (e) {
+                                              if (!context.mounted) return;
+                                              AppDialogs.hide(context);
+                                              AppDialogs.showError(
+                                                context,
+                                                title: 'Import Failed',
+                                                message: e.toString(),
+                                              );
+                                            }
+                                          },
+                                    icon: controller.busy
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.cloud_upload_rounded,
+                                          ),
+                                    label: const Text('Import plans'),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: cs.primary,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final twoCol = constraints.maxWidth >= 1080;
-                  return Flex(
-                    direction: twoCol ? Axis.horizontal : Axis.vertical,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: twoCol ? 6 : 0,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _InputCard(
-                              source: controller.source,
-                              inputController: _inputController,
-                              busy: controller.busy,
-                              onSourceChanged: (value) {
-                                controller.setSource(value);
-                                final template = value == PlanImportSource.json
-                                    ? _jsonTemplate
-                                    : _csvTemplate;
-                                _inputController.text = template;
-                                controller.setInput(template);
-                              },
-                              onPreview: controller.preview,
-                              onCopyTemplate: () async {
-                                final template = controller.source == PlanImportSource.json
-                                    ? _jsonTemplate
-                                    : _csvTemplate;
-                                await Clipboard.setData(ClipboardData(text: template));
-                                if (!context.mounted) return;
-                                AppDialogs.showSuccess(
-                                  context,
-                                  title: 'Template Copied',
-                                  message: 'The plan import template has been copied to your clipboard. You can now paste your data into it.',
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: twoCol ? 18 : 0, height: twoCol ? 0 : 18),
-                      Expanded(
-                        flex: twoCol ? 7 : 0,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SummaryCard(
-                              parse: controller.parseResult,
-                              validation: controller.validation,
-                              commit: controller.lastCommit,
-                            ),
-                            const SizedBox(height: 14),
-                            _PreviewCard(
-                              drafts: controller.parseResult.drafts,
-                              validation: controller.validation,
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    controller.validation?.canImport == true
-                                        ? 'All plans valid. Ready to import.'
-                                        : 'Fix validation errors before importing.',
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                          color: cs.onSurfaceVariant,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                                FilledButton.icon(
-                                  onPressed: controller.busy || !controller.canImport
-                                      ? null
-                                      : () async {
-                                          try {
-                                            AppDialogs.showLoading(context, message: 'Importing plans...');
-                                            await controller.importPlans();
-                                            if (!context.mounted) return;
-                                            AppDialogs.hide(context);
-                                            AppDialogs.showSuccess(
-                                              context,
-                                              title: 'Import Successful',
-                                              message: 'All valid plans have been successfully synchronized to the system catalog.',
-                                            );
-                                          } catch (e) {
-                                            if (!context.mounted) return;
-                                            AppDialogs.hide(context);
-                                            AppDialogs.showError(
-                                              context,
-                                              title: 'Import Failed',
-                                              message: e.toString(),
-                                            );
-                                          }
-                                        },
-                                  icon: controller.busy
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : const Icon(Icons.cloud_upload_rounded),
-                                  label: const Text('Import plans'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: cs.primary,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -242,9 +279,9 @@ class _InputCard extends StatelessWidget {
         children: [
           Text(
             'Import source',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 10),
           SegmentedButton<PlanImportSource>(
@@ -273,15 +310,17 @@ class _InputCard extends StatelessWidget {
                 ? 'Paste JSON array of plans.'
                 : 'Paste CSV with columns: key,name,description,price,features,limits,isActive.',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           AppTextArea(
             controller: inputController,
             label: source == PlanImportSource.json ? 'JSON input' : 'CSV input',
-            hintText: source == PlanImportSource.json ? 'Paste JSON here' : 'Paste CSV here',
+            hintText: source == PlanImportSource.json
+                ? 'Paste JSON here'
+                : 'Paste CSV here',
             minLines: 10,
             maxLines: 16,
           ),
@@ -338,10 +377,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final errors = [
-      ...parse.errors,
-      ...?validation?.errors,
-    ];
+    final errors = [...parse.errors, ...?validation?.errors];
 
     return AppCard(
       padding: const EdgeInsets.all(18),
@@ -350,15 +386,12 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Text(
             'Validation summary',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
-          _SummaryRow(
-            label: 'Total plans',
-            value: parse.drafts.length,
-          ),
+          _SummaryRow(label: 'Total plans', value: parse.drafts.length),
           const SizedBox(height: 8),
           _SummaryRow(
             label: 'Invalid features',
@@ -376,9 +409,9 @@ class _SummaryCard extends StatelessWidget {
             Text(
               'Imported: ${commit!.created} created, ${commit!.updated} updated',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
           if (errors.isNotEmpty) ...[
@@ -389,9 +422,9 @@ class _SummaryCard extends StatelessWidget {
                 child: Text(
                   '- $e',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFFB91C1C),
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: const Color(0xFFB91C1C),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -403,10 +436,7 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({
-    required this.drafts,
-    required this.validation,
-  });
+  const _PreviewCard({required this.drafts, required this.validation});
 
   final List<PlanImportDraft> drafts;
   final PlanImportValidationResult? validation;
@@ -423,18 +453,18 @@ class _PreviewCard extends StatelessWidget {
         children: [
           Text(
             'Plan preview',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
           if (drafts.isEmpty)
             Text(
               'No plans parsed yet.',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           for (final draft in drafts) ...[
             Container(
@@ -454,14 +484,14 @@ class _PreviewCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '${draft.name} (${draft.key})',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
                       Text(
                         draft.isActive ? 'Active' : 'Inactive',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
                               color: draft.isActive
                                   ? const Color(0xFF15803D)
                                   : cs.onSurfaceVariant,
@@ -476,15 +506,18 @@ class _PreviewCard extends StatelessWidget {
                         ? 'No description'
                         : draft.description,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      _Chip(label: 'Price: ${draft.price}', tone: _ChipTone.info),
+                      _Chip(
+                        label: 'Price: ${draft.price}',
+                        tone: _ChipTone.info,
+                      ),
                       if (draft.limits.isNotEmpty)
                         _Chip(
                           label: 'Limits: ${draft.limits.length}',
@@ -496,8 +529,8 @@ class _PreviewCard extends StatelessWidget {
                   Text(
                     'Features',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -507,7 +540,8 @@ class _PreviewCard extends StatelessWidget {
                       for (final feature in draft.features)
                         _Chip(
                           label: feature,
-                          tone: invalidByPlan[draft.key.toLowerCase()]?.contains(
+                          tone:
+                              invalidByPlan[draft.key.toLowerCase()]?.contains(
                                     feature.toLowerCase(),
                                   ) ==
                                   true
@@ -546,17 +580,17 @@ class _SummaryRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         Text(
           value.toString(),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: danger ? const Color(0xFFB91C1C) : cs.onSurface,
-                fontWeight: FontWeight.w900,
-              ),
+            color: danger ? const Color(0xFFB91C1C) : cs.onSurface,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ],
     );
@@ -590,9 +624,9 @@ class _Chip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w700,
-            ),
+          color: fg,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -635,8 +669,8 @@ class _NotReadyPanel extends StatelessWidget {
                   Text(
                     busy ? 'Initializing Firebase...' : 'Firestore not ready',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -644,8 +678,8 @@ class _NotReadyPanel extends StatelessWidget {
                         ? message!.trim()
                         : 'Plan import requires Firebase Firestore. Initialize Firebase to enable this module.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -666,7 +700,10 @@ class _NotReadyPanel extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
               ),
             ),
           ],

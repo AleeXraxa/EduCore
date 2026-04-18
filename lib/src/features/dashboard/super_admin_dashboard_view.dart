@@ -16,6 +16,7 @@ import 'package:educore/src/features/institutes/institutes_view.dart';
 import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/payments/payments_view.dart';
 import 'package:educore/src/features/plans/plans_view.dart';
+import 'package:educore/src/features/plans_import/plans_import_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:educore/src/features/users/users_view.dart';
@@ -84,6 +85,7 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
             _SuperAdminNav.features => const FeaturesView(),
             _SuperAdminNav.featureOverrides => const FeatureAccessControlView(),
             _SuperAdminNav.plans => const PlansView(),
+            _SuperAdminNav.plansImport => const PlansImportView(),
             _SuperAdminNav.auditLogs => const AuditLogsView(),
             _SuperAdminNav.platformHealth => const PlatformHealthView(),
             _SuperAdminNav.settings => const SettingsView(),
@@ -150,6 +152,13 @@ enum _SuperAdminNav {
     'Plans',
     'Subscription Plans',
     Icons.category_rounded,
+    featureKey: 'system_plans',
+  ),
+  plansImport(
+    'plans_import',
+    'Plan Import',
+    'Plan Bulk Import',
+    Icons.cloud_upload_rounded,
     featureKey: 'system_plans',
   ),
 
@@ -219,6 +228,7 @@ enum _SuperAdminNav {
         subscriptions,
         payments,
         plans,
+        plansImport,
       ].map((e) => e.toSidebarItem()).toList(),
     ),
     SidebarSectionData(

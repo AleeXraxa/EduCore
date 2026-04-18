@@ -260,7 +260,7 @@ class _UsersViewState extends State<UsersView> with FeatureGuard {
                           context,
                           message: 'Creating user account...',
                         );
-                        controller.addUser(created);
+                        await controller.addUser(created);
                         if (!context.mounted) return;
                         AppDialogs.hide(context);
                         AppDialogs.showSuccess(

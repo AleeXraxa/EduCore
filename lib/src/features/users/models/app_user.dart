@@ -28,4 +28,22 @@ class AppUser {
   final AppUserStatus status;
   final DateTime? lastLoginAt;
 }
+class CreateUserDraft {
+  const CreateUserDraft({
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.phone,
+    required this.role,
+    required this.instituteId,
+    required this.status,
+  });
 
+  final String name;
+  final String email;
+  final String password;
+  final String phone;
+  final AppUserRole role;
+  final String instituteId;
+  final AppUserStatus status;
+}

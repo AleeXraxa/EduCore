@@ -205,9 +205,30 @@ class UsersController extends BaseController {
 
   // Action Handlers
   
-  Future<void> addUser(AppUser draft) async {
-    // This would typically involve AuthService or UserRepository.
-    // For now we delegate to Repository or skip if not implemented.
+  Future<void> addUser(CreateUserDraft draft) async {
+    if (_repository == null) return;
+
+    final newUser = await _repository!.createUser(
+      name: draft.name,
+      email: draft.email,
+      password: draft.password,
+      phone: draft.phone,
+      role: switch (draft.role) {
+        AppUserRole.superAdmin => core_models.AppUserRole.superAdmin,
+        AppUserRole.instituteAdmin => core_models.AppUserRole.instituteAdmin,
+        AppUserRole.staff => core_models.AppUserRole.staff,
+        AppUserRole.teacher => core_models.AppUserRole.teacher,
+      },
+      academyId: draft.instituteId,
+      status: draft.status == AppUserStatus.active ? 'active' : 'blocked',
+    );
+
+    _all.insert(0, _mapToUiFromInternal(newUser));
+    notifyListeners();
+  }
+
+  AppUser _mapToUiFromInternal(core_models.AppUser u) {
+    return _mapToUi(u);
   }
 
   Future<void> toggleBlocked(String userId) async {

@@ -20,34 +20,20 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    /**
-     * Validates that the user document exists AND the account is active.
-     * Blocked users fail this check immediately.
-     */
     function isActiveUser() {
-      let u = getUserData();
-      return u != null
-          && 'role' in u
-          && 'status' in u
-          && u.status == 'active'
-          && u.role in ['super_admin', 'institute_admin', 'staff', 'teacher'];
+      return isSignedIn() && getUserData().status == 'active';
     }
 
     function isSuperAdmin() {
-      let u = getUserData();
-      return isSignedIn() 
-          && u != null 
-          && u.status == 'active' 
-          && u.role == 'super_admin';
+      return isActiveUser() && getUserData().role == 'super_admin';
     }
 
     function isInstituteAdmin() {
-      return isSignedIn() && isActiveUser() && getUserData().role == 'institute_admin';
+      return isActiveUser() && getUserData().role == 'institute_admin';
     }
 
     function isStaffOrTeacher() {
-      return isSignedIn() && isActiveUser()
-          && getUserData().role in ['staff', 'teacher'];
+      return isActiveUser() && getUserData().role in ['staff', 'teacher'];
     }
 
     // ======================================================
@@ -126,12 +112,12 @@ service cloud.firestore {
 
       // READ
       // ─────
+      // • self             → own document only (Must be simple to avoid recursion)
       // • super_admin      → all users
       // • institute_admin  → users in their academy only
-      // • self             → own document only
-      allow read: if isSuperAdmin()
-                  || (isInstituteAdmin() && resource.data.academyId == getUserData().academyId)
-                  || (isSignedIn() && isActiveUser() && request.auth.uid == uid);
+      allow read: if (isSignedIn() && request.auth.uid == uid)
+                  || isSuperAdmin()
+                  || (isInstituteAdmin() && resource.data.academyId == getUserData().academyId);
 
       // CREATE
       // ──────
@@ -172,96 +158,52 @@ service cloud.firestore {
     // §7  COLLECTION: academies/{academyId}
     // ======================================================
     match /academies/{academyId} {
-      // Top-level academy document
-      allow read:   if isSuperAdmin() || belongsTo(academyId);
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
+      // Top-level academy document access
+      allow read: if isSuperAdmin() || belongsTo(academyId);
+      allow write: if isSuperAdmin();
+      
+      // Recursive access to all subcollections for super_admin
+      match /{allPaths=**} {
+        allow read, write: if isSuperAdmin();
+      }
 
       // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: student_custom_fields/{fieldId}
+      // Sub-rules for specific tenant roles
       // ──────────────────────────────────────────────────
+
       match /student_custom_fields/{fieldId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin() 
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin() 
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin() 
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
       }
 
-      // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: students/{studentId}
-      // ──────────────────────────────────────────────────
       match /students/{studentId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin()
-                      || ((isAdminOf(academyId) || isStaffOf(academyId))
-                          && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow read:   if belongsTo(academyId);
+        allow create, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow update: if (isAdminOf(academyId) || isStaffOf(academyId))
+                         && hasActiveSubscription(academyId);
       }
 
-      // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: fees/{feeId}
-      // Payments/fees are finance-sensitive — staff cannot delete
-      // ──────────────────────────────────────────────────
       match /fees/{feeId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin();
+        allow read:   if belongsTo(academyId);
+        allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow delete: if false; // Only super_admin via top-level rule
       }
 
-      // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: attendance/{attendanceId}
-      // Teachers can mark attendance — limited write (create/update only)
-      // ──────────────────────────────────────────────────
       match /attendance/{attendanceId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin()
-                      || ((isAdminOf(academyId) || isStaffOf(academyId))
-                          && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin()
-                      || ((isAdminOf(academyId) || isStaffOf(academyId))
-                          && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
       }
 
-      // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: exams/{examId}
-      // Staff can create/update exams; only admin can delete
-      // ──────────────────────────────────────────────────
       match /exams/{examId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin()
-                      || ((isAdminOf(academyId) || isStaffOf(academyId))
-                          && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin()
-                      || ((isAdminOf(academyId) || isStaffOf(academyId))
-                          && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
       }
 
-      // ──────────────────────────────────────────────────
-      // SUBCOLLECTION: staff/{staffId}
-      // HR records — institute_admin manages; staff cannot self-edit HR records
-      // ──────────────────────────────────────────────────
       match /staff/{staffId} {
-        allow read:   if isSuperAdmin() || belongsTo(academyId);
-        allow create: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow update: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
-        allow delete: if isSuperAdmin()
-                      || (isAdminOf(academyId) && hasActiveSubscription(academyId));
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
       }
     }
 
@@ -269,29 +211,26 @@ service cloud.firestore {
     // §8  COLLECTION: subscriptions/{academyId}
     // ======================================================
     match /subscriptions/{academyId} {
-      // Institutes may read their own subscription.
-      allow read:   if isSuperAdmin() || belongsTo(academyId);
-      // Only super_admin writes subscription records.
-      // This prevents self-service plan changes or status tampering.
-      allow write:  if isSuperAdmin();
+      allow read, write: if isSuperAdmin();
+      allow read: if belongsTo(academyId);
     }
 
     // ======================================================
     // §9  COLLECTIONS: plans, features & groups
     // ======================================================
     match /plans/{document=**} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read:  if true;
+      allow write: if isSuperAdmin();
     }
 
     match /features/{document=**} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read:  if true;
+      allow write: if isSuperAdmin();
     }
 
     match /featureGroups/{document=**} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read:  if true;
+      allow write: if isSuperAdmin();
     }
 
     // ======================================================
