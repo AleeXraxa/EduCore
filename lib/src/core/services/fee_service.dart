@@ -152,31 +152,30 @@ class FeeService {
     
     double recordedNewPaidAmount = 0.0;
     String recordedStatus = '';
+    final snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      throw Exception('Fee record not found.');
+    }
+    
+    final fee = Fee.fromMap(snapshot.id, snapshot.data()!);
+    final newPaidAmount = fee.paidAmount + paymentAmount;
+    
+    if (newPaidAmount > fee.amount) {
+      throw Exception('Payment exceeds total fee amount.');
+    }
 
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(docRef);
-      if (!snapshot.exists) throw Exception('Fee record not found.');
-      
-      final fee = Fee.fromMap(snapshot.id, snapshot.data()!);
-      final newPaidAmount = fee.paidAmount + paymentAmount;
-      
-      if (newPaidAmount > fee.amount) {
-        throw Exception('Payment exceeds total fee amount.');
-      }
+    final newStatus = newPaidAmount >= fee.amount 
+        ? FeeStatus.paid 
+        : FeeStatus.partial;
 
-      final newStatus = newPaidAmount >= fee.amount 
-          ? FeeStatus.paid 
-          : FeeStatus.partial;
-
-      transaction.update(docRef, {
-        'paidAmount': newPaidAmount,
-        'status': newStatus.name,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      recordedNewPaidAmount = newPaidAmount;
-      recordedStatus = newStatus.name;
+    await docRef.update({
+      'paidAmount': newPaidAmount,
+      'status': newStatus.name,
+      'updatedAt': Timestamp.now(),
     });
+
+    recordedNewPaidAmount = newPaidAmount;
+    recordedStatus = newStatus.name;
 
     // Run audit logging OUTSIDE transaction to prevent C++ SDK crashes on Windows
     await _audit.logAction(
