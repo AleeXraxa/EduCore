@@ -6,11 +6,7 @@ import 'package:educore/src/features/institutes/models/institute.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
 import 'package:educore/src/features/features/models/feature_flag.dart';
 
-enum FeatureAccessState {
-  planControlled,
-  overrideEnabled,
-  overrideDisabled,
-}
+enum FeatureAccessState { planControlled, overrideEnabled, overrideDisabled }
 
 class FeatureAccessControlController extends BaseController {
   FeatureAccessControlController() {
@@ -23,7 +19,7 @@ class FeatureAccessControlController extends BaseController {
   SubscriptionRecord? subscription;
   Plan? plan;
   List<FeatureFlag> allFeatures = [];
-  
+
   // Local Working Copy of Overrides
   Set<String> draftEnabled = {};
   Set<String> draftDisabled = {};
@@ -39,7 +35,7 @@ class FeatureAccessControlController extends BaseController {
 
       // 1. Get all features
       allFeatures = await featSvc.watchFeatures().first;
-      
+
       // 2. Get first batch of institutes for selector
       institutes = await repo.getInstitutesBatch(limit: 100);
     });
@@ -59,11 +55,11 @@ class FeatureAccessControlController extends BaseController {
 
       // 1. Fetch Subscription
       subscription = await subSvc.getSubscription(institute.id);
-      
+
       if (subscription != null) {
         // 2. Fetch Plan
         plan = await planSvc.getPlan(subscription!.planId);
-        
+
         // 3. Populate Drafts
         draftEnabled = subscription!.overrides.enabled.toSet();
         draftDisabled = subscription!.overrides.disabled.toSet();
@@ -108,7 +104,7 @@ class FeatureAccessControlController extends BaseController {
       draftDisabled.remove(key);
       // Reset back to plan default (no override)
     }
-    
+
     notifyListeners();
   }
 
@@ -126,7 +122,7 @@ class FeatureAccessControlController extends BaseController {
 
   Future<bool> saveChanges() async {
     if (selectedInstitute == null) return false;
-    
+
     isSaving = true;
     notifyListeners();
 
@@ -140,7 +136,7 @@ class FeatureAccessControlController extends BaseController {
 
       // Refresh global middleware
       await AppServices.instance.featureAccessService?.refresh();
-      
+
       isSaving = false;
       notifyListeners();
       return true;

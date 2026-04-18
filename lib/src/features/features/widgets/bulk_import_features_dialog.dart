@@ -6,10 +6,7 @@ import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class BulkImportFeaturesDialog extends StatefulWidget {
-  const BulkImportFeaturesDialog({
-    super.key,
-    required this.groups,
-  });
+  const BulkImportFeaturesDialog({super.key, required this.groups});
 
   final List<String> groups;
 
@@ -29,13 +26,11 @@ class BulkImportFeaturesDialog extends StatefulWidget {
       _BulkImportFeaturesDialogState();
 }
 
-class _BulkImportFeaturesDialogState
-    extends State<BulkImportFeaturesDialog> {
+class _BulkImportFeaturesDialogState extends State<BulkImportFeaturesDialog> {
   final _input = TextEditingController();
   String? _error;
 
-  static const _header =
-      'key,label,description,group,isActive,icon,order';
+  static const _header = 'key,label,description,group,isActive,icon,order';
 
   String _template() {
     return [
@@ -61,8 +56,9 @@ class _BulkImportFeaturesDialogState
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final groups =
-        widget.groups.where((g) => g != 'All').toList(growable: false);
+    final groups = widget.groups
+        .where((g) => g != 'All')
+        .toList(growable: false);
 
     return Dialog(
       insetPadding: const EdgeInsets.all(20),
@@ -83,19 +79,17 @@ class _BulkImportFeaturesDialogState
                       children: [
                         Text(
                           'Bulk import features',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.4,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Fill the CSV template and import multiple features at once.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -108,108 +102,122 @@ class _BulkImportFeaturesDialogState
                 ],
               ),
               const SizedBox(height: 16),
-              _GroupCard(
-                title: 'Template (CSV)',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Columns: key, label, description, group, isActive, icon, order',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: AppRadii.r12,
-                        border: Border.all(color: cs.outlineVariant),
-                      ),
-                      child: Text(
-                        _template(),
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontFamily: 'monospace',
-                              color: cs.onSurfaceVariant,
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _GroupCard(
+                        title: 'Template (CSV)',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Columns: key, label, description, group, isActive, icon, order',
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
+                            const SizedBox(height: 10),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: cs.surface,
+                                borderRadius: AppRadii.r12,
+                                border: Border.all(color: cs.outlineVariant),
+                              ),
+                              child: Text(
+                                _template(),
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      fontFamily: 'monospace',
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton.icon(
+                                onPressed: _downloadTemplate,
+                                icon: const Icon(Icons.download_rounded),
+                                style: OutlinedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                label: const Text('Download template'),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Allowed groups: ${groups.isEmpty ? "None created yet" : groups.join(", ")}',
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: OutlinedButton.icon(
-                        onPressed: _downloadTemplate,
-                        icon: const Icon(Icons.download_rounded),
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
+                      const SizedBox(height: 12),
+                      _GroupCard(
+                        title: 'Paste your CSV here',
+                        child: TextField(
+                          controller: _input,
+                          maxLines: 10,
+                          minLines: 6,
+                          decoration: InputDecoration(
+                            hintText: _header,
+                            filled: true,
+                            fillColor: cs.surface,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: AppRadii.r12,
+                              borderSide: BorderSide(color: cs.outlineVariant),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: AppRadii.r12,
+                              borderSide: BorderSide(color: cs.primary, width: 1.2),
+                            ),
                           ),
                         ),
-                        label: const Text('Download template'),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Allowed groups: ${groups.isEmpty ? "Use your own" : groups.join(", ")}',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _GroupCard(
-                title: 'Paste your CSV here',
-                child: TextField(
-                  controller: _input,
-                  maxLines: 10,
-                  minLines: 6,
-                  decoration: InputDecoration(
-                    hintText: _header,
-                    filled: true,
-                    fillColor: cs.surface,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: AppRadii.r12,
-                      borderSide: BorderSide(color: cs.outlineVariant),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: AppRadii.r12,
-                      borderSide: BorderSide(color: cs.primary, width: 1.2),
-                    ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _error!,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: const Color(0xFFB91C1C),
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _error!,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFFB91C1C),
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ],
               const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      'Keys must be lowercase with underscores. Duplicate keys will be skipped.',
+                      'Keys must be lowercase with underscores. Existing keys will be ignored.',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -269,7 +277,8 @@ class _BulkImportFeaturesDialogState
         return;
       }
 
-      final isActive = activeRaw == 'true' || activeRaw == '1' || activeRaw == 'yes';
+      final isActive =
+          activeRaw == 'true' || activeRaw == '1' || activeRaw == 'yes';
       final order = orderRaw.isEmpty ? 0 : int.tryParse(orderRaw) ?? 0;
 
       features.add(
@@ -303,7 +312,8 @@ class _BulkImportFeaturesDialogState
     AppDialogs.showSuccess(
       context,
       title: 'Template Copied',
-      message: 'The CSV template has been copied to your clipboard. You can now paste it into Excel or Google Sheets.',
+      message:
+          'The CSV template has been copied to your clipboard. You can now paste it into Excel or Google Sheets.',
     );
   }
 }
@@ -330,9 +340,9 @@ class _GroupCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
           child,

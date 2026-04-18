@@ -8,11 +8,7 @@ import 'package:educore/src/core/utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class FeatureEditorDialog extends StatefulWidget {
-  const FeatureEditorDialog({
-    super.key,
-    this.initial,
-    required this.groups,
-  });
+  const FeatureEditorDialog({super.key, this.initial, required this.groups});
 
   final FeatureFlag? initial;
   final List<String> groups;
@@ -41,6 +37,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
   late final TextEditingController _order;
   late String _group;
   bool _isActive = true;
+  bool _isSystem = false;
   final _formKey = GlobalKey<FormState>();
 
   bool get _editing => widget.initial != null;
@@ -55,9 +52,12 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
     _icon = TextEditingController(text: initial?.icon ?? '');
     _order = TextEditingController(text: (initial?.order ?? 0).toString());
     _isActive = initial?.isActive ?? true;
+    _isSystem = initial?.isSystem ?? false;
 
-    final groups = widget.groups.where((g) => g != 'All').toList(growable: false);
-    _group = initial?.group ?? (groups.isEmpty ? 'Students' : groups.first);
+    final groups = widget.groups
+        .where((g) => g != 'All')
+        .toList(growable: false);
+    _group = initial?.group ?? (groups.isNotEmpty ? groups.first : '');
   }
 
   @override
@@ -73,12 +73,14 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final groups = widget.groups.where((g) => g != 'All').toList(growable: false);
+    final groups = widget.groups
+        .where((g) => g != 'All')
+        .toList(growable: false);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: Column(
@@ -87,7 +89,8 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
           children: [
             _Header(
               title: _editing ? 'Edit Feature' : 'Add New Feature',
-              subtitle: 'Define a feature that can be enabled or disabled per plan.',
+              subtitle:
+                  'Define a feature that can be enabled or disabled per plan.',
               onClose: () => Navigator.of(context).pop(),
             ),
             Flexible(
@@ -97,139 +100,171 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   child: Column(
                     children: [
-                    _AnimatedSlideIn(
-                      delayIndex: 0,
-                      child: _GroupCard(
-                        title: 'FEATURE DETAILS',
-                        child: Column(
-                          children: [
-                            AppTextField(
-                              controller: _key,
-                              label: 'Feature Key',
-                              hintText: 'e.g. library_module',
-                              prefixIcon: Icons.key_rounded,
-                              validator: Validators.validateFeatureKey,
-                            ),
-                            const SizedBox(height: 12),
-                            AppTextField(
-                              controller: _label,
-                              label: 'Display Name',
-                              hintText: 'e.g. Library Management',
-                              prefixIcon: Icons.text_fields_rounded,
-                              validator: (v) => Validators.validateText(v, label: 'Display name'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnimatedSlideIn(
-                      delayIndex: 1,
-                      child: _GroupCard(
-                        title: 'CATEGORY & ORDERING',
-                        child: Column(
-                          children: [
-                            AppDropdown<String>(
-                              label: 'Feature Group',
-                              items: groups,
-                              value: _group,
-                              itemLabel: (g) => g,
-                              prefixIcon: Icons.folder_rounded,
-                              onChanged: (v) =>
-                                  setState(() => _group = v ?? _group),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: AppTextField(
-                                    controller: _icon,
-                                    label: 'Icon Name',
-                                    hintText: 'e.g. book',
-                                    prefixIcon: Icons.star_outline_rounded,
+                      _AnimatedSlideIn(
+                        delayIndex: 0,
+                        child: _GroupCard(
+                          title: 'FEATURE DETAILS',
+                          child: Column(
+                            children: [
+                              AppTextField(
+                                controller: _key,
+                                label: 'Feature Key',
+                                hintText: 'e.g. library_module',
+                                prefixIcon: _editing
+                                    ? Icons.lock_outline_rounded
+                                    : Icons.key_rounded,
+                                enabled: !_editing,
+                                validator: Validators.validateFeatureKey,
+                              ),
+                              if (_editing)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 4,
+                                    left: 2,
+                                  ),
+                                  child: Text(
+                                    'Key is immutable to prevent breakage of existing plans.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: cs.onSurfaceVariant,
+                                          fontSize: 10,
+                                        ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _order,
-                                    label: 'Weight',
-                                    hintText: '0',
-                                    prefixIcon: Icons.format_list_numbered_rounded,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => Validators.validateNumeric(v, label: 'Weight'),
-                                  ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                controller: _label,
+                                label: 'Display Name',
+                                hintText: 'e.g. Library Management',
+                                prefixIcon: Icons.text_fields_rounded,
+                                validator: (v) => Validators.validateText(
+                                  v,
+                                  label: 'Display name',
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnimatedSlideIn(
-                      delayIndex: 2,
-                      child: _GroupCard(
-                        title: 'DESCRIPTION',
-                        child: Column(
-                          children: [
-                            AppTextArea(
-                              controller: _description,
-                              label: 'Description',
-                              hintText: 'What does this feature enable for the institute?',
-                              minLines: 2,
-                              maxLines: 4,
-                            ),
-                            const SizedBox(height: 12),
-                            _StatusToggle(
-                              value: _isActive,
-                              onChanged: (v) => setState(() => _isActive = v),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _AnimatedSlideIn(
-                      delayIndex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withValues(alpha: 0.05),
-                          borderRadius: AppRadii.r16,
-                          border: Border.all(
-                            color: cs.primary.withValues(alpha: 0.1),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: cs.primary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Feature keys must use snake_case (e.g. fee_management) and cannot be changed once assigned to a plan.',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      _AnimatedSlideIn(
+                        delayIndex: 1,
+                        child: _GroupCard(
+                          title: 'CATEGORY & ORDERING',
+                          child: Column(
+                            children: [
+                              AppDropdown<String>(
+                                label: 'Feature Group',
+                                items: groups,
+                                value: _group,
+                                itemLabel: (g) => g,
+                                prefixIcon: Icons.folder_rounded,
+                                onChanged: (v) =>
+                                    setState(() => _group = v ?? _group),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: AppTextField(
+                                      controller: _icon,
+                                      label: 'Icon Name',
+                                      hintText: 'e.g. book',
+                                      prefixIcon: Icons.star_outline_rounded,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller: _order,
+                                      label: 'Weight',
+                                      hintText: '0',
+                                      prefixIcon:
+                                          Icons.format_list_numbered_rounded,
+                                      keyboardType: TextInputType.number,
+                                      validator: (v) =>
+                                          Validators.validateNumeric(
+                                            v,
+                                            label: 'Weight',
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      _AnimatedSlideIn(
+                        delayIndex: 2,
+                        child: _GroupCard(
+                          title: 'ACCESS & STATUS',
+                          child: Column(
+                            children: [
+                              AppTextArea(
+                                controller: _description,
+                                label: 'Description',
+                                hintText:
+                                    'What does this feature enable for the institute?',
+                                minLines: 2,
+                                maxLines: 4,
+                              ),
+                              const SizedBox(height: 12),
+                              _StatusToggle(
+                                value: _isActive,
+                                onChanged: (v) => setState(() => _isActive = v),
+                              ),
+                              const SizedBox(height: 8),
+                              _SystemToggle(
+                                value: _isSystem,
+                                onChanged: (v) => setState(() => _isSystem = v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _AnimatedSlideIn(
+                        delayIndex: 3,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.05),
+                            borderRadius: AppRadii.r16,
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: cs.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Feature keys must use snake_case (e.g. fee_management) and cannot be changed once assigned to a plan.',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             ),
             _Footer(
               editing: _editing,
@@ -247,6 +282,16 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
       return;
     }
 
+    if (_group.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please create and select a feature group first.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final key = _key.text.trim();
     final label = _label.text.trim();
     final description = _description.text.trim();
@@ -260,6 +305,7 @@ class _FeatureEditorDialogState extends State<FeatureEditorDialog> {
       description: description,
       group: _group,
       isActive: _isActive,
+      isSystem: _isSystem,
       icon: icon.isEmpty ? null : icon,
       order: order,
       createdAt: widget.initial?.createdAt,
@@ -294,17 +340,17 @@ class _Header extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.8,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -424,14 +470,75 @@ class _StatusToggle extends StatelessWidget {
             child: Text(
               value ? 'ACTIVE / VISIBLE' : 'DEACTIVATED / HIDDEN',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           Transform.scale(
             scale: 0.8,
             child: Switch(value: value, onChanged: onChanged),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SystemToggle extends StatelessWidget {
+  const _SystemToggle({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: value ? cs.primary.withValues(alpha: 0.03) : cs.surface,
+        borderRadius: AppRadii.r12,
+        border: Border.all(
+          color: value ? cs.primary.withValues(alpha: 0.2) : cs.outlineVariant,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.lock_rounded : Icons.lock_open_rounded,
+            color: value ? cs.primary : cs.onSurfaceVariant,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SYSTEM CRITICAL',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    color: value ? cs.primary : null,
+                  ),
+                ),
+                Text(
+                  'Protected from accidental deletion.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 9,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeTrackColor: cs.primary.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -469,10 +576,10 @@ class _GroupCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                  color: cs.primary,
-                ),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+              color: cs.primary,
+            ),
           ),
           const SizedBox(height: 12),
           child,
@@ -481,4 +588,3 @@ class _GroupCard extends StatelessWidget {
     );
   }
 }
-

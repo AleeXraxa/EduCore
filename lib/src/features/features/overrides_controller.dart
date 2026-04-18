@@ -101,10 +101,7 @@ class FeatureOverridesController extends ChangeNotifier {
     }
     // if null -> reset to plan default (removed from both)
 
-    _overrides = FeatureOverrides(
-      enabled: newEnabled,
-      disabled: newDisabled,
-    );
+    _overrides = FeatureOverrides(enabled: newEnabled, disabled: newDisabled);
     notifyListeners();
   }
 

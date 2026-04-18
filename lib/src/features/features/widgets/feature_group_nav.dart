@@ -32,9 +32,9 @@ class FeatureGroupNav extends StatelessWidget {
         children: [
           Text(
             'Groups',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -44,8 +44,10 @@ class FeatureGroupNav extends StatelessWidget {
               prefixIcon: const Icon(Icons.search_rounded),
               filled: true,
               fillColor: cs.surface,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: AppRadii.r12,
                 borderSide: BorderSide(color: cs.outlineVariant),
@@ -58,18 +60,43 @@ class FeatureGroupNav extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  for (final g in groups)
-                    _GroupItem(
-                      label: g,
-                      selected: g == selected,
-                      onTap: () => onSelect(g),
+            child: groups.length <= 1
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.folder_open_rounded,
+                            size: 40,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No groups created yet',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
-            ),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        for (final g in groups)
+                          _GroupItem(
+                            label: g,
+                            selected: g == selected,
+                            onTap: () => onSelect(g),
+                          ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -127,9 +154,9 @@ class _GroupItemState extends State<_GroupItem> {
                   child: Text(
                     widget.label,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: fg,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -140,4 +167,3 @@ class _GroupItemState extends State<_GroupItem> {
     );
   }
 }
-

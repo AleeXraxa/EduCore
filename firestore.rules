@@ -27,17 +27,18 @@ service cloud.firestore {
     function isActiveUser() {
       let u = getUserData();
       return u != null
-          && u.keys().hasAll(['role', 'status', 'academyId'])
+          && 'role' in u
+          && 'status' in u
           && u.status == 'active'
           && u.role in ['super_admin', 'institute_admin', 'staff', 'teacher'];
     }
 
-    // ======================================================
-    // §2  ROLE HELPERS  (all gate on isActiveUser first)
-    // ======================================================
-
     function isSuperAdmin() {
-      return isSignedIn() && isActiveUser() && getUserData().role == 'super_admin';
+      let u = getUserData();
+      return isSignedIn() 
+          && u != null 
+          && u.status == 'active' 
+          && u.role == 'super_admin';
     }
 
     function isInstituteAdmin() {
@@ -117,12 +118,6 @@ service cloud.firestore {
           || request.resource.data.createdAt == resource.data.createdAt;
     }
 
-    // ======================================================
-    // §5  GLOBAL DEFAULT — DENY EVERYTHING
-    // ======================================================
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
     // ======================================================
     // §6  COLLECTION: users/{uid}
@@ -282,72 +277,60 @@ service cloud.firestore {
     }
 
     // ======================================================
-    // §9  COLLECTIONS: plans & features  (catalogue / read-only)
+    // §9  COLLECTIONS: plans, features & groups
     // ======================================================
-    match /plans/{planId} {
-      // Any authenticated & active user may read plan definitions.
-      allow read:  if isSignedIn() && isActiveUser();
-      allow write: if isSuperAdmin();
+    match /plans/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    match /features/{featureId} {
-      allow read:  if isSignedIn() && isActiveUser();
-      allow write: if isSuperAdmin();
+    match /features/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /featureGroups/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // ======================================================
     // §10  COLLECTION: payments/{paymentId}
     // ======================================================
     match /payments/{paymentId} {
-      // READ: super_admin sees all; institute user sees only their academy's records.
-      allow read: if isSuperAdmin()
-                  || (belongsTo(resource.data.academyId));
-
-      // CREATE: institute_admin may submit a payment request.
-      //         Institutes cannot pre-set status to anything other than 'pending'.
-      //         super_admin can create freely.
-      allow create: if isSuperAdmin()
-                    || (isAdminOf(request.resource.data.academyId)
-                        && request.resource.data.status == 'pending');
-
-      // UPDATE: ONLY super_admin may update (approve / reject / reconcile).
-      //         Institute users must NEVER be able to modify payment status.
-      allow update: if isSuperAdmin();
-
-      // DELETE: ONLY super_admin.
-      allow delete: if isSuperAdmin();
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // ======================================================
     // §11  COLLECTION: auditLogs/{logId}
     // ======================================================
     match /auditLogs/{logId} {
-      // Only super_admin may read the audit trail.
-      allow read:   if isSuperAdmin();
-      // Writes are handled by Cloud Functions using the Admin SDK,
-      // which bypasses these rules. Client-side writes are denied.
-      allow write:  if isSuperAdmin();
+      allow read:   if isSignedIn();
+      allow write:  if isSignedIn();
     }
+
     // ======================================================
     // §12  COLLECTION: notifications/{notificationId}
     // ======================================================
     match /notifications/{notificationId} {
-      // Only super_admin may read and write notifications.
-      // This is a platform-broadcast collection; institute users have no access.
-      allow read:   if isSuperAdmin();
-      allow create: if isSuperAdmin();
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin();
+      allow read:   if isSignedIn();
+      allow write:  if isSignedIn();
     }
 
     // ======================================================
     // §13  COLLECTION: settings/{docId}
     // ======================================================
     match /settings/{docId} {
-      // Any active authenticated user may read settings (needed for sidebar branding, app name, logo).
-      // Only super_admin may write (update platform-wide configuration).
-      allow read:  if isSignedIn() && isActiveUser();
-      allow write: if isSuperAdmin();
+      allow read:  if true;
+      allow write: if isSignedIn();
+    }
+
+    // ======================================================
+    // §14  GLOBAL DEFAULT — DENY EVERYTHING
+    // ======================================================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

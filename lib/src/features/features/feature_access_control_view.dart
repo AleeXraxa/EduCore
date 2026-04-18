@@ -13,7 +13,8 @@ class FeatureAccessControlView extends StatefulWidget {
   const FeatureAccessControlView({super.key});
 
   @override
-  State<FeatureAccessControlView> createState() => _FeatureAccessControlViewState();
+  State<FeatureAccessControlView> createState() =>
+      _FeatureAccessControlViewState();
 }
 
 class _FeatureAccessControlViewState extends State<FeatureAccessControlView> {
@@ -65,18 +66,12 @@ class _FeatureAccessControlViewState extends State<FeatureAccessControlView> {
                         ),
                         const SizedBox(width: 24),
                         // Right: Feature List
-                        Expanded(
-                          child: _FeaturesList(controller: controller),
-                        ),
+                        Expanded(child: _FeaturesList(controller: controller)),
                       ],
                     ),
                   ),
                 ] else
-                  const Expanded(
-                    child: Center(
-                      child: _EmptySelectionState(),
-                    ),
-                  ),
+                  const Expanded(child: Center(child: _EmptySelectionState())),
               ],
             ),
           ),
@@ -103,16 +98,16 @@ class _Header extends StatelessWidget {
             Text(
               'Feature Access Control',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               'Manage custom feature overrides per institute',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
             ),
           ],
         ),
@@ -158,8 +153,14 @@ class _InstituteSelector extends StatelessWidget {
               },
               listItemBuilder: (context, item, isSelected, onItemSelect) {
                 return ListTile(
-                  title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(item.id, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+                  title: Text(
+                    item.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    item.id,
+                    style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                  ),
                   selected: isSelected,
                   onTap: onItemSelect,
                 );
@@ -194,15 +195,19 @@ class _PlanInfoCard extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: AppRadii.r8,
                 ),
-                child: const Icon(Icons.layers_rounded, color: AppColors.primary, size: 20),
+                child: const Icon(
+                  Icons.layers_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
                 'Current Plan',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textMuted,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMuted,
+                ),
               ),
             ],
           ),
@@ -210,19 +215,22 @@ class _PlanInfoCard extends StatelessWidget {
           Text(
             plan.name,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             plan.description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textMuted,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
           ),
           const Divider(height: 32),
-          _InfoRow(label: 'Base Features', value: '${plan.features.length} enabled'),
+          _InfoRow(
+            label: 'Base Features',
+            value: '${plan.features.length} enabled',
+          ),
         ],
       ),
     );
@@ -243,9 +251,9 @@ class _StatisticsCard extends StatelessWidget {
           Text(
             'Override Summary',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMuted,
-                ),
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMuted,
+            ),
           ),
           const SizedBox(height: 16),
           _StatRow(
@@ -298,17 +306,19 @@ class _FeaturesList extends StatelessWidget {
               child: Text(
                 groupName.toUpperCase(),
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      color: AppColors.textMuted,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  color: AppColors.textMuted,
+                ),
               ),
             ),
             const SizedBox(height: 12),
             AppCard(
               padding: EdgeInsets.zero,
               child: Column(
-                children: features.map((f) => _FeatureRow(feature: f, controller: controller)).toList(),
+                children: features
+                    .map((f) => _FeatureRow(feature: f, controller: controller))
+                    .toList(),
               ),
             ),
           ],
@@ -351,7 +361,10 @@ class _FeatureRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 0.5,
+          ),
         ),
       ),
       child: Row(
@@ -364,7 +377,10 @@ class _FeatureRow extends StatelessWidget {
                   children: [
                     Text(
                       feature.label,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     _Badge(label: badgeText, color: badgeColor),
@@ -372,7 +388,10 @@ class _FeatureRow extends StatelessWidget {
                 ),
                 Text(
                   feature.description,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -386,7 +405,9 @@ class _FeatureRow extends StatelessWidget {
           const SizedBox(width: 8),
           Switch.adaptive(
             value: isEnabled,
-            activeTrackColor: state == FeatureAccessState.overrideEnabled ? Colors.green : null,
+            activeTrackColor: state == FeatureAccessState.overrideEnabled
+                ? Colors.green
+                : null,
             trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
             onChanged: (val) => controller.toggleFeature(feature.key),
           ),
@@ -432,7 +453,9 @@ class _ActionBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
       ),
       child: Row(
         children: [
@@ -446,7 +469,8 @@ class _ActionBar extends StatelessWidget {
           AppPrimaryButton(
             label: 'Discard',
             variant: AppButtonVariant.secondary,
-            onPressed: () => controller.selectInstitute(controller.selectedInstitute!),
+            onPressed: () =>
+                controller.selectInstitute(controller.selectedInstitute!),
           ),
           const SizedBox(width: 12),
           AppPrimaryButton(
@@ -459,13 +483,15 @@ class _ActionBar extends StatelessWidget {
                   AppDialogs.showSuccess(
                     context,
                     title: 'Access Updated',
-                    message: 'Feature access rules for ${controller.selectedInstitute!.name} have been updated successfully.',
+                    message:
+                        'Feature access rules for ${controller.selectedInstitute!.name} have been updated successfully.',
                   );
                 } else {
                   AppDialogs.showError(
                     context,
                     title: 'Update Failed',
-                    message: 'Could not update feature overrides. Please check your connection.',
+                    message:
+                        'Could not update feature overrides. Please check your connection.',
                   );
                 }
               }
@@ -495,7 +521,11 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value, required this.color});
+  const _StatRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
   final String label;
   final String value;
   final Color color;
@@ -504,11 +534,23 @@ class _StatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
         const SizedBox(width: 8),
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         const Spacer(),
-        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
       ],
     );
   }
@@ -522,11 +564,19 @@ class _EmptySelectionState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.shield_rounded, size: 64, color: AppColors.textMuted.withValues(alpha: 0.1)),
+        Icon(
+          Icons.shield_rounded,
+          size: 64,
+          color: AppColors.textMuted.withValues(alpha: 0.1),
+        ),
         const SizedBox(height: 16),
         const Text(
           'Select an Institute to manage access',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMuted),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textMuted,
+          ),
         ),
       ],
     );

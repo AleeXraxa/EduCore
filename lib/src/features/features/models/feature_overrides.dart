@@ -2,10 +2,7 @@ class FeatureOverrides {
   final List<String> enabled;
   final List<String> disabled;
 
-  const FeatureOverrides({
-    this.enabled = const [],
-    this.disabled = const [],
-  });
+  const FeatureOverrides({this.enabled = const [], this.disabled = const []});
 
   factory FeatureOverrides.fromMap(Map<String, dynamic> map) {
     return FeatureOverrides(
@@ -15,10 +12,7 @@ class FeatureOverrides {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'enabled': enabled,
-      'disabled': disabled,
-    };
+    return {'enabled': enabled, 'disabled': disabled};
   }
 
   bool isEnabled(String key) => enabled.contains(key);
