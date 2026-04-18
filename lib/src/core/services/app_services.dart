@@ -20,6 +20,7 @@ import 'package:educore/src/core/services/notification_service.dart';
 import 'package:educore/src/core/services/feature_override_service.dart';
 import 'package:educore/src/core/services/settings_service.dart';
 import 'package:educore/src/core/services/class_service.dart';
+import 'package:educore/src/core/services/staff_service.dart';
 
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
@@ -55,6 +56,7 @@ class AppServices {
   NotificationService? notificationService;
   FeatureOverrideService? featureOverrideService;
   SettingsService? settingsService;
+  StaffService? staffService;
   AuditLogService? auditLogService;
   
   // Repositories
@@ -66,6 +68,22 @@ class AppServices {
   bool firebaseReady = false;
   Object? firebaseInitError;
   bool _coreInitialized = false;
+
+  // Safe accessors to prevent Null TypeErrors in controllers
+  AuditLogService get getAuditLogService {
+    if (auditLogService == null) throw StateError('AuditLogService not initialized. Check firebaseReady: $firebaseReady');
+    return auditLogService!;
+  }
+
+  StaffService get getStaffService {
+    if (staffService == null) throw StateError('StaffService not initialized.');
+    return staffService!;
+  }
+
+  FeatureAccessService get getFeatureAccessService {
+    if (featureAccessService == null) throw StateError('FeatureAccessService not initialized.');
+    return featureAccessService!;
+  }
 
   Future<void> init() async {
     if (!_coreInitialized) {
@@ -145,6 +163,16 @@ class AppServices {
       );
       settingsService = SettingsService(
         firestore: firestore!,
+        auditLogService: auditLogService!,
+      );
+      
+      staffService = StaffService(
+        firestore: firestore!,
+        userRepository: UserRepository(
+          firestore!,
+          primaryApp: firebaseApp!,
+          primaryAuth: auth!,
+        ),
         auditLogService: auditLogService!,
       );
 

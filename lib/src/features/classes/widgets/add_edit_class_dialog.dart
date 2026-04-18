@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
+import 'package:educore/src/features/staff/models/staff_member.dart';
 import 'package:flutter/material.dart';
 
 class AddEditClassDialog extends StatefulWidget {
@@ -23,6 +24,8 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _sectionController;
+  String? _selectedTeacherId;
+  String? _selectedTeacherName;
   bool _isActive = true;
   String? _errorMessage;
   bool _saving = false;
@@ -32,6 +35,8 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.existingClass?.name ?? '');
     _sectionController = TextEditingController(text: widget.existingClass?.section ?? '');
+    _selectedTeacherId = widget.existingClass?.classTeacherId;
+    _selectedTeacherName = widget.existingClass?.classTeacherName;
     _isActive = widget.existingClass?.isActive ?? true;
   }
 
@@ -58,15 +63,16 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
       ok = await widget.controller.createClass(
         name: name,
         section: section,
-        // TODO: classTeacher assignment from dropdown
-        classTeacherId: null,
-        classTeacherName: null,
+        classTeacherId: _selectedTeacherId,
+        classTeacherName: _selectedTeacherName,
       );
     } else {
       ok = await widget.controller.updateClass(
         classId: widget.existingClass!.id,
         name: name,
         section: section,
+        classTeacherId: _selectedTeacherId,
+        classTeacherName: _selectedTeacherName,
         isActive: _isActive,
       );
     }
@@ -145,7 +151,29 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                 ),
                 const SizedBox(height: 24),
                 
-                // TODO: Add Teacher Selection Dropdown Here
+                const SizedBox(height: 24),
+                DropdownButtonFormField<String>(
+                  value: _selectedTeacherId,
+                  decoration: InputDecoration(
+                    labelText: 'Class Teacher',
+                    hintText: 'Select a primary teacher',
+                    prefixIcon: Icon(Icons.person_pin_rounded, color: cs.primary),
+                  ),
+                  items: widget.controller.availableTeachers.map((t) {
+                    return DropdownMenuItem(
+                      value: t.id,
+                      child: Text(t.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedTeacherId = val;
+                      _selectedTeacherName = widget.controller.availableTeachers
+                          .firstWhere((e) => e.id == val)
+                          .name;
+                    });
+                  },
+                ),
 
                 if (isEdit) ...[
                   SwitchListTile.adaptive(

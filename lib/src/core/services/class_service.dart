@@ -143,4 +143,90 @@ class ClassService {
       role: 'institute_admin',
     );
   }
+
+  Future<void> assignClassTeacher({
+    required String academyId,
+    required String classId,
+    required String teacherId,
+    required String teacherName,
+    required String performedBy,
+  }) async {
+    final docRef = _col(academyId).doc(classId);
+    
+    await docRef.update({
+      'classTeacherId': teacherId,
+      'classTeacherName': teacherName,
+      'teacherIds': FieldValue.arrayUnion([teacherId]), // Class teacher is also a member
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _audit.logAction(
+      action: 'assign_class_teacher',
+      module: 'classes',
+      targetDoc: classId,
+      academyId: academyId,
+      uid: performedBy,
+      role: 'institute_admin',
+      after: {'teacherId': teacherId, 'teacherName': teacherName},
+    );
+  }
+
+  Future<void> assignMultipleTeachers({
+    required String academyId,
+    required String classId,
+    required List<String> teacherIds,
+    required String performedBy,
+  }) async {
+    final docRef = _col(academyId).doc(classId);
+
+    await docRef.update({
+      'teacherIds': FieldValue.arrayUnion(teacherIds),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _audit.logAction(
+      action: 'assign_teachers',
+      module: 'classes',
+      targetDoc: classId,
+      academyId: academyId,
+      uid: performedBy,
+      role: 'institute_admin',
+      after: {'teacherIds': teacherIds},
+    );
+  }
+
+  Future<void> removeTeachers({
+    required String academyId,
+    required String classId,
+    required List<String> teacherIds,
+    required String performedBy,
+  }) async {
+    final docRef = _col(academyId).doc(classId);
+
+    // Remove from membership list
+    await docRef.update({
+      'teacherIds': FieldValue.arrayRemove(teacherIds),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // If any of removed teachers was the class teacher, nullify it
+    final doc = await docRef.get();
+    final currentCT = doc.data()?['classTeacherId'] as String?;
+    if (teacherIds.contains(currentCT)) {
+      await docRef.update({
+        'classTeacherId': null,
+        'classTeacherName': null,
+      });
+    }
+
+    await _audit.logAction(
+      action: 'remove_teachers',
+      module: 'classes',
+      targetDoc: classId,
+      academyId: academyId,
+      uid: performedBy,
+      role: 'institute_admin',
+      after: {'removedIds': teacherIds},
+    );
+  }
 }

@@ -1,24 +1,43 @@
 import 'dart:async';
 import 'package:educore/src/core/mvc/base_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/feature_access_service.dart';
-import 'package:educore/src/core/services/class_service.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
+import 'package:educore/src/core/services/staff_service.dart';
+import 'package:educore/src/features/staff/models/staff_member.dart';
+import 'package:educore/src/core/services/class_service.dart';
 
 class ClassesController extends BaseController {
-  ClassesController({ClassService? classService, FeatureAccessService? featureAccessService})
-      : _classService = classService ?? AppServices.instance.classService!,
-        _featureAccess = featureAccessService ?? AppServices.instance.featureAccessService!,
-        _academyId = AppServices.instance.authService?.session?.academyId ?? '';
+  ClassesController({
+    ClassService? classService,
+    FeatureAccessService? featureAccessService,
+    StaffService? staffService,
+  }) : _classService = classService ?? AppServices.instance.classService!,
+       _featureAccess =
+           featureAccessService ?? AppServices.instance.featureAccessService!,
+       _staffService = staffService ?? AppServices.instance.staffService!,
+       _academyId = AppServices.instance.authService?.session?.academyId ?? '';
 
   final ClassService _classService;
   final FeatureAccessService _featureAccess;
+  final StaffService _staffService;
   final String _academyId;
-  
+
   StreamSubscription<List<InstituteClass>>? _sub;
+  StreamSubscription<List<StaffMember>>? _staffSub;
 
   List<InstituteClass> _classes = [];
+  List<StaffMember> _teachers = [];
+
   List<InstituteClass> get classes => _filteredClasses;
+  List<StaffMember> get availableTeachers => _teachers
+      .where((t) => t.role == StaffRole.teacher && t.isActive)
+      .toList();
+
+  int getTeacherClassCount(String teacherId) {
+    return _classes.where((c) => c.teacherIds.contains(teacherId)).length;
+  }
 
   String _searchQuery = '';
   String? get searchQuery => _searchQuery;
@@ -31,14 +50,15 @@ class ClassesController extends BaseController {
   bool get canEdit => _featureAccess.canAccess('class_edit');
   bool get canDelete => _featureAccess.canAccess('class_delete');
   bool get canManageSections => _featureAccess.canAccess('section_management');
+  bool get canAssignTeachers => _featureAccess.canAccess('teacher_assignment');
 
   List<InstituteClass> get _filteredClasses {
     if (_searchQuery.isEmpty) return _classes;
     final q = _searchQuery.toLowerCase();
     return _classes.where((c) {
       return c.name.toLowerCase().contains(q) ||
-             c.section.toLowerCase().contains(q) ||
-             (c.classTeacherName?.toLowerCase().contains(q) ?? false);
+          c.section.toLowerCase().contains(q) ||
+          (c.classTeacherName?.toLowerCase().contains(q) ?? false);
     }).toList();
   }
 
@@ -48,21 +68,37 @@ class ClassesController extends BaseController {
       notifyListeners();
       return;
     }
-    
+
     setBusy(true);
     _errorMessage = null;
 
     _sub?.cancel();
-    _sub = _classService.watchClasses(_academyId).listen(
-      (data) {
-        _classes = data;
-        setBusy(false);
-      },
-      onError: (e) {
-        _errorMessage = 'Failed to load classes: $e';
-        setBusy(false);
-      },
-    );
+    _sub = _classService
+        .watchClasses(_academyId)
+        .listen(
+          (data) {
+            _classes = data;
+            setBusy(false);
+          },
+          onError: (e) {
+            _errorMessage = 'Failed to load classes: $e';
+            setBusy(false);
+          },
+        );
+
+    // Watch Staff for teacher assignment
+    _staffSub?.cancel();
+    _staffSub = _staffService
+        .watchStaff(_academyId)
+        .listen(
+          (data) {
+            _teachers = data;
+            notifyListeners();
+          },
+          onError: (e) {
+            debugPrint('Error watching staff: $e');
+          },
+        );
   }
 
   void setSearchQuery(String query) {
@@ -86,7 +122,8 @@ class ClassesController extends BaseController {
     bool success = false;
     await runBusy(() async {
       try {
-        final userId = AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
         await _classService.createClass(
           academyId: _academyId,
           name: name,
@@ -121,7 +158,8 @@ class ClassesController extends BaseController {
     bool success = false;
     await runBusy(() async {
       try {
-        final userId = AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
         await _classService.updateClass(
           academyId: _academyId,
           classId: classId,
@@ -153,7 +191,8 @@ class ClassesController extends BaseController {
     bool success = false;
     await runBusy(() async {
       try {
-        final userId = AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
         await _classService.deleteClass(
           academyId: _academyId,
           classId: classId,
@@ -168,9 +207,81 @@ class ClassesController extends BaseController {
     return success;
   }
 
+  Future<bool> assignClassTeacher(
+    String classId,
+    String teacherId,
+    String teacherName,
+  ) async {
+    if (!canAssignTeachers) return false;
+    bool success = false;
+    await runBusy(() async {
+      try {
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        await _classService.assignClassTeacher(
+          academyId: _academyId,
+          classId: classId,
+          teacherId: teacherId,
+          teacherName: teacherName,
+          performedBy: userId,
+        );
+        success = true;
+      } catch (e) {
+        _errorMessage = e.toString();
+      }
+    });
+    return success;
+  }
+
+  Future<bool> assignMultipleTeachers(
+    String classId,
+    List<String> teacherIds,
+  ) async {
+    if (!canAssignTeachers) return false;
+    bool success = false;
+    await runBusy(() async {
+      try {
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        await _classService.assignMultipleTeachers(
+          academyId: _academyId,
+          classId: classId,
+          teacherIds: teacherIds,
+          performedBy: userId,
+        );
+        success = true;
+      } catch (e) {
+        _errorMessage = e.toString();
+      }
+    });
+    return success;
+  }
+
+  Future<bool> removeTeachers(String classId, List<String> teacherIds) async {
+    if (!canAssignTeachers) return false;
+    bool success = false;
+    await runBusy(() async {
+      try {
+        final userId =
+            AppServices.instance.authService?.currentUser?.uid ?? 'unknown';
+        await _classService.removeTeachers(
+          academyId: _academyId,
+          classId: classId,
+          teacherIds: teacherIds,
+          performedBy: userId,
+        );
+        success = true;
+      } catch (e) {
+        _errorMessage = e.toString();
+      }
+    });
+    return success;
+  }
+
   @override
   void dispose() {
     _sub?.cancel();
+    _staffSub?.cancel();
     super.dispose();
   }
 }

@@ -7,6 +7,7 @@ class InstituteClass {
     this.section = '',
     this.classTeacherId,
     this.classTeacherName,
+    this.teacherIds = const [],
     required this.subjectIds,
     this.studentCount = 0,
     this.isActive = true,
@@ -19,6 +20,7 @@ class InstituteClass {
   final String section; // optional, e.g. "A", "B"
   final String? classTeacherId;
   final String? classTeacherName; // useful for UI without extra joins
+  final List<String> teacherIds;
   final List<String> subjectIds;
   final int studentCount;
   final bool isActive;
@@ -35,6 +37,7 @@ class InstituteClass {
       section: data['section'] as String? ?? '',
       classTeacherId: data['classTeacherId'] as String?,
       classTeacherName: data['classTeacherName'] as String?,
+      teacherIds: List<String>.from(data['teacherIds'] ?? []),
       subjectIds: List<String>.from(data['subjectIds'] ?? []),
       studentCount: data['studentCount'] as int? ?? 0,
       isActive: data['isActive'] as bool? ?? true,
@@ -49,6 +52,7 @@ class InstituteClass {
       'section': section.trim(),
       'classTeacherId': classTeacherId,
       'classTeacherName': classTeacherName,
+      'teacherIds': teacherIds,
       'subjectIds': subjectIds,
       'studentCount': studentCount,
       'isActive': isActive,

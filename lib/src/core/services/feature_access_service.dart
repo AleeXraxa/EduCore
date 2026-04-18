@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
@@ -18,6 +19,7 @@ class FeatureAccessService {
   final SubscriptionService _subscriptionService;
 
   String? _currentAcademyId;
+  String? _currentStaffId;
   bool _isSuperAdmin = false;
   Set<String> _allowedFeatures = {};
   bool _initialized = false;
@@ -35,8 +37,9 @@ class FeatureAccessService {
     }
   }
 
-  Future<void> init(String academyId, {bool isSuperAdmin = false}) async {
+  Future<void> init(String academyId, {String? staffId, bool isSuperAdmin = false}) async {
     _currentAcademyId = academyId;
+    _currentStaffId = staffId;
     _isSuperAdmin = isSuperAdmin;
     await _load();
     _initialized = true;
@@ -111,23 +114,56 @@ class FeatureAccessService {
         }
       }
 
-      // 4. Calculate Effective Access
+      // 4. Load Staff Overrides (New)
+      Set<String> staffAllowed = {};
+      Set<String> staffDenied = {};
+      if (_currentStaffId != null) {
+        final staffDoc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_currentAcademyId)
+            .collection('staff')
+            .doc(_currentStaffId)
+            .get();
+        
+        if (staffDoc.exists) {
+          final data = staffDoc.data()!;
+          staffAllowed = (data['assignedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
+          staffDenied = (data['deniedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
+        }
+      }
+
+      // 5. Calculate Effective Access
       final allowed = <String>{};
       final overrides = subscription?.overrides;
+      final isStaff = _currentStaffId != null;
 
       for (final key in activeInRegistry) {
-        // Priority 1: disabled override
+        // Priority 1: Staff level explicit deny (always honor)
+        if (staffDenied.contains(key)) continue;
+
+        // Priority 2: Staff level explicit allow (always honor)
+        if (staffAllowed.contains(key)) {
+          allowed.add(key);
+          continue;
+        }
+
+        // If it's a staff member, they ONLY get what is explicitly allowed above.
+        // They do NOT inherit from academy plan or academy overrides by default.
+        if (isStaff) continue;
+
+        // --- Owner/Admin Logic (Legacy Inheritance) ---
+        // Priority 3: Academy level disabled override
         if (overrides != null && overrides.isDisabled(key)) {
           continue;
         }
 
-        // Priority 2: enabled override
+        // Priority 4: Academy level enabled override
         if (overrides != null && overrides.isEnabled(key)) {
           allowed.add(key);
           continue;
         }
 
-        // Priority 3: plan default
+        // Priority 5: Plan default
         if (planFeatures.contains(key)) {
           allowed.add(key);
         }

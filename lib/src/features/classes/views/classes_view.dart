@@ -10,6 +10,7 @@ import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/features/classes/views/class_details_view.dart';
+import 'package:educore/src/features/classes/widgets/assign_teacher_dialogs.dart';
 import 'package:flutter/material.dart';
 
 class ClassesView extends StatefulWidget {
@@ -242,6 +243,48 @@ class _ClassCard extends StatelessWidget {
                               );
                             },
                           ),
+                          if (controller.canAssignTeachers) ...[
+                            AppActionItem(
+                              label: 'Assign Class Teacher',
+                              icon: Icons.person_pin_rounded,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AssignClassTeacherDialog(
+                                    controller: controller,
+                                    classData: classData,
+                                  ),
+                                );
+                              },
+                            ),
+                            AppActionItem(
+                              label: 'Assign Teachers',
+                              icon: Icons.group_add_rounded,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AssignMultipleTeachersDialog(
+                                    controller: controller,
+                                    classData: classData,
+                                  ),
+                                );
+                              },
+                            ),
+                            AppActionItem(
+                              label: 'Remove Teacher(s)',
+                              icon: Icons.person_remove_rounded,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AssignMultipleTeachersDialog(
+                                    controller: controller,
+                                    classData: classData,
+                                    removeMode: true,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                           if (controller.canDelete)
                             AppActionItem(
                               label: 'Delete Class',
@@ -300,17 +343,42 @@ class _ClassCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, size: 16, color: cs.onSurfaceVariant),
+                    Icon(Icons.person_pin_rounded, size: 16, color: classData.classTeacherId != null ? cs.primary : cs.onSurfaceVariant),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        classData.classTeacherName ?? 'No Class Teacher',
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: classData.classTeacherName ?? 'No Class Teacher',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: classData.classTeacherId != null ? cs.primary : cs.onSurfaceVariant,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                            if (classData.classTeacherId != null)
+                              TextSpan(
+                                text: ' (Class Teacher)',
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (classData.teacherIds.isNotEmpty) ...[
+                              TextSpan(
+                                text: ' + ${classData.teacherIds.where((id) => id != classData.classTeacherId).length} more',
+                                style: TextStyle(
+                                  color: cs.secondary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
                       ),
                     ),
                   ],
