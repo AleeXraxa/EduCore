@@ -45,17 +45,30 @@ class StudentController extends BaseController {
     _students.clear();
     _lastDoc = null;
     _hasMore = true;
-    
-    // Mock summary data for Quick Insights (UI Ready)
-    totalCount = 1248;
-    activeCount = 1180;
-    inactiveCount = 68;
-    newAdmissionsCount = 42;
+    // Temporarily reset before loading
+    totalCount = 0;
+    activeCount = 0;
+    inactiveCount = 0;
+    newAdmissionsCount = 0;
     
     await Future.wait([
       _fetchBatch(),
       loadCustomFieldDefinitions(),
+      _fetchStats(),
     ]);
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final stats = await _studentService.getStudentStats(_academyId);
+      totalCount = stats['total'] ?? 0;
+      activeCount = stats['active'] ?? 0;
+      inactiveCount = stats['inactive'] ?? 0;
+      newAdmissionsCount = stats['newAdmissions'] ?? 0;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching stats: $e');
+    }
   }
 
   Future<void> loadCustomFieldDefinitions() async {

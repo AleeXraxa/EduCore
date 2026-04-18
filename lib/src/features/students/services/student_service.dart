@@ -1,17 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 
+import 'package:educore/src/core/services/fee_service.dart';
+
 class StudentService {
   final FirebaseFirestore _firestore;
   final SubscriptionService _subscriptionService;
+  final FeeService _feeService;
 
   StudentService({
     FirebaseFirestore? firestore,
     required SubscriptionService subscriptionService,
+    required FeeService feeService,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _subscriptionService = subscriptionService;
+        _subscriptionService = subscriptionService,
+        _feeService = feeService;
 
   CollectionReference<Map<String, dynamic>> _studentsRef(String academyId) {
     return _firestore.collection('academies').doc(academyId).collection('students');
@@ -35,6 +41,19 @@ class StudentService {
       updatedAt: DateTime.now(),
     );
     await docRef.set(newStudent.toMap());
+    
+    // Auto-generate Admission Fee
+    try {
+      await _feeService.createAdmissionFee(
+        academyId,
+        studentId: newStudent.id,
+        classId: newStudent.classId,
+        amount: 5000.0, // Default base admission fee
+      );
+    } catch (_) {
+      // Ignored if already exists
+    }
+    
     return newStudent;
   }
 
@@ -76,6 +95,40 @@ class StudentService {
 
     query = query.limit(limit);
     return await query.get();
+  }
+
+  Future<Map<String, int>> getStudentStats(String academyId) async {
+    final ref = _studentsRef(academyId);
+
+    try {
+      final activeQuery = await ref.where('status', isEqualTo: 'active').count().get();
+      final inactiveQuery = await ref.where('status', isEqualTo: 'inactive').count().get();
+      
+      final activeCount = activeQuery.count ?? 0;
+      final inactiveCount = inactiveQuery.count ?? 0;
+      final totalCount = activeCount + inactiveCount;
+
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      final newAdmissionsQuery = await ref
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(thirtyDaysAgo))
+          .count()
+          .get();
+
+      return {
+        'total': totalCount,
+        'active': activeCount,
+        'inactive': inactiveCount,
+        'newAdmissions': newAdmissionsQuery.count ?? 0,
+      };
+    } catch (e) {
+      debugPrint('Error fetching student stats: $e');
+      return {
+        'total': 0,
+        'active': 0,
+        'inactive': 0,
+        'newAdmissions': 0,
+      };
+    }
   }
 
   Future<List<StudentCustomField>> getCustomFieldDefinitions(

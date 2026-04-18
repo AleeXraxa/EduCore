@@ -21,6 +21,7 @@ import 'package:educore/src/core/services/feature_override_service.dart';
 import 'package:educore/src/core/services/settings_service.dart';
 import 'package:educore/src/core/services/class_service.dart';
 import 'package:educore/src/core/services/staff_service.dart';
+import 'package:educore/src/core/services/fee_service.dart';
 
 import 'package:educore/src/features/students/services/student_service.dart';
 
@@ -60,6 +61,7 @@ class AppServices {
   SettingsService? settingsService;
   StaffService? staffService;
   StudentService? studentService;
+  FeeService? feeService;
   AuditLogService? auditLogService;
   
   // Repositories
@@ -181,9 +183,15 @@ class AppServices {
         subscriptionService: subscriptionService!,
       );
 
+      feeService = FeeService(
+        firestore: firestore!,
+        audit: auditLogService!,
+      );
+
       studentService = StudentService(
         firestore: firestore!,
         subscriptionService: subscriptionService!,
+        feeService: feeService!,
       );
 
       // Initialize Repositories
