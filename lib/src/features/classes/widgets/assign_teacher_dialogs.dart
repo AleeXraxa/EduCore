@@ -160,7 +160,7 @@ class _AssignMultipleTeachersDialogState extends State<AssignMultipleTeachersDia
     final cs = Theme.of(context).colorScheme;
     
     final teachers = widget.removeMode
-        ? widget.controller.availableTeachers.where((t) => widget.classData.teacherIds.contains(t.id)).toList()
+        ? widget.controller.allStaff.where((t) => widget.classData.teacherIds.contains(t.id)).toList()
         : widget.controller.availableTeachers.where((t) {
             if (_searchQuery.isEmpty) return true;
             return t.name.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -208,7 +208,7 @@ class _AssignMultipleTeachersDialogState extends State<AssignMultipleTeachersDia
                   spacing: 8,
                   runSpacing: 8,
                   children: _selectedIds.map((id) {
-                    final t = widget.controller.availableTeachers.firstWhere((e) => e.id == id, orElse: () => StaffMember(id: id, name: 'Unknown', email: '', phone: '', role: StaffRole.teacher, assignedFeatureKeys: [], deniedFeatureKeys: [], isActive: true, createdAt: DateTime.now()));
+                    final t = widget.controller.allStaff.firstWhere((e) => e.id == id, orElse: () => StaffMember(id: id, name: 'Unknown', email: '', phone: '', role: StaffRole.teacher, assignedFeatureKeys: [], deniedFeatureKeys: [], isActive: true, createdAt: DateTime.now()));
                     return Chip(
                       label: Text(t.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       onDeleted: () => setState(() => _selectedIds.remove(id)),

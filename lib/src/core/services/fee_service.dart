@@ -6,9 +6,9 @@ class FeeService {
   final FirebaseFirestore _firestore;
   final AuditLogService _audit;
 
-  FeeService({FirebaseFirestore? firestore, AuditLogService? audit})
+  FeeService({FirebaseFirestore? firestore, AuditLogService? auditLogService})
       : _firestore = firestore ?? FirebaseFirestore.instance,
-        _audit = audit ?? AuditLogService(firestore ?? FirebaseFirestore.instance);
+        _audit = auditLogService ?? AuditLogService(firestore ?? FirebaseFirestore.instance);
 
   CollectionReference<Map<String, dynamic>> _fees(String academyId) =>
       _firestore.collection('academies').doc(academyId).collection('fees');
@@ -71,14 +71,25 @@ class FeeService {
 
   /// Generates monthly fees for a class
   /// Prevents duplicates for (studentId + month + type: monthly)
+  /// If [amount] is null, it resolves the fee from each student's FeePlan
   Future<int> generateMonthlyFees(String academyId, {
     required String classId,
     required String month, // YYYY-MM
-    required double amount,
+    double? amount, // If provided, overrides the plan amount
     required String title,
     DateTime? dueDate,
   }) async {
-    // 1. Get all students in class
+    // 0. Get the class to find the default plan
+    final classDoc = await _firestore
+        .collection('academies')
+        .doc(academyId)
+        .collection('classes')
+        .doc(classId)
+        .get();
+    
+    final clsDefaultPlanId = classDoc.data()?['feePlanId'] as String?;
+
+    // 1. Get all active students in class
     final studentsSnapshot = await _firestore
         .collection('academies')
         .doc(academyId)
@@ -87,12 +98,25 @@ class FeeService {
         .where('status', isEqualTo: 'active')
         .get();
 
+    // 2. Fetch all fee plans for lookup
+    final plansSnapshot = await _firestore
+        .collection('academies')
+        .doc(academyId)
+        .collection('fee_plans')
+        .get();
+    
+    final plansMap = {
+      for (final doc in plansSnapshot.docs)
+        doc.id: doc.data()['monthlyFee'] as num? ?? 0.0
+    };
+
     int generatedCount = 0;
     final batch = _firestore.batch();
 
     for (final studentDoc in studentsSnapshot.docs) {
       final studentId = studentDoc.id;
-
+      final studentData = studentDoc.data();
+      
       // Uniqueness check: One monthly fee per student per month
       final existing = await _fees(academyId)
           .where('studentId', isEqualTo: studentId)
@@ -102,6 +126,15 @@ class FeeService {
           .get();
 
       if (existing.docs.isEmpty) {
+        // Resolve amount
+        double finalAmount = amount ?? 0.0;
+        if (amount == null) {
+          final sPlanId = studentData['feePlanId'] as String? ?? clsDefaultPlanId;
+          finalAmount = (plansMap[sPlanId] ?? 0.0).toDouble();
+        }
+
+        if (finalAmount <= 0) continue; // Skip if no pricing found
+
         final docRef = _fees(academyId).doc();
         final fee = Fee(
           id: docRef.id,
@@ -110,7 +143,7 @@ class FeeService {
           classId: classId,
           type: FeeType.monthly,
           title: title,
-          amount: amount,
+          amount: finalAmount,
           status: FeeStatus.pending,
           paidAmount: 0,
           month: month,
@@ -135,7 +168,8 @@ class FeeService {
         metadata: {
           'month': month,
           'count': generatedCount,
-          'amountPerStudent': amount,
+          'amountMode': amount == null ? 'plan_driven' : 'override',
+          'amountOverride': amount,
         },
       );
     }

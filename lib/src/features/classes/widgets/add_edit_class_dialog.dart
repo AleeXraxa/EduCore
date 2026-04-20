@@ -1,10 +1,14 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
+import 'package:educore/src/features/fees/models/fee_plan.dart';
+import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
 class AddEditClassDialog extends StatefulWidget {
@@ -28,8 +32,13 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   bool _isActive = true;
+  String? _selectedFeePlanId;
+  String? _selectedFeePlanName;
   String? _errorMessage;
   bool _saving = false;
+  
+  List<FeePlan> _feePlans = [];
+  bool _loadingPlans = true;
 
   @override
   void initState() {
@@ -38,7 +47,25 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
     _sectionController = TextEditingController(text: widget.existingClass?.section ?? '');
     _selectedTeacherId = widget.existingClass?.classTeacherId;
     _selectedTeacherName = widget.existingClass?.classTeacherName;
+    _selectedFeePlanId = widget.existingClass?.feePlanId;
+    _selectedFeePlanName = widget.existingClass?.feePlanName;
     _isActive = widget.existingClass?.isActive ?? true;
+    _loadFeePlans();
+  }
+
+  Future<void> _loadFeePlans() async {
+    try {
+      final plans = await AppServices.instance.feePlanService!
+          .getFeePlans(AppServices.instance.authService?.session?.academyId ?? '');
+      if (mounted) {
+        setState(() {
+          _feePlans = plans.where((p) => p.isActive).toList();
+          _loadingPlans = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingPlans = false);
+    }
   }
 
   @override
@@ -67,6 +94,8 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
           section: section,
           classTeacherId: _selectedTeacherId,
           classTeacherName: _selectedTeacherName,
+          feePlanId: _selectedFeePlanId!,
+          feePlanName: _selectedFeePlanName!,
         );
       } else {
         ok = await widget.controller.updateClass(
@@ -75,6 +104,8 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
           section: section,
           classTeacherId: _selectedTeacherId,
           classTeacherName: _selectedTeacherName,
+          feePlanId: _selectedFeePlanId,
+          feePlanName: _selectedFeePlanName,
           isActive: _isActive,
         );
       }
@@ -164,29 +195,45 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                 ),
                 const SizedBox(height: 24),
                 
-                const SizedBox(height: 24),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedTeacherId,
-                  decoration: InputDecoration(
-                    labelText: 'Class Teacher',
-                    hintText: 'Select a primary teacher',
-                    prefixIcon: Icon(Icons.person_pin_rounded, color: cs.primary),
+                if (_loadingPlans)
+                  const Center(child: LinearProgressIndicator())
+                else if (_feePlans.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.errorContainer.withValues(alpha: 0.1),
+                      borderRadius: AppRadii.r12,
+                      border: Border.all(color: cs.error),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'No active Fee Plans found!',
+                          style: TextStyle(color: cs.error, fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'A Fee Plan is required before you can create a class.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: cs.error, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  AppDropdown<String>(
+                    label: 'Primary Fee Plan',
+                    value: _selectedFeePlanId,
+                    items: _feePlans.map((e) => e.id).toList(),
+                    itemLabel: (id) => _feePlans.firstWhere((e) => e.id == id).name,
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedFeePlanId = val;
+                        _selectedFeePlanName = _feePlans.firstWhere((e) => e.id == val).name;
+                      });
+                    },
+                    prefixIcon: Icons.payments_rounded,
                   ),
-                  items: widget.controller.availableTeachers.map((t) {
-                    return DropdownMenuItem(
-                      value: t.id,
-                      child: Text(t.name),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedTeacherId = val;
-                      _selectedTeacherName = widget.controller.availableTeachers
-                          .firstWhere((e) => e.id == val)
-                          .name;
-                    });
-                  },
-                ),
 
                 if (isEdit) ...[
                   SwitchListTile.adaptive(
@@ -211,7 +258,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                     ),
                     const SizedBox(width: 16),
                     AppPrimaryButton(
-                      onPressed: _saving ? () {} : _save,
+                      onPressed: (_saving || (_feePlans.isEmpty && widget.existingClass == null)) ? () {} : _save,
                       label: _saving ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Class'),
                       busy: _saving,
                     ),

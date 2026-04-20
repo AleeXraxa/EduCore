@@ -11,6 +11,8 @@ class InstituteClass {
     required this.subjectIds,
     this.studentCount = 0,
     this.isActive = true,
+    this.feePlanId,
+    this.feePlanName,
     this.createdAt,
     this.updatedAt,
   });
@@ -24,6 +26,8 @@ class InstituteClass {
   final List<String> subjectIds;
   final int studentCount;
   final bool isActive;
+  final String? feePlanId;
+  final String? feePlanName;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -41,6 +45,8 @@ class InstituteClass {
       subjectIds: List<String>.from(data['subjectIds'] ?? []),
       studentCount: data['studentCount'] as int? ?? 0,
       isActive: data['isActive'] as bool? ?? true,
+      feePlanId: data['feePlanId'] as String?,
+      feePlanName: data['feePlanName'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -56,7 +62,41 @@ class InstituteClass {
       'subjectIds': subjectIds,
       'studentCount': studentCount,
       'isActive': isActive,
+      'feePlanId': feePlanId,
+      'feePlanName': feePlanName,
       'updatedAt': FieldValue.serverTimestamp(),
     };
+  }
+
+  InstituteClass copyWith({
+    String? id,
+    String? name,
+    String? section,
+    String? classTeacherId,
+    String? classTeacherName,
+    List<String>? teacherIds,
+    List<String>? subjectIds,
+    int? studentCount,
+    bool? isActive,
+    String? feePlanId,
+    String? feePlanName,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return InstituteClass(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      section: section ?? this.section,
+      classTeacherId: classTeacherId ?? this.classTeacherId,
+      classTeacherName: classTeacherName ?? this.classTeacherName,
+      teacherIds: teacherIds ?? this.teacherIds,
+      subjectIds: subjectIds ?? this.subjectIds,
+      studentCount: studentCount ?? this.studentCount,
+      isActive: isActive ?? this.isActive,
+      feePlanId: feePlanId ?? this.feePlanId,
+      feePlanName: feePlanName ?? this.feePlanName,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

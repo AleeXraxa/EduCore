@@ -5,6 +5,7 @@ import 'package:educore/src/features/attendance/controllers/attendance_controlle
 import 'package:educore/src/features/attendance/controllers/attendance_report_controller.dart';
 import 'package:educore/src/features/attendance/models/attendance_record.dart';
 import 'package:flutter/material.dart';
+import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:intl/intl.dart';
 
 class AttendanceView extends StatefulWidget {
@@ -671,9 +672,10 @@ class _DateNavigator extends StatelessWidget {
 }
 
 class _ClassSelector extends StatelessWidget {
-  const _ClassSelector({this.selected, required this.onChanged});
-  final String? selected;
-  final Function(String?) onChanged;
+  const _ClassSelector({this.selected, required this.onChanged, required this.classes});
+  final InstituteClass? selected;
+  final Function(InstituteClass?) onChanged;
+  final List<InstituteClass> classes;
 
   @override
   Widget build(BuildContext context) {
@@ -687,7 +689,7 @@ class _ClassSelector extends StatelessWidget {
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<InstituteClass>(
           value: selected,
           hint: const Text('All Classes', style: TextStyle(fontSize: 13)),
           style: TextStyle(
@@ -695,11 +697,9 @@ class _ClassSelector extends StatelessWidget {
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
-          items: [
-            'Grade 1',
-            'Grade 2',
-            'Grade 3',
-          ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          items: classes
+              .map((c) => DropdownMenuItem(value: c, child: Text(c.displayName)))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -1370,7 +1370,6 @@ class _StatusOverviewGrid extends StatelessWidget {
       itemCount: controller.records.length,
       itemBuilder: (context, index) {
         final r = controller.records[index];
-        final isPresent = r.status == AttendanceStatus.present;
         final isNone = r.status == AttendanceStatus.none;
 
         return Container(
@@ -1540,6 +1539,7 @@ class _AttendanceMarkingPanel extends StatelessWidget {
                       child: _ClassSelector(
                         selected: controller.selectedClass,
                         onChanged: controller.setClass,
+                        classes: controller.classes,
                       ),
                     ),
                   ],
@@ -1596,7 +1596,10 @@ class _AttendanceMarkingPanel extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton(
-                    onPressed: onSave,
+                    onPressed: () async {
+                      await controller.saveAttendance();
+                      if (context.mounted) Navigator.pop(context);
+                    },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

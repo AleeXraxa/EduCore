@@ -10,6 +10,8 @@ class Student {
     this.className = '',
     required this.admissionDate,
     required this.status,
+    required this.feePlanId,
+    this.feePlanName,
     required this.createdAt,
     required this.updatedAt,
     this.customFields = const {},
@@ -23,6 +25,8 @@ class Student {
   final String className; // Optional cache
   final DateTime admissionDate;
   final String status;
+  final String feePlanId;
+  final String? feePlanName;
   final DateTime createdAt;
   final DateTime updatedAt;
   final Map<String, dynamic> customFields;
@@ -36,6 +40,8 @@ class Student {
     String? className,
     DateTime? admissionDate,
     String? status,
+    String? feePlanId,
+    String? feePlanName,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? customFields,
@@ -49,6 +55,8 @@ class Student {
       className: className ?? this.className,
       admissionDate: admissionDate ?? this.admissionDate,
       status: status ?? this.status,
+      feePlanId: feePlanId ?? this.feePlanId,
+      feePlanName: feePlanName ?? this.feePlanName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       customFields: customFields ?? this.customFields,
@@ -64,6 +72,8 @@ class Student {
       'className': className,
       'admissionDate': Timestamp.fromDate(admissionDate),
       'status': status,
+      'feePlanId': feePlanId,
+      'feePlanName': feePlanName,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'customFields': customFields,
@@ -81,6 +91,8 @@ class Student {
       admissionDate:
           (map['admissionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'active',
+      feePlanId: map['feePlanId'] ?? '',
+      feePlanName: map['feePlanName'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       customFields: Map<String, dynamic>.from(map['customFields'] ?? {}),

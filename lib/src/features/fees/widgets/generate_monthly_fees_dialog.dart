@@ -7,10 +7,10 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:intl/intl.dart';
 
 class GenerateMonthlyFeesDialog extends StatefulWidget {
-  final Function({
+  final Future<int> Function({
     required String classId,
     required String month,
-    required double amount,
+    double? amount,
     required String title,
     DateTime? dueDate,
   }) onGenerate;
@@ -25,9 +25,10 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
   String? _selectedClassId;
   DateTime _selectedMonth = DateTime.now();
   final _amountCtrl = TextEditingController();
-  final _titleCtrl = TextEditingController(text: 'Monthly Tuition Fee');
+  final _titleCtrl = TextEditingController(text: 'Monthly Fee');
   List<InstituteClass> _classes = [];
   bool _isLoading = false;
+  bool _isFetchingPlan = false;
 
   @override
   void initState() {
@@ -39,6 +40,34 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
     final academyId = AppServices.instance.authService!.session!.academyId;
     final classes = await AppServices.instance.classService!.getClasses(academyId);
     setState(() => _classes = classes);
+  }
+
+  void _onClassChanged(String? id) {
+    if (id == null) return;
+    setState(() {
+      _selectedClassId = id;
+      _amountCtrl.clear();
+      final cls = _classes.firstWhere((c) => c.id == id);
+      
+      if (cls.feePlanId != null) {
+        _fetchPlanAmount(id, cls.feePlanId!);
+      }
+    });
+  }
+
+  Future<void> _fetchPlanAmount(String classId, String planId) async {
+    setState(() => _isFetchingPlan = true);
+    try {
+      final academyId = AppServices.instance.authService!.session!.academyId;
+      final plan = await AppServices.instance.feePlanService!.getFeePlan(academyId, planId);
+      if (plan != null && mounted && _selectedClassId == classId) {
+        setState(() {
+          _amountCtrl.text = plan.monthlyFee.toStringAsFixed(0);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isFetchingPlan = false);
+    }
   }
 
   @override
@@ -63,7 +92,7 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
               items: _classes.map((c) => c.id).toList(),
               value: _selectedClassId,
               itemLabel: (id) => _classes.firstWhere((c) => c.id == id).displayName,
-              onChanged: (v) => setState(() => _selectedClassId = v),
+              onChanged: _onClassChanged,
             ),
             
             const SizedBox(height: 16),
@@ -100,6 +129,12 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
               label: 'Amount (Rs.)',
               keyboardType: TextInputType.number,
               prefixIcon: Icons.currency_rupee_rounded,
+              suffixIcon: _isFetchingPlan 
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : null,
             ),
             
             const SizedBox(height: 32),
@@ -108,17 +143,20 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
               icon: Icons.flash_on_rounded,
               busy: _isLoading,
               onPressed: () async {
-                if (_selectedClassId == null || _amountCtrl.text.isEmpty) return;
+                if (_selectedClassId == null) return;
                 
                 setState(() => _isLoading = true);
-                await widget.onGenerate(
+                final count = await widget.onGenerate(
                   classId: _selectedClassId!,
                   month: DateFormat('yyyy-MM').format(_selectedMonth),
-                  amount: double.parse(_amountCtrl.text),
+                  amount: _amountCtrl.text.isEmpty ? null : double.tryParse(_amountCtrl.text),
                   title: _titleCtrl.text,
                 );
-                if (!context.mounted) return;
-                Navigator.pop(context);
+                
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                  if (count >= 0) Navigator.pop(context);
+                }
               },
             ),
           ],

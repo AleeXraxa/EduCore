@@ -8,10 +8,12 @@ import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:educore/src/core/services/plan_limit_exception.dart';
-import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
-import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
+import 'package:educore/src/features/fees/models/fee_plan.dart';
+import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/core/services/plan_limit_exception.dart';
 
 class StudentFormDialog extends StatefulWidget {
   const StudentFormDialog({super.key, this.student, required this.controller});
@@ -30,10 +32,13 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   late TextEditingController _fatherNameCtrl;
   late TextEditingController _phoneCtrl;
   late String _selectedClassId;
+  late String _selectedFeePlanId;
+  String? _selectedFeePlanName;
   late String _status;
   bool _isLoading = false;
 
   List<InstituteClass> _availableClasses = [];
+  List<FeePlan> _availableFeePlans = [];
   final Map<String, TextEditingController> _dynamicControllers = {};
 
   @override
@@ -45,6 +50,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
     _phoneCtrl = TextEditingController(text: widget.student?.phone ?? '');
     _selectedClassId = widget.student?.classId ?? '';
+    _selectedFeePlanId = widget.student?.feePlanId ?? '';
+    _selectedFeePlanName = widget.student?.feePlanName;
     _status = widget.student?.status ?? 'active';
     
     _fetchClasses();
@@ -56,12 +63,25 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
   Future<void> _fetchClasses() async {
     final academyId = AppServices.instance.authService!.session!.academyId;
-    final classes = await AppServices.instance.classService!.getClasses(academyId);
+    final classesFuture = AppServices.instance.classService!.getClasses(academyId);
+    final plansFuture = AppServices.instance.feePlanService!.getFeePlans(academyId);
+    
+    final results = await Future.wait([classesFuture, plansFuture]);
+    final classes = results[0] as List<InstituteClass>;
+    final plans = results[1] as List<FeePlan>;
+
     if (mounted) {
       setState(() {
         _availableClasses = classes;
+        _availableFeePlans = plans.where((p) => p.isActive).toList();
+        
         if (_selectedClassId.isEmpty && classes.isNotEmpty) {
           _selectedClassId = classes.first.id;
+          // Auto-fill fee plan from class
+          if (classes.first.feePlanId != null) {
+            _selectedFeePlanId = classes.first.feePlanId!;
+            _selectedFeePlanName = classes.first.feePlanName;
+          }
         }
       });
     }
@@ -97,6 +117,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       className: selectedClass.displayName,
       admissionDate: widget.student?.admissionDate ?? DateTime.now(),
       status: _status,
+      feePlanId: _selectedFeePlanId,
+      feePlanName: _selectedFeePlanName,
       createdAt: widget.student?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
       customFields: Map<String, dynamic>.from(
@@ -254,29 +276,63 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                            Expanded(
                             child: _availableClasses.isEmpty
                                 ? const Center(child: LinearProgressIndicator())
-                                : _buildClassDropdown(
+                                : AppDropdown<String>(
                                     value: _selectedClassId,
                                     label: 'Class',
-                                    icon: Icons.school_outlined,
-                                    items: _availableClasses,
-                                    onChanged: (v) =>
-                                        setState(() => _selectedClassId = v!),
+                                    prefixIcon: Icons.school_outlined,
+                                    items: _availableClasses.map((e) => e.id).toList(),
+                                    itemLabel: (id) => _availableClasses
+                                        .firstWhere((e) => e.id == id)
+                                        .displayName,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        _selectedClassId = v!;
+                                        // Auto-fetch fee plan from class for new students
+                                        if (widget.student == null) {
+                                          final cls = _availableClasses.firstWhere((c) => c.id == v);
+                                          if (cls.feePlanId != null) {
+                                            _selectedFeePlanId = cls.feePlanId!;
+                                            _selectedFeePlanName = cls.feePlanName;
+                                          }
+                                        }
+                                      });
+                                    },
                                   ),
                           ),
-                          if (isEditing) ...[
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildDropdown(
-                                value: _status,
-                                label: 'Status',
-                                icon: Icons.info_outline_rounded,
-                                items: const ['active', 'inactive'],
-                                onChanged: (v) => setState(() => _status = v!),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
+
+                      const SizedBox(height: 20),
+                      _availableFeePlans.isEmpty && !isEditing
+                          ? Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: cs.errorContainer.withValues(alpha: 0.1),
+                                borderRadius: AppRadii.r12,
+                                border: Border.all(color: cs.error),
+                              ),
+                              child: Text(
+                                'A Fee Plan is REQUIRED.',
+                                style: TextStyle(color: cs.error, fontWeight: FontWeight.w900),
+                              ),
+                            )
+                          : AppDropdown<String>(
+                              value: _selectedFeePlanId,
+                              label: 'Fee Plan',
+                              prefixIcon: Icons.payments_outlined,
+                              items: _availableFeePlans.map((e) => e.id).toList(),
+                              itemLabel: (id) => _availableFeePlans
+                                  .firstWhere((p) => p.id == id)
+                                  .name,
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedFeePlanId = v!;
+                                  _selectedFeePlanName = _availableFeePlans
+                                      .firstWhere((p) => p.id == v)
+                                      .name;
+                                });
+                              },
+                            ),
 
                       const SizedBox(height: 20),
                       _buildField(
@@ -329,7 +385,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         ),
                       )
                     : Text(
-                        isEditing ? 'Update Student' : 'Enroll Student',
+                        isEditing ? 'Update Profile' : 'Enroll Student',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -342,6 +398,8 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       ),
     );
   }
+
+
 
   Widget _sectionTitle(String title) {
     final cs = Theme.of(context).colorScheme;
@@ -445,11 +503,12 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       case CustomFieldType.date:
         return _buildDateField(field);
       case CustomFieldType.dropdown:
-        return _buildDropdown(
+        return AppDropdown<String>(
           value: value ?? (field.options.isNotEmpty ? field.options.first : ''),
           label: field.label,
-          icon: Icons.list_rounded,
+          prefixIcon: Icons.list_rounded,
           items: field.options,
+          itemLabel: (v) => v,
           onChanged: (v) => widget.controller.updateDynamicField(field.key, v),
         );
     }
@@ -583,123 +642,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
   }
 
-  Widget _buildClassDropdown({
-    required String value,
-    required String label,
-    required IconData icon,
-    required List<InstituteClass> items,
-    required void Function(String?) onChanged,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value.isEmpty && items.isNotEmpty ? items.first.id : value,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          decoration: InputDecoration(
-            prefixIcon: Icon(
-              icon,
-              size: 20,
-              color: cs.primary.withValues(alpha: 0.7),
-            ),
-            filled: true,
-            fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-          items: items
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e.id,
-                  child: Text(e.displayName),
-                ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
 
-  Widget _buildDropdown({
-    required String value,
-    required String label,
-    required IconData icon,
-    required List<String> items,
-    required void Function(String?) onChanged,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          decoration: InputDecoration(
-            prefixIcon: Icon(
-              icon,
-              size: 20,
-              color: cs.primary.withValues(alpha: 0.7),
-            ),
-            filled: true,
-            fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-          items: items
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e.substring(0, 1).toUpperCase() + e.substring(1)),
-                ),
-              )
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
 }
 
 class _AddCustomFieldDefinitionDialog extends StatefulWidget {

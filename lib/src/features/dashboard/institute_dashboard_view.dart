@@ -12,9 +12,10 @@ import 'package:educore/src/features/dashboard/widgets/institute_charts.dart';
 import 'package:educore/src/features/classes/views/classes_view.dart';
 import 'package:educore/src/features/students/views/students_view.dart';
 import 'package:educore/src/features/attendance/views/attendance_view.dart';
+import 'package:educore/src/features/staff/views/staff_list_view.dart';
+import 'package:educore/src/features/fees/views/fee_plans_view.dart';
 import 'package:educore/src/features/fees/views/fees_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
-import 'package:educore/src/features/staff/views/staff_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -27,6 +28,10 @@ class InstituteDashboardView extends StatefulWidget {
 
 class _InstituteDashboardViewState extends State<InstituteDashboardView> {
   String _selected = _InstituteNav.dashboard.id;
+
+  void _navigateTo(_InstituteNav nav) {
+    setState(() => _selected = nav.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +61,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
             _InstituteNav.classes => const ClassesView(),
             _InstituteNav.attendance => const AttendanceView(),
             _InstituteNav.fees => const FeesView(),
+            _InstituteNav.feePlans => const FeePlansView(),
             _InstituteNav.staff => const StaffListView(),
             _InstituteNav.settings => const SettingsView(),
           },
@@ -100,6 +106,13 @@ enum _InstituteNav {
     Icons.request_quote_rounded,
     featureKey: 'fee_view',
   ),
+  feePlans(
+    'fee_plans',
+    'Fee Plans',
+    'Pricing Structures',
+    Icons.payments_rounded,
+    featureKey: 'fee_plan_view',
+  ),
   staff(
     'staff',
     'Staff',
@@ -142,7 +155,10 @@ enum _InstituteNav {
     ),
     SidebarSectionData(
       title: 'Configuration',
-      items: [settings.toSidebarItem()],
+      items: [
+        feePlans.toSidebarItem(),
+        settings.toSidebarItem(),
+      ],
     ),
   ];
 
@@ -661,7 +677,9 @@ class _QuickActionsRow extends StatelessWidget {
                 icon: Icons.fact_check_rounded,
                 onPressed: () {
                   final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
-                  state?.setState(() => state._selected = _InstituteNav.attendance.id);
+                  if (state != null) {
+                    state._navigateTo(_InstituteNav.attendance);
+                  }
                 },
                 gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
               ),

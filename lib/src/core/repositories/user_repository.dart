@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/models/app_user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 /// [UserRepository] provides a centralized data access layer for user-related
 /// operations, enforcing pagination and strict query structuring.
@@ -64,20 +66,31 @@ class UserRepository {
     required String password,
   }) async {
     final secondaryAppName = 'user_provision_${DateTime.now().millisecondsSinceEpoch}';
+    debugPrint('[UserRepository] Provisioning Auth User: $email');
+    
     final secondaryApp = await Firebase.initializeApp(
       name: secondaryAppName,
       options: _primaryApp.options,
-    );
+    ).timeout(const Duration(seconds: 10), onTimeout: () {
+      debugPrint('[UserRepository] Firebase.initializeApp TIMEOUT');
+      throw TimeoutException('Firebase initialization timed out.');
+    });
 
     try {
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
       final cred = await secondaryAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
-      );
+      ).timeout(const Duration(seconds: 20), onTimeout: () {
+        debugPrint('[UserRepository] createUserWithEmailAndPassword TIMEOUT');
+        throw TimeoutException('Auth account creation timed out.');
+      });
+      
       await secondaryApp.delete();
+      debugPrint('[UserRepository] Provisioning successful for $email');
       return cred;
     } catch (e) {
+      debugPrint('[UserRepository] Provisioning FAILED for $email: $e');
       await secondaryApp.delete();
       rethrow;
     }

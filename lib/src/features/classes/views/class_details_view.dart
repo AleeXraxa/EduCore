@@ -1,6 +1,8 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
+import 'package:educore/src/features/students/models/student.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
 /// Opens the class details as a premium, design-consistent dialog.
@@ -80,11 +82,7 @@ class ClassDetailsView extends StatelessWidget {
                 child: TabBarView(
                   children: [
                     _OverviewTab(classData: classData),
-                    const _PlaceholderTab(
-                      title: 'Students List',
-                      icon: Icons.groups_rounded,
-                      message: 'Manage students enrolled in this class.',
-                    ),
+                    _StudentsTab(classData: classData),
                     const _PlaceholderTab(
                       title: 'Subjects',
                       icon: Icons.book_outlined,
@@ -499,6 +497,86 @@ class _TeacherTab extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Students Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _StudentsTab extends StatelessWidget {
+  const _StudentsTab({required this.classData});
+  final InstituteClass classData;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final academyId = AppServices.instance.authService?.session?.academyId ?? '';
+
+    return FutureBuilder<List<Student>>(
+      future: AppServices.instance.studentService!.getClassStudents(academyId, classData.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading students: ${snapshot.error}'));
+        }
+
+        final students = snapshot.data ?? [];
+
+        if (students.isEmpty) {
+          return const _PlaceholderTab(
+            title: 'No Students Found',
+            icon: Icons.person_search_rounded,
+            message: 'No active students are currently enrolled in this class.',
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(24),
+          itemCount: students.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final s = students[index];
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: AppRadii.r12,
+                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                   CircleAvatar(
+                    backgroundColor: cs.primary.withValues(alpha: 0.1),
+                    child: Text(s.name[0].toUpperCase(), style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'ID: ${s.id.substring(0, 8).toUpperCase()}',
+                          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _StatusChip(active: s.status == 'active'),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -5,19 +5,23 @@ import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 
 import 'package:educore/src/core/services/fee_service.dart';
+import 'package:educore/src/core/services/fee_plan_service.dart';
 
 class StudentService {
   final FirebaseFirestore _firestore;
   final SubscriptionService _subscriptionService;
   final FeeService _feeService;
+  final FeePlanService _feePlanService;
 
   StudentService({
     FirebaseFirestore? firestore,
     required SubscriptionService subscriptionService,
     required FeeService feeService,
+    required FeePlanService feePlanService,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _subscriptionService = subscriptionService,
-        _feeService = feeService;
+        _feeService = feeService,
+        _feePlanService = feePlanService;
 
   CollectionReference<Map<String, dynamic>> _studentsRef(String academyId) {
     return _firestore.collection('academies').doc(academyId).collection('students');
@@ -42,14 +46,17 @@ class StudentService {
     );
     await docRef.set(newStudent.toMap());
     
-    // Auto-generate Admission Fee
+    // Auto-generate Admission Fee from Plan
     try {
-      await _feeService.createAdmissionFee(
-        academyId,
-        studentId: newStudent.id,
-        classId: newStudent.classId,
-        amount: 5000.0, // Default base admission fee
-      );
+      final plan = await _feePlanService.getFeePlan(academyId, newStudent.feePlanId);
+      if (plan != null && plan.admissionFee > 0) {
+        await _feeService.createAdmissionFee(
+          academyId,
+          studentId: newStudent.id,
+          classId: newStudent.classId,
+          amount: plan.admissionFee,
+        );
+      }
     } catch (_) {
       // Ignored if already exists
     }
@@ -148,6 +155,7 @@ class StudentService {
     StudentCustomField field,
   ) async {
     final docRef = _customFieldsRef(academyId).doc();
+
     final newField = StudentCustomField(
       id: docRef.id,
       key: field.key,
@@ -160,6 +168,15 @@ class StudentService {
     );
     await docRef.set(newField.toFirestore());
     return newField;
+  }
+
+  Future<List<Student>> getClassStudents(String academyId, String classId) async {
+    final snap = await _studentsRef(academyId)
+        .where('classId', isEqualTo: classId)
+        .where('status', isEqualTo: 'active')
+        .orderBy('name')
+        .get();
+    return snap.docs.map((doc) => Student.fromMap(doc.id, doc.data())).toList();
   }
 
   /// Migrates legacy student data from className-based to classId-based.

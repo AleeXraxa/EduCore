@@ -68,7 +68,7 @@ class LoginFormCard extends StatelessWidget {
               prefixIcon: Icons.lock_outline_rounded,
               obscureText: obscurePassword,
               autofillHints: const [AutofillHints.password],
-              suffix: IconButton(
+              suffixIcon: IconButton(
                 tooltip: obscurePassword ? 'Show password' : 'Hide password',
                 onPressed: busy ? null : onTogglePassword,
                 icon: Icon(

@@ -3,6 +3,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/staff/controllers/staff_controller.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
@@ -76,17 +77,28 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
           ),
         );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        AppToasts.showSuccess(
+          context,
+          message: 'Staff ${widget.staff == null ? 'created' : 'updated'} successfully.',
+        );
+      }
     } catch (e) {
-      setState(() => _isBusy = false);
-      if (e is PlanLimitExceededException) {
-        if (mounted) {
+      if (mounted) {
+        setState(() => _isBusy = false);
+        if (e is PlanLimitExceededException) {
           AppDialogs.showLimitReached(
             context,
             message: e.message,
             onUpgrade: () {
               // TODO: Navigate to pricing/plans page
             },
+          );
+        } else {
+          AppToasts.showError(
+            context,
+            message: 'Error: ${e.toString()}',
           );
         }
       }

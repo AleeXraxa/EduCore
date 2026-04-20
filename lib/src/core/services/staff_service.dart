@@ -32,16 +32,19 @@ class StaffService {
 
   Stream<List<StaffMember>> watchStaff(String academyId) {
     return _staffCol(academyId)
-        .where('status', isNotEqualTo: 'deleted')
         .snapshots()
-        .map((snap) => snap.docs.map(StaffMember.fromFirestore).toList());
+        .map((snap) => snap.docs
+            .map(StaffMember.fromFirestore)
+            .where((s) => s.status != 'deleted')
+            .toList());
   }
 
   Future<List<StaffMember>> getStaff(String academyId) async {
-    final snap = await _staffCol(academyId)
-        .where('status', isNotEqualTo: 'deleted')
-        .get();
-    return snap.docs.map(StaffMember.fromFirestore).toList();
+    final snap = await _staffCol(academyId).get();
+    return snap.docs
+        .map(StaffMember.fromFirestore)
+        .where((s) => s.status != 'deleted')
+        .toList();
   }
 
   Future<void> createStaff({

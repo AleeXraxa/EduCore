@@ -1,5 +1,6 @@
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
 
 enum ReportType { student, teacher, classroom }
 enum DateFilter { today, last7, last30, custom }
@@ -17,6 +18,8 @@ class AttendanceReportController extends BaseController {
   List<Map<String, dynamic>> _reportData = [];
   List<Map<String, dynamic>> get reportData => _reportData;
 
+  String get _academyId => AppServices.instance.authService!.session!.academyId;
+
   // Summary Metrics
   int get totalRecords => _reportData.length;
   double get avgAttendance => _reportData.isEmpty 
@@ -28,7 +31,7 @@ class AttendanceReportController extends BaseController {
 
   void setReportType(ReportType type) {
     _currentType = type;
-    _reportData = []; // Clear stale data to prevent UI type errors during reload
+    _reportData = [];
     fetchReport();
   }
 
@@ -37,7 +40,7 @@ class AttendanceReportController extends BaseController {
     if (filter != DateFilter.custom) {
       _customRange = null;
     }
-    _reportData = []; // Clear stale data
+    _reportData = [];
     fetchReport();
   }
 
@@ -50,30 +53,31 @@ class AttendanceReportController extends BaseController {
 
   Future<void> fetchReport() async {
     await runBusy(() async {
-      await Future.delayed(const Duration(milliseconds: 500)); // Mock latency
-      
-      // Mock data generation based on type
-      if (_currentType == ReportType.student) {
-        _reportData = List.generate(15, (i) => {
-          'name': 'Student ${i + 1}',
-          'present': 15 + (i % 5),
-          'absent': 2,
-          'leave': 1,
-          'percentage': 85.0 + (i % 15),
-        });
-      } else if (_currentType == ReportType.teacher) {
-        _reportData = [
-          {'name': 'Mr. Ahmed', 'classes': 'Grade 1, 2', 'sessions': 45, 'percentage': 92.5},
-          {'name': 'Ms. Sara', 'classes': 'Grade 3, 4', 'sessions': 38, 'percentage': 88.0},
-          {'name': 'Mr. Kashif', 'classes': 'Grade 5', 'sessions': 42, 'percentage': 95.0},
-        ];
-      } else {
-        _reportData = [
-          {'name': 'Grade 1', 'students': 35, 'percentage': 94.0, 'summary': 'P: 30, A: 3, L: 2'},
-          {'name': 'Grade 2', 'students': 40, 'percentage': 82.5, 'summary': 'P: 32, A: 6, L: 2'},
-          {'name': 'Grade 3', 'students': 28, 'percentage': 89.0, 'summary': 'P: 25, A: 2, L: 1'},
-        ];
+      DateTime start;
+      DateTime end = DateTime.now();
+
+      switch (_currentFilter) {
+        case DateFilter.today:
+          start = DateTime.now();
+          break;
+        case DateFilter.last7:
+          start = end.subtract(const Duration(days: 7));
+          break;
+        case DateFilter.last30:
+          start = end.subtract(const Duration(days: 30));
+          break;
+        case DateFilter.custom:
+          start = _customRange?.start ?? end.subtract(const Duration(days: 7));
+          end = _customRange?.end ?? DateTime.now();
+          break;
       }
+
+      _reportData = await AppServices.instance.attendanceService!.getAttendanceReport(
+        academyId: _academyId,
+        start: start,
+        end: end,
+        type: _currentType.name,
+      );
       
       notifyListeners();
     });

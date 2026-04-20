@@ -3,6 +3,7 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/fees/widgets/collect_payment_dialog.dart';
 import 'package:educore/src/features/fees/widgets/generate_monthly_fees_dialog.dart';
@@ -174,18 +175,31 @@ class _FeesHeader extends StatelessWidget {
       context: context,
       builder: (_) => GenerateMonthlyFeesDialog(
         onGenerate: ({
-          required amount,
+          double? amount,
           required classId,
           required month,
           required title,
           dueDate,
-        }) => controller.generateMonthlyFees(
-          classId: classId,
-          month: month,
-          amount: amount,
-          title: title,
-          dueDate: dueDate,
-        ),
+        }) async {
+          final count = await controller.generateMonthlyFees(
+            classId: classId,
+            month: month,
+            amount: amount,
+            title: title,
+            dueDate: dueDate,
+          );
+          
+          if (context.mounted) {
+            if (count > 0) {
+              AppToasts.showSuccess(context, message: 'Successfully generated $count monthly fee records.');
+            } else if (count == 0) {
+              AppToasts.showInfo(context, message: 'No new fees were generated. All students in this class already have a fee record for $month.');
+            } else {
+              AppToasts.showError(context, message: 'Failed to generate monthly fees.');
+            }
+          }
+          return count;
+        },
       ),
     );
   }

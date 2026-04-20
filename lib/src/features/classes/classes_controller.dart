@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
@@ -31,6 +32,7 @@ class ClassesController extends BaseController {
   List<StaffMember> _teachers = [];
 
   List<InstituteClass> get classes => _filteredClasses;
+  List<StaffMember> get allStaff => _teachers;
   List<StaffMember> get availableTeachers => _teachers
       .where((t) => t.role == StaffRole.teacher && t.isActive)
       .toList();
@@ -78,8 +80,26 @@ class ClassesController extends BaseController {
           _staffService.getStaff(_academyId),
         ]);
 
-        _classes = results[0] as List<InstituteClass>;
+        final fetchedClasses = results[0] as List<InstituteClass>;
         _teachers = results[1] as List<StaffMember>;
+
+        // Dynamically compute exact student counts using Firestore Aggregations
+        // Eliminates data-drift from incremental DB counters. Fast via metadata indexing.
+        final firestore = FirebaseFirestore.instance;
+        _classes = await Future.wait(
+          fetchedClasses.map((cls) async {
+            final countSnap = await firestore
+                .collection('academies')
+                .doc(_academyId)
+                .collection('students')
+                .where('classId', isEqualTo: cls.id)
+                .where('status', isEqualTo: 'active')
+                .count()
+                .get();
+
+            return cls.copyWith(studentCount: countSnap.count ?? 0);
+          }),
+        );
       } catch (e) {
         _errorMessage = 'Failed to load modules: $e';
       }
@@ -100,6 +120,8 @@ class ClassesController extends BaseController {
     required String section,
     String? classTeacherId,
     String? classTeacherName,
+    required String feePlanId,
+    required String feePlanName,
   }) async {
     if (!canCreate) {
       _errorMessage = 'Permission denied to create classes.';
@@ -118,6 +140,8 @@ class ClassesController extends BaseController {
           section: section,
           classTeacherId: classTeacherId,
           classTeacherName: classTeacherName,
+          feePlanId: feePlanId,
+          feePlanName: feePlanName,
           performedBy: userId,
         );
         success = true;
@@ -137,6 +161,8 @@ class ClassesController extends BaseController {
     required String section,
     String? classTeacherId,
     String? classTeacherName,
+    String? feePlanId,
+    String? feePlanName,
     required bool isActive,
   }) async {
     if (!canEdit) {
@@ -158,6 +184,8 @@ class ClassesController extends BaseController {
             'section': section,
             'classTeacherId': classTeacherId,
             'classTeacherName': classTeacherName,
+            'feePlanId': feePlanId,
+            'feePlanName': feePlanName,
             'isActive': isActive,
           },
           performedBy: userId,

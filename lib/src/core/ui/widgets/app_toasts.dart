@@ -31,6 +31,15 @@ class AppToasts {
     );
   }
 
+  static void showInfo(BuildContext context, {required String message}) {
+    _showToast(
+      context,
+      message: message,
+      icon: Icons.info_outline_rounded,
+      backgroundColor: const Color(0xFF3B82F6),
+    );
+  }
+
   static void _showToast(
     BuildContext context, {
     required String message,

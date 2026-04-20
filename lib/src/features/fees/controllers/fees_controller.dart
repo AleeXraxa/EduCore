@@ -114,20 +114,21 @@ class FeesController extends BaseController {
     });
   }
 
-  Future<bool> generateMonthlyFees({
+  Future<int> generateMonthlyFees({
     required String classId,
     required String month,
-    required double amount,
+    double? amount,
     required String title,
     DateTime? dueDate,
   }) async {
-    if (!AppServices.instance.featureAccessService!.canAccess('fee_monthly_generate')) {
-      return false;
+    final featureSvc = AppServices.instance.featureAccessService!;
+    if (!featureSvc.canAccess('fee_monthly_generate')) {
+      return -1;
     }
 
     return await runBusy(() async {
       try {
-        await _feeService.generateMonthlyFees(
+        final count = await _feeService.generateMonthlyFees(
           _academyId,
           classId: classId,
           month: month,
@@ -135,11 +136,12 @@ class FeesController extends BaseController {
           title: title,
           dueDate: dueDate,
         );
+        
         await loadInitialData();
-        return true;
+        return count;
       } catch (e) {
         debugPrint('Error generating monthly fees: $e');
-        return false;
+        return -1;
       }
     });
   }

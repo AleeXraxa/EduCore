@@ -63,6 +63,8 @@ class ClassService {
     required String section,
     String? classTeacherId,
     String? classTeacherName,
+    required String feePlanId,
+    required String feePlanName,
     required String performedBy,
   }) async {
     // 1. Enforce Plan Limits
@@ -90,6 +92,8 @@ class ClassService {
       'subjectIds': <String>[],
       'studentCount': 0,
       'isActive': true,
+      'feePlanId': feePlanId,
+      'feePlanName': feePlanName,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };

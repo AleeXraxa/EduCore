@@ -276,7 +276,7 @@ class _AddInstituteDialogState extends State<AddInstituteDialog> {
                                     prefixIcon: Icons.lock_rounded,
                                     obscureText: !_showPassword,
                                     validator: Validators.validatePassword,
-                                    suffix: IconButton(
+                                    suffixIcon: IconButton(
                                       onPressed: () => setState(
                                         () => _showPassword = !_showPassword,
                                       ),

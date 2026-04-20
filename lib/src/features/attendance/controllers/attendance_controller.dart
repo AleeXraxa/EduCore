@@ -1,32 +1,32 @@
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/features/attendance/models/attendance_record.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/features/classes/models/institute_class.dart';
 
 class AttendanceController extends BaseController {
   DateTime _selectedDate = DateTime.now();
   DateTime get selectedDate => _selectedDate;
 
-  String? _selectedClass = 'Grade 1';
-  String? get selectedClass => _selectedClass;
+  InstituteClass? _selectedClass;
+  InstituteClass? get selectedClass => _selectedClass;
+
+  List<InstituteClass> _classes = [];
+  List<InstituteClass> get classes => _classes;
 
   String _searchQuery = '';
   
-  // In a real app, these would come from the service/database
-  final List<double> _weeklyTrend = [85, 92, 88, 95, 90, 82, 88];
+  List<double> _weeklyTrend = [0, 0, 0, 0, 0, 0, 0];
   List<double> get weeklyTrend => _weeklyTrend;
 
-  final List<Map<String, dynamic>> _attentionNeeded = [
-    {'name': 'Alex Johnson', 'reason': 'Absent for 3 days', 'class': 'Grade 1', 'isCritical': true},
-    {'name': 'Sofia Ramirez', 'reason': 'Attendance below 60%', 'class': 'Grade 2', 'isCritical': false},
-  ];
+  List<Map<String, dynamic>> _attentionNeeded = [];
   List<Map<String, dynamic>> get attentionNeeded => _attentionNeeded;
 
   List<AttendanceRecord> _allRecords = [];
   List<AttendanceRecord> get records => _allRecords.where((r) {
-    final matchesClass = _selectedClass == null || r.className == _selectedClass;
     final matchesSearch = _searchQuery.isEmpty || 
         r.studentName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
         r.phone.contains(_searchQuery);
-    return matchesClass && matchesSearch;
+    return matchesSearch;
   }).toList();
 
   // Metrics
@@ -43,29 +43,60 @@ class AttendanceController extends BaseController {
 
   Future<void> loadInitialData() async {
     await runBusy(() async {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final academyId = AppServices.instance.authService!.session!.academyId;
+      _classes = await AppServices.instance.classService!.getClasses(academyId);
       
-      // Mock data
-      _allRecords = List.generate(20, (i) => AttendanceRecord(
-        studentId: 'std_$i',
-        studentName: i % 2 == 0 ? 'John Doe $i' : 'Sarah Smith $i',
-        className: i < 10 ? 'Grade 1' : 'Grade 2',
-        phone: '0300-123456$i',
-        status: AttendanceStatus.none,
-      ));
+      if (_classes.isNotEmpty) {
+        _selectedClass = _classes.first;
+        await _fetchAttendanceForSelected();
+      }
+
+      _weeklyTrend = await AppServices.instance.attendanceService!.getWeeklyAttendanceTrend(academyId);
       
       notifyListeners();
     });
   }
 
-  void setDate(DateTime date) {
-    _selectedDate = date;
-    notifyListeners();
+  Future<void> _fetchAttendanceForSelected() async {
+    if (_selectedClass == null) return;
+    
+    final academyId = AppServices.instance.authService!.session!.academyId;
+    
+    // 1. Fetch Students
+    final students = await AppServices.instance.studentService!.getClassStudents(academyId, _selectedClass!.id);
+    
+    // 2. Fetch Existing Attendance
+    final existing = await AppServices.instance.attendanceService!.getAttendance(
+      academyId: academyId, 
+      classId: _selectedClass!.id, 
+      date: _selectedDate,
+    );
+
+    final existingMap = { for (var r in existing) r.studentId: r };
+
+    _allRecords = students.map((s) {
+      final rec = existingMap[s.id];
+      return AttendanceRecord(
+        id: rec?.id,
+        studentId: s.id,
+        studentName: s.name,
+        classId: _selectedClass!.id,
+        className: _selectedClass!.displayName,
+        phone: s.phone,
+        date: _selectedDate,
+        status: rec?.status ?? AttendanceStatus.none,
+      );
+    }).toList();
   }
 
-  void setClass(String? className) {
-    _selectedClass = className;
-    notifyListeners();
+  void setDate(DateTime date) {
+    _selectedDate = date;
+    runBusy(() => _fetchAttendanceForSelected());
+  }
+
+  void setClass(InstituteClass? cls) {
+    _selectedClass = cls;
+    runBusy(() => _fetchAttendanceForSelected());
   }
 
   void setSearchQuery(String query) {
@@ -81,8 +112,19 @@ class AttendanceController extends BaseController {
     }
   }
 
+  Future<void> saveAttendance() async {
+    final academyId = AppServices.instance.authService!.session!.academyId;
+    await runBusy(() async {
+      await AppServices.instance.attendanceService!.saveAttendance(
+        academyId: academyId, 
+        records: _allRecords,
+      );
+      await _fetchAttendanceForSelected(); // Refresh IDs
+    });
+  }
+
   void markAll(AttendanceStatus status) {
-    for (var record in records) {
+    for (var record in _allRecords) {
       record.status = status;
     }
     notifyListeners();

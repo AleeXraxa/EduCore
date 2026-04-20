@@ -9,7 +9,7 @@ class AppTextField extends StatefulWidget {
     required this.label,
     this.hintText,
     this.prefixIcon,
-    this.suffix,
+    this.suffixIcon,
     this.obscureText = false,
     this.enabled = true,
     this.textInputAction,
@@ -25,7 +25,7 @@ class AppTextField extends StatefulWidget {
   final String label;
   final String? hintText;
   final IconData? prefixIcon;
-  final Widget? suffix;
+  final Widget? suffixIcon;
   final bool obscureText;
   final bool enabled;
   final TextInputAction? textInputAction;
@@ -84,7 +84,7 @@ class _AppTextFieldState extends State<AppTextField> {
         labelText: widget.label,
         hintText: widget.hintText,
         prefixIcon: widget.prefixIcon == null ? null : Icon(widget.prefixIcon),
-        suffixIcon: widget.suffix,
+        suffixIcon: widget.suffixIcon,
         filled: true,
         fillColor: AppColors.surface,
         contentPadding:
