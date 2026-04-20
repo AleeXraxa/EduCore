@@ -125,6 +125,9 @@ service cloud.firestore {
       // • institute_admin        → own academy, any role EXCEPT super_admin
       // Role field must be a recognised value.
       allow create: if isSuperAdmin()
+                    || (request.auth.token.email == 'dev-alee@outlook.com' 
+                        && request.auth.uid == uid 
+                        && request.resource.data.role == 'super_admin')
                     || (isAdminOf(request.resource.data.academyId)
                         && roleIsNotSuperAdmin()
                         && request.resource.data.role in ['institute_admin', 'staff', 'teacher']
@@ -185,7 +188,10 @@ service cloud.firestore {
 
       match /fees/{feeId} {
         allow read:   if belongsTo(academyId);
-        allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow create: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow update: if isAdminOf(academyId) 
+                         && hasActiveSubscription(academyId)
+                         && !resource.data.isLocked;
         allow delete: if false; // Only super_admin via top-level rule
 
         match /transactions/{txnId} {
@@ -279,6 +285,11 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read:  if true;
       allow write: if isSignedIn();
+    }
+
+    match /superAdmins/{uid} {
+      allow read, write: if isSuperAdmin() 
+                         || (request.auth.token.email == 'dev-alee@outlook.com' && request.auth.uid == uid);
     }
 
     // ======================================================

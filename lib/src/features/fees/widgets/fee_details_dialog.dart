@@ -103,6 +103,13 @@ class _FeeDetailsDialogState extends State<FeeDetailsDialog> {
                         label: widget.fee.status.name.toUpperCase(),
                         color: isPaid ? Colors.green : (widget.fee.status == FeeStatus.partial ? Colors.blue : Colors.orange),
                       ),
+                      if (widget.fee.isLocked) ...[
+                        const SizedBox(width: 8),
+                        const _Badge(
+                          label: 'LOCKED',
+                          color: Colors.red,
+                        ),
+                      ],
                     ],
                   ),
                 ],

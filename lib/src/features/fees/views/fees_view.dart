@@ -136,9 +136,11 @@ class _FeesHeader extends StatelessWidget {
                 child: KpiCard(
                   data: KpiCardData(
                     label: 'Total Collected',
-                    value: NumberFormat.currency(
-                      symbol: 'Rs. ',
-                    ).format(stats['totalRevenue']),
+                    value: controller.busy && stats['totalRevenue'] == 0.0
+                        ? '---'
+                        : NumberFormat.currency(
+                            symbol: 'Rs. ',
+                          ).format(stats['totalRevenue']),
                     icon: Icons.account_balance_wallet_rounded,
                     gradient: [cs.primary, cs.primary.withValues(alpha: 0.7)],
                   ),
@@ -149,9 +151,11 @@ class _FeesHeader extends StatelessWidget {
                 child: KpiCard(
                   data: KpiCardData(
                     label: 'Total Pending',
-                    value: NumberFormat.currency(
-                      symbol: 'Rs. ',
-                    ).format(stats['totalPending']),
+                    value: controller.busy && stats['totalPending'] == 0.0
+                        ? '---'
+                        : NumberFormat.currency(
+                            symbol: 'Rs. ',
+                          ).format(stats['totalPending']),
                     icon: Icons.pending_actions_rounded,
                     gradient: const [Color(0xFFEF4444), Color(0xFFF87171)],
                   ),
@@ -179,46 +183,48 @@ class _FeesHeader extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => GenerateMonthlyFeesDialog(
-        onGenerate: ({
-          double? amount,
-          required classId,
-          required month,
-          String? overrideReason,
-          required title,
-          dueDate,
-        }) async {
-          final count = await controller.generateMonthlyFees(
-            classId: classId,
-            month: month,
-            amount: amount,
-            overrideReason: overrideReason,
-            title: title,
-            dueDate: dueDate,
-          );
+        onGenerate:
+            ({
+              double? amount,
+              required classId,
+              required month,
+              String? overrideReason,
+              required title,
+              dueDate,
+            }) async {
+              final count = await controller.generateMonthlyFees(
+                classId: classId,
+                month: month,
+                amount: amount,
+                overrideReason: overrideReason,
+                title: title,
+                dueDate: dueDate,
+              );
 
-          if (context.mounted) {
-            if (count > 0) {
-              AppToasts.showSuccess(
-                context,
-                message: 'Successfully generated $count monthly fee records.',
-              );
-            } else if (count == 0) {
-              AppToasts.showInfo(
-                context,
-                message:
-                    'No new fees were generated. All students in this class already have a fee record for $month.',
-              );
-            } else if (controller.error == null) {
-              // Generic failure — lock errors are surfaced inline in the dialog
-              AppToasts.showError(
-                context,
-                message: 'Failed to generate monthly fees.',
-              );
-            }
-          }
-          // Return count + any error message for the dialog to render inline
-          return (count, controller.error);
-        },
+              if (context.mounted) {
+                if (count > 0) {
+                  AppToasts.showSuccess(
+                    context,
+                    message:
+                        'Successfully generated $count monthly fee records.',
+                  );
+                } else if (count == 0) {
+                  AppToasts.showInfo(
+                    context,
+                    message:
+                        'No new fees were generated. All students in this class already have a fee record for $month.',
+                  );
+                } else if (controller.error == null) {
+                  // Generic failure — lock errors are surfaced inline in the dialog
+                  AppToasts.showError(
+                    context,
+                    message: 'Failed to generate monthly fees.',
+                  );
+                }
+              }
+              // Return count + any error message for the dialog to render inline
+              return (count, controller.error);
+            },
       ),
     );
   }
@@ -277,6 +283,10 @@ class _FeeRow extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (fee.isLocked) ...[
+            Icon(Icons.lock_rounded, size: 16, color: cs.error),
+            const SizedBox(width: 8),
+          ],
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -340,7 +350,7 @@ class _FeeRow extends StatelessWidget {
           const SizedBox(width: 24),
           _StatusChip(status: fee.status),
           const SizedBox(width: 16),
-          if (!isPaid)
+          if (!isPaid && !fee.isLocked)
             IconButton.filledTonal(
               onPressed: () => _collectPayment(context),
               icon: const Icon(Icons.payments_rounded, size: 20),
@@ -357,8 +367,14 @@ class _FeeRow extends StatelessWidget {
                     builder: (_) => FeeDetailsDialog(
                       fee: fee,
                       controller: controller,
-                      onCollectPayment: ({required amount, required method, note}) =>
-                          controller.collectPayment(fee.id, amount, method: method, note: note),
+                      onCollectPayment:
+                          ({required amount, required method, note}) =>
+                              controller.collectPayment(
+                                fee.id,
+                                amount,
+                                method: method,
+                                note: note,
+                              ),
                     ),
                   );
                 },
@@ -367,6 +383,7 @@ class _FeeRow extends StatelessWidget {
                 label: 'Edit Record',
                 icon: Icons.edit_rounded,
                 type: AppActionType.edit,
+                isEnabled: !fee.isLocked,
                 onTap: () {
                   // Edit Record action
                 },
@@ -390,7 +407,8 @@ class _FeeRow extends StatelessWidget {
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
-        onCollect: ({required amount, required method, note}) => controller.collectPayment(fee.id, amount, method: method, note: note),
+        onCollect: ({required amount, required method, note}) => controller
+            .collectPayment(fee.id, amount, method: method, note: note),
       ),
     );
   }

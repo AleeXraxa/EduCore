@@ -184,7 +184,7 @@ class InstituteService {
         'emailLower': email.trim().toLowerCase(),
         'phone': phone.trim(),
         'address': address.trim(),
-        'status': AcademyStatus.active.value,
+        'status': AcademyStatus.pending.value,
         'planId': planId.trim(),
         'createdAt': now,
         'createdBy': superUid,
@@ -207,7 +207,7 @@ class InstituteService {
       batch.set(subRef, {
         'academyId': academyId,
         'planId': planId.trim(),
-        'status': 'active', // Default to active for manually created institutes
+        'status': 'pending', // Pending until payment/activation
         'startDate': startDate,
         'endDate': endTs,
         'createdAt': now,
@@ -242,7 +242,7 @@ class InstituteService {
         email: email.trim(),
         phone: phone.trim(),
         address: address.trim(),
-        status: AcademyStatus.active,
+        status: AcademyStatus.pending,
         planId: planId.trim(),
         createdAt: null,
         createdBy: superUid,

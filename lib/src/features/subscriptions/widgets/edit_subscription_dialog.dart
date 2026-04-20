@@ -133,9 +133,13 @@ class _EditSubscriptionDialogState extends State<EditSubscriptionDialog> {
                                 label: 'Subscription Plan',
                                 value: _planId,
                                 items: widget.plans.map((e) => e.id).toList(),
-                                itemLabel: (id) => widget.plans
-                                    .firstWhere((e) => e.id == id)
-                                    .name,
+                                itemLabel: (id) {
+                                  final plan = widget.plans.cast<Plan?>().firstWhere(
+                                        (e) => e?.id == id,
+                                        orElse: () => null,
+                                      );
+                                  return plan?.name ?? 'Unknown Plan ($id)';
+                                },
                                 onChanged: (v) {
                                   if (v != null) setState(() => _planId = v);
                                 },

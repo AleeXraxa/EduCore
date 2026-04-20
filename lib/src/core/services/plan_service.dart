@@ -16,6 +16,11 @@ class PlanService {
         .map((snap) => snap.docs.map(Plan.fromDoc).toList(growable: false));
   }
 
+  Future<List<Plan>> getPlans() async {
+    final snap = await _col.orderBy('createdAt', descending: false).get();
+    return snap.docs.map(Plan.fromDoc).toList(growable: false);
+  }
+
   Future<String> createPlan({
     required String name,
     required num price,

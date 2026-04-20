@@ -80,4 +80,28 @@ class PaymentRepository {
       });
     }
   }
+
+  /// Records a new payment.
+  Future<String> createPayment({
+    required String academyId,
+    required String planId,
+    required int amountPkr,
+    required String method,
+    required String proofRef,
+    String? transactionId,
+    String? createdBy,
+  }) async {
+    final doc = await _collection.add({
+      'academyId': academyId,
+      'planId': planId,
+      'amountPkr': amountPkr,
+      'method': method,
+      'proofRef': proofRef,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      if (transactionId != null) 'transactionId': transactionId,
+      if (createdBy != null) 'createdBy': createdBy,
+    });
+    return doc.id;
+  }
 }

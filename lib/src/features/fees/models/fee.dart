@@ -4,6 +4,8 @@ enum FeeType { admission, monthly, other }
 
 enum FeeStatus { pending, partial, paid }
 
+enum DiscountType { flat, percent, none }
+
 class Fee {
   final String id;
   final String academyId;
@@ -24,6 +26,10 @@ class Fee {
   final String? overrideReason;
   final String? overriddenBy;
   final DateTime? overriddenAt;
+  final bool isLocked;
+  final DiscountType discountType;
+  final double discountValue;
+  final double discountAmount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -47,6 +53,10 @@ class Fee {
     this.overrideReason,
     this.overriddenBy,
     this.overriddenAt,
+    this.isLocked = false,
+    this.discountType = DiscountType.none,
+    this.discountValue = 0.0,
+    this.discountAmount = 0.0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -71,6 +81,10 @@ class Fee {
       'studentName': studentName,
       'className': className,
       'isOverridden': isOverridden,
+      'isLocked': isLocked,
+      'discountType': discountType.name,
+      'discountValue': discountValue,
+      'discountAmount': discountAmount,
       'overrideReason': overrideReason,
       'overriddenBy': overriddenBy,
       'overriddenAt': overriddenAt != null ? Timestamp.fromDate(overriddenAt!) : null,
@@ -103,6 +117,13 @@ class Fee {
       studentName: map['studentName'],
       className: map['className'],
       isOverridden: map['isOverridden'] ?? false,
+      isLocked: map['isLocked'] ?? false,
+      discountType: DiscountType.values.firstWhere(
+        (e) => e.name == map['discountType'],
+        orElse: () => DiscountType.none,
+      ),
+      discountValue: (map['discountValue'] ?? 0.0).toDouble(),
+      discountAmount: (map['discountAmount'] ?? 0.0).toDouble(),
       overrideReason: map['overrideReason'],
       overriddenBy: map['overriddenBy'],
       overriddenAt: (map['overriddenAt'] as Timestamp?)?.toDate(),
@@ -128,6 +149,10 @@ class Fee {
     String? studentName,
     String? className,
     bool? isOverridden,
+    bool? isLocked,
+    DiscountType? discountType,
+    double? discountValue,
+    double? discountAmount,
     String? overrideReason,
     String? overriddenBy,
     DateTime? overriddenAt,
@@ -151,6 +176,10 @@ class Fee {
       studentName: studentName ?? this.studentName,
       className: className ?? this.className,
       isOverridden: isOverridden ?? this.isOverridden,
+      isLocked: isLocked ?? this.isLocked,
+      discountType: discountType ?? this.discountType,
+      discountValue: discountValue ?? this.discountValue,
+      discountAmount: discountAmount ?? this.discountAmount,
       overrideReason: overrideReason ?? this.overrideReason,
       overriddenBy: overriddenBy ?? this.overriddenBy,
       overriddenAt: overriddenAt ?? this.overriddenAt,
@@ -160,4 +189,25 @@ class Fee {
   }
 
   double get remainingAmount => finalAmount - paidAmount;
+
+  static (double discountAmount, double finalAmount) calculateDiscount(
+    double originalAmount,
+    DiscountType type,
+    double value,
+  ) {
+    if (type == DiscountType.none) return (0.0, originalAmount);
+
+    double amount = 0.0;
+    if (type == DiscountType.flat) {
+      amount = value;
+    } else if (type == DiscountType.percent) {
+      amount = originalAmount * (value / 100.0);
+    }
+
+    // Validation: Cannot exceed original amount
+    if (amount > originalAmount) amount = originalAmount;
+
+    return (double.parse(amount.toStringAsFixed(2)),
+        double.parse((originalAmount - amount).toStringAsFixed(2)));
+  }
 }

@@ -10,6 +10,8 @@ import 'package:educore/src/features/payments/widgets/payment_proof_dialog.dart'
 import 'package:educore/src/features/payments/widgets/payments_table.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
+import 'package:educore/src/features/payments/widgets/add_payment_dialog.dart';
 import 'package:flutter/material.dart';
 
 class PaymentsView extends StatefulWidget {
@@ -148,6 +150,47 @@ class _PaymentsViewState extends State<PaymentsView> {
                           controller.setMethodFilter(value);
                         },
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    AppPrimaryButton(
+                      onPressed: () async {
+                        final res = await AddPaymentDialog.show(
+                          context,
+                          academies: controller.academies,
+                          plans: controller.plans,
+                        );
+                        if (res != null) {
+                          try {
+                            AppDialogs.showLoading(context,
+                                message: 'Recording payment...');
+                            await controller.addPayment(
+                              academyId: res.academyId,
+                              planId: res.planId,
+                              amount: res.amount,
+                              method: res.method,
+                              transactionId: res.transactionId,
+                            );
+                            if (!context.mounted) return;
+                            AppDialogs.hide(context);
+                            AppDialogs.showSuccess(
+                              context,
+                              title: 'Payment Recorded',
+                              message:
+                                  'The payment has been successfully recorded and is pending review.',
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            AppDialogs.hide(context);
+                            AppDialogs.showError(
+                              context,
+                              title: 'Submission Failed',
+                              message: e.toString(),
+                            );
+                          }
+                        }
+                      },
+                      icon: Icons.add_rounded,
+                      label: 'Add Payment',
                     ),
                   ],
                 ),

@@ -8,12 +8,14 @@ class AppActionItem {
     required this.label,
     required this.icon,
     this.type = AppActionType.custom,
+    this.isEnabled = true,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final AppActionType type;
+  final bool isEnabled;
   final VoidCallback onTap;
 }
 
@@ -81,21 +83,25 @@ class AppActionMenu extends StatelessWidget {
             items.add(
               PopupMenuItem<AppActionItem>(
                 value: action,
+                enabled: action.isEnabled,
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(action.icon, size: 20, color: iconColor),
-                    const SizedBox(width: 12),
-                    Text(
-                      action.label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                        fontSize: 14,
+                child: Opacity(
+                  opacity: action.isEnabled ? 1.0 : 0.4,
+                  child: Row(
+                    children: [
+                      Icon(action.icon, size: 20, color: iconColor),
+                      const SizedBox(width: 12),
+                      Text(
+                        action.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

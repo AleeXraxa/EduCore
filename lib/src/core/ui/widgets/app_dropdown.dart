@@ -39,14 +39,23 @@ class AppDropdown<T> extends StatefulWidget {
 }
 
 class _AppDropdownState<T> extends State<AppDropdown<T>> {
-  late final SingleSelectController<T?> _controller =
-      SingleSelectController<T?>(widget.value);
+  late final SingleSelectController<T?> _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialValue =
+        widget.items.contains(widget.value) ? widget.value : null;
+    _controller = SingleSelectController<T?>(initialValue);
+  }
 
   @override
   void didUpdateWidget(covariant AppDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _controller.value = widget.value;
+    if (oldWidget.value != widget.value || oldWidget.items != widget.items) {
+      final newValue =
+          widget.items.contains(widget.value) ? widget.value : null;
+      _controller.value = newValue;
     }
   }
 

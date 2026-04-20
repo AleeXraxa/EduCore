@@ -6,6 +6,8 @@ import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/repositories/payment_repository.dart';
 import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
+import 'package:educore/src/core/services/plan_service.dart';
+import 'package:educore/src/features/plans/models/plan.dart';
 
 enum PaymentsFilter { all, pending, approved, rejected }
 
@@ -16,17 +18,22 @@ class PaymentsController extends BaseController {
     _repository = AppServices.instance.paymentRepository;
     _instituteService = AppServices.instance.instituteService;
     _subscriptionService = AppServices.instance.adminSubscriptionsService;
+    _planService = AppServices.instance.planService;
     _init();
   }
 
   PaymentRepository? _repository;
   InstituteService? _instituteService;
   AdminSubscriptionsService? _subscriptionService;
+  PlanService? _planService;
 
   final List<PaymentRecord> _all = [];
   Map<String, String> _instituteNames = {};
-  
+  List<Academy> _academies = [];
+  List<Plan> _plans = [];
+
   // State
+  // ignore: unused_field
   String _query = '';
   PaymentsFilter _filter = PaymentsFilter.all;
   PaymentMethodFilter _methodFilter = PaymentMethodFilter.all;
@@ -40,7 +47,16 @@ class PaymentsController extends BaseController {
   bool get ready => _repository != null;
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
-  List<PaymentRecord> get list => _all;
+  List<PaymentRecord> get list {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _all;
+    return _all.where((e) {
+      final institute = getInstituteName(e.academyId).toLowerCase();
+      return institute.contains(q) || (e.transactionId?.toLowerCase().contains(q) ?? false);
+    }).toList();
+  }
+  List<Academy> get academies => _academies;
+  List<Plan> get plans => _plans;
 
   Future<void> _init() async {
     if (_repository == null) {
@@ -49,6 +65,8 @@ class PaymentsController extends BaseController {
       });
       _repository = AppServices.instance.paymentRepository;
       _instituteService = AppServices.instance.instituteService;
+      _subscriptionService = AppServices.instance.adminSubscriptionsService;
+      _planService = AppServices.instance.planService;
     }
     await refresh();
   }
@@ -59,19 +77,33 @@ class PaymentsController extends BaseController {
     _lastDoc = null;
     _hasMore = true;
     _all.clear();
-    
+
     await runBusy<void>(() async {
       await _fetchNextBatch();
+      await _fetchInitialData();
     });
-    await _fetchInstitutesIfNeeded();
+  }
+
+  Future<void> _fetchInitialData() async {
+    if (_instituteService == null || _planService == null) return;
+    
+    final academies = await _instituteService!.getAcademies();
+    final plans = await _planService!.getPlans();
+    
+    _academies = academies;
+    _plans = plans;
+    _instituteNames = {
+      for (final a in academies) a.id: a.name,
+    };
+    notifyListeners();
   }
 
   Future<void> loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    
+
     _isLoadingMore = true;
     notifyListeners();
-    
+
     try {
       await _fetchNextBatch();
     } finally {
@@ -112,9 +144,12 @@ class PaymentsController extends BaseController {
       if (results.isNotEmpty) {
         // Fetch cursor doc
         final lastPayment = results.last;
-        final lastDocSnap = await FirebaseFirestore.instance.collection('payments').doc(lastPayment.id).get();
+        final lastDocSnap = await FirebaseFirestore.instance
+            .collection('payments')
+            .doc(lastPayment.id)
+            .get();
         _lastDoc = lastDocSnap;
-        
+
         _all.addAll(results);
       }
       notifyListeners();
@@ -123,25 +158,16 @@ class PaymentsController extends BaseController {
     }
   }
 
-  Future<void> _fetchInstitutesIfNeeded() async {
-    if (_instituteService == null) return;
-    final academies = await _instituteService!.getAcademies();
-    _instituteNames = {
-      for (final a in academies) a.id: a.name,
-    };
-    notifyListeners();
-  }
-
   String getInstituteName(String id) => _instituteNames[id] ?? 'Loading...';
 
   PaymentsKpis get kpis {
-    // Note: Since we only have a partial list in _all, real kpis should come from a metadata doc.
-    // For now, these operate on the LOADED dataset.
-    final pending = _all.where((e) => e.status == PaymentReviewStatus.pending).length;
-    final approved = _all.where((e) => e.status == PaymentReviewStatus.approved).length;
+    final pending =
+        _all.where((e) => e.status == PaymentReviewStatus.pending).length;
+    final approved =
+        _all.where((e) => e.status == PaymentReviewStatus.approved).length;
     final monthRevenue = _all
         .where((e) => e.status == PaymentReviewStatus.approved)
-        .fold<int>(0, (sum, e) => sum + e.amountPkr);
+        .fold<int>(0, (total, e) => total + e.amountPkr);
 
     return PaymentsKpis(
       total: _all.length,
@@ -182,7 +208,7 @@ class PaymentsController extends BaseController {
         'durationMonths': duration,
       },
     );
-    
+
     // Local update
     final idx = _all.indexWhere((e) => e.id == id);
     if (idx >= 0) {
@@ -198,13 +224,44 @@ class PaymentsController extends BaseController {
       status: 'rejected',
       reviewerUid: AppServices.instance.authService!.currentUser!.uid,
     );
-    
+
     // Local update
     final idx = _all.indexWhere((e) => e.id == id);
     if (idx >= 0) {
       _all[idx] = _all[idx].copyWith(status: PaymentReviewStatus.rejected);
       notifyListeners();
     }
+  }
+
+  Future<void> addPayment({
+    required String academyId,
+    required String planId,
+    required int amount,
+    required PaymentMethod method,
+    String? transactionId,
+    String? proofRef,
+  }) async {
+    if (_repository == null) return;
+
+    await runBusy<void>(() async {
+      final methodStr = switch (method) {
+        PaymentMethod.jazzCash => 'jazzCash',
+        PaymentMethod.easyPaisa => 'easyPaisa',
+        PaymentMethod.bankTransfer => 'bankTransfer',
+      };
+
+      await _repository!.createPayment(
+        academyId: academyId,
+        planId: planId,
+        amountPkr: amount,
+        method: methodStr,
+        proofRef: proofRef ?? 'MANUAL_ENTRY',
+        transactionId: transactionId,
+        createdBy: AppServices.instance.authService?.currentUser?.uid,
+      );
+
+      await refresh();
+    });
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:educore/src/features/fees/models/fee.dart';
 
 enum FeePlanScope {
   className, // 'class' is a reserved keyword in Dart, using className or scope enum
@@ -18,6 +19,8 @@ class FeePlan {
   final int monthlyDueDay;
   final double? lateFeePerDay;
   final bool allowPartialPayment;
+  final DiscountType discountType;
+  final double discountValue;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -34,6 +37,8 @@ class FeePlan {
     required this.monthlyDueDay,
     this.lateFeePerDay,
     required this.allowPartialPayment,
+    this.discountType = DiscountType.none,
+    this.discountValue = 0.0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -52,6 +57,11 @@ class FeePlan {
       monthlyDueDay: map['monthlyDueDay'] as int? ?? 5,
       lateFeePerDay: (map['lateFeePerDay'] as num?)?.toDouble(),
       allowPartialPayment: map['allowPartialPayment'] ?? true,
+      discountType: DiscountType.values.firstWhere(
+        (e) => e.name == map['discountType'],
+        orElse: () => DiscountType.none,
+      ),
+      discountValue: (map['discountValue'] ?? 0.0).toDouble(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -70,6 +80,8 @@ class FeePlan {
       'monthlyDueDay': monthlyDueDay,
       'lateFeePerDay': lateFeePerDay,
       'allowPartialPayment': allowPartialPayment,
+      'discountType': discountType.name,
+      'discountValue': discountValue,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -101,6 +113,8 @@ class FeePlan {
       monthlyDueDay: monthlyDueDay ?? this.monthlyDueDay,
       lateFeePerDay: lateFeePerDay ?? this.lateFeePerDay,
       allowPartialPayment: allowPartialPayment ?? this.allowPartialPayment,
+      discountType: discountType ?? this.discountType,
+      discountValue: discountValue ?? this.discountValue,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
