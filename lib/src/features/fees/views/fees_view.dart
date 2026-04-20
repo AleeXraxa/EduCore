@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
-import 'package:educore/src/core/responsive/breakpoints.dart';
+
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
@@ -19,7 +19,8 @@ class FeesView extends StatefulWidget {
   State<FeesView> createState() => _FeesViewState();
 }
 
-class _FeesViewState extends State<FeesView> with SingleTickerProviderStateMixin {
+class _FeesViewState extends State<FeesView>
+    with SingleTickerProviderStateMixin {
   late final FeesController _controller;
   late final TabController _tabController;
 
@@ -52,7 +53,7 @@ class _FeesViewState extends State<FeesView> with SingleTickerProviderStateMixin
             children: [
               _FeesHeader(controller: controller),
               const Divider(height: 1),
-              
+
               // Tabs for Fee Types
               Container(
                 color: cs.surface,
@@ -61,8 +62,8 @@ class _FeesViewState extends State<FeesView> with SingleTickerProviderStateMixin
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   onTap: (index) {
-                    final type = index == 0 
-                        ? FeeType.admission 
+                    final type = index == 0
+                        ? FeeType.admission
                         : (index == 1 ? FeeType.monthly : FeeType.other);
                     controller.fetchFees(type: type);
                   },
@@ -108,9 +109,9 @@ class _FeesHeader extends StatelessWidget {
               Text(
                 'Fee Management',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.0,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                ),
               ),
               const Spacer(),
               FilledButton.icon(
@@ -127,7 +128,7 @@ class _FeesHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // KPI Grid
           Row(
             children: [
@@ -135,7 +136,9 @@ class _FeesHeader extends StatelessWidget {
                 child: KpiCard(
                   data: KpiCardData(
                     label: 'Total Collected',
-                    value: NumberFormat.currency(symbol: 'Rs. ').format(stats['totalRevenue']),
+                    value: NumberFormat.currency(
+                      symbol: 'Rs. ',
+                    ).format(stats['totalRevenue']),
                     icon: Icons.account_balance_wallet_rounded,
                     gradient: [cs.primary, cs.primary.withValues(alpha: 0.7)],
                   ),
@@ -146,20 +149,22 @@ class _FeesHeader extends StatelessWidget {
                 child: KpiCard(
                   data: KpiCardData(
                     label: 'Total Pending',
-                    value: NumberFormat.currency(symbol: 'Rs. ').format(stats['totalPending']),
+                    value: NumberFormat.currency(
+                      symbol: 'Rs. ',
+                    ).format(stats['totalPending']),
                     icon: Icons.pending_actions_rounded,
                     gradient: const [Color(0xFFEF4444), Color(0xFFF87171)],
                   ),
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded(
+              const Expanded(
                 child: KpiCard(
                   data: KpiCardData(
                     label: 'Monthly Growth',
                     value: '12.5%',
                     icon: Icons.trending_up_rounded,
-                    gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
+                    gradient: [Color(0xFF10B981), Color(0xFF34D399)],
                   ),
                 ),
               ),
@@ -178,6 +183,7 @@ class _FeesHeader extends StatelessWidget {
           double? amount,
           required classId,
           required month,
+          String? overrideReason,
           required title,
           dueDate,
         }) async {
@@ -185,20 +191,33 @@ class _FeesHeader extends StatelessWidget {
             classId: classId,
             month: month,
             amount: amount,
+            overrideReason: overrideReason,
             title: title,
             dueDate: dueDate,
           );
-          
+
           if (context.mounted) {
             if (count > 0) {
-              AppToasts.showSuccess(context, message: 'Successfully generated $count monthly fee records.');
+              AppToasts.showSuccess(
+                context,
+                message: 'Successfully generated $count monthly fee records.',
+              );
             } else if (count == 0) {
-              AppToasts.showInfo(context, message: 'No new fees were generated. All students in this class already have a fee record for $month.');
-            } else {
-              AppToasts.showError(context, message: 'Failed to generate monthly fees.');
+              AppToasts.showInfo(
+                context,
+                message:
+                    'No new fees were generated. All students in this class already have a fee record for $month.',
+              );
+            } else if (controller.error == null) {
+              // Generic failure — lock errors are surfaced inline in the dialog
+              AppToasts.showError(
+                context,
+                message: 'Failed to generate monthly fees.',
+              );
             }
           }
-          return count;
+          // Return count + any error message for the dialog to render inline
+          return (count, controller.error);
         },
       ),
     );
@@ -222,7 +241,9 @@ class _FeesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (fees.isEmpty) {
-      return const Center(child: Text('No fee records found for this category.'));
+      return const Center(
+        child: Text('No fee records found for this category.'),
+      );
     }
 
     return ListView.separated(
@@ -259,11 +280,15 @@ class _FeeRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: (isPaid ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+              color: (isPaid ? Colors.green : Colors.orange).withValues(
+                alpha: 0.1,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isPaid ? Icons.check_circle_rounded : Icons.access_time_filled_rounded,
+              isPaid
+                  ? Icons.check_circle_rounded
+                  : Icons.access_time_filled_rounded,
               color: isPaid ? Colors.green : Colors.orange,
               size: 20,
             ),
@@ -275,7 +300,10 @@ class _FeeRow extends StatelessWidget {
               children: [
                 Text(
                   fee.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
                 Text(
                   fee.studentName ?? 'Student ID: ${fee.studentId}',
@@ -294,7 +322,10 @@ class _FeeRow extends StatelessWidget {
             children: [
               Text(
                 'Rs. ${fee.amount.toStringAsFixed(0)}',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
               ),
               Text(
                 'Paid: Rs. ${fee.paidAmount.toStringAsFixed(0)}',
@@ -325,8 +356,9 @@ class _FeeRow extends StatelessWidget {
                     context: context,
                     builder: (_) => FeeDetailsDialog(
                       fee: fee,
-                      onCollectPayment: (amount) => 
-                        controller.collectPayment(fee.id, amount),
+                      controller: controller,
+                      onCollectPayment: ({required amount, required method, note}) =>
+                          controller.collectPayment(fee.id, amount, method: method, note: note),
                     ),
                   );
                 },
@@ -358,7 +390,7 @@ class _FeeRow extends StatelessWidget {
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
-        onCollect: (amount) => controller.collectPayment(fee.id, amount),
+        onCollect: ({required amount, required method, note}) => controller.collectPayment(fee.id, amount, method: method, note: note),
       ),
     );
   }

@@ -24,6 +24,7 @@ import 'package:educore/src/core/services/staff_service.dart';
 import 'package:educore/src/core/services/fee_service.dart';
 import 'package:educore/src/core/services/fee_plan_service.dart';
 import 'package:educore/src/core/services/attendance_service.dart';
+import 'package:educore/src/core/services/fee_generation_lock_service.dart';
 
 import 'package:educore/src/features/students/services/student_service.dart';
 
@@ -66,6 +67,7 @@ class AppServices {
   FeeService? feeService;
   FeePlanService? feePlanService;
   AttendanceService? attendanceService;
+  FeeGenerationLockService? feeGenerationLockService;
   AuditLogService? auditLogService;
   
   // Repositories
@@ -198,6 +200,7 @@ class AppServices {
       );
 
       attendanceService = AttendanceService(firestore: firestore!);
+      feeGenerationLockService = FeeGenerationLockService(firestore: firestore!);
 
       studentService = StudentService(
         firestore: firestore!,

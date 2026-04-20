@@ -288,7 +288,7 @@ class _CreateEditFeePlanDialogState extends State<CreateEditFeePlanDialog> {
       hintText: hint,
       filled: true,
       fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-      border: OutlineInputBorder(
+      border: const OutlineInputBorder(
         borderRadius: AppRadii.r12,
         borderSide: BorderSide.none,
       ),

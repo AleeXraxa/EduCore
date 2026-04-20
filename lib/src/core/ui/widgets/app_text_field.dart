@@ -8,6 +8,7 @@ class AppTextField extends StatefulWidget {
     this.initialValue,
     required this.label,
     this.hintText,
+    this.helperText,
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
@@ -24,6 +25,7 @@ class AppTextField extends StatefulWidget {
   final String? initialValue;
   final String label;
   final String? hintText;
+  final String? helperText;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
@@ -83,6 +85,7 @@ class _AppTextFieldState extends State<AppTextField> {
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hintText,
+        helperText: widget.helperText,
         prefixIcon: widget.prefixIcon == null ? null : Icon(widget.prefixIcon),
         suffixIcon: widget.suffixIcon,
         filled: true,

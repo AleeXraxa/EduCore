@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 
 class CollectPaymentDialog extends StatefulWidget {
   final Fee fee;
-  final Function(double) onCollect;
+  final Future<void> Function({required double amount, required PaymentMethod method, String? note}) onCollect;
 
   const CollectPaymentDialog({
     super.key,
@@ -19,17 +21,21 @@ class CollectPaymentDialog extends StatefulWidget {
 
 class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
   late TextEditingController _amountCtrl;
+  late TextEditingController _noteCtrl;
+  PaymentMethod _method = PaymentMethod.cash;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _amountCtrl = TextEditingController(text: widget.fee.remainingAmount.toStringAsFixed(0));
+    _noteCtrl = TextEditingController();
   }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -85,6 +91,28 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
               prefixIcon: Icons.payments_outlined,
               keyboardType: TextInputType.number,
             ),
+            const SizedBox(height: 16),
+            AppDropdown<PaymentMethod>(
+              label: 'Payment Method',
+              value: _method,
+              items: PaymentMethod.values,
+              onChanged: (val) {
+                if (val != null) setState(() => _method = val);
+              },
+              itemLabel: (v) => switch (v) {
+                PaymentMethod.cash => 'Cash',
+                PaymentMethod.bank => 'Bank Transfer',
+                PaymentMethod.online => 'Online / Card',
+              },
+              prefixIcon: Icons.account_balance_wallet_rounded,
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _noteCtrl,
+              label: 'Transaction Note (Optional)',
+              hintText: 'e.g., Check #1234, Bank of XYZ',
+              prefixIcon: Icons.note_alt_outlined,
+            ),
             
             const SizedBox(height: 32),
             AppPrimaryButton(
@@ -96,7 +124,11 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
                 if (amount <= 0) return;
                 
                 setState(() => _isLoading = true);
-                await widget.onCollect(amount);
+                await widget.onCollect(
+                  amount: amount,
+                  method: _method,
+                  note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+                );
                 if (!context.mounted) return;
                 Navigator.pop(context);
               },

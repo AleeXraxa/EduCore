@@ -5,6 +5,7 @@ import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/features/fees/models/fee_plan.dart';
 
 class CreateOtherFeeDialog extends StatefulWidget {
   final Function(Fee) onCreate;
@@ -22,14 +23,26 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
   final _titleCtrl = TextEditingController();
 
   List<InstituteClass> _classes = [];
+  List<FeePlan> _feePlans = [];
   Map<String, String> _students = {}; // studentId -> name
+
+  FeePlan? _selectedPlan;
+  bool _isOverrideEnabled = false;
+  final _reasonCtrl = TextEditingController();
+  bool _canOverride = false;
 
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _checkPermissions();
     _fetchClasses();
+    _fetchFeePlans();
+  }
+
+  void _checkPermissions() {
+    _canOverride = AppServices.instance.featureAccessService!.canAccess('fee_override');
   }
 
   Future<void> _fetchClasses() async {
@@ -38,6 +51,12 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
       academyId,
     );
     if (mounted) setState(() => _classes = classes);
+  }
+
+  Future<void> _fetchFeePlans() async {
+    final academyId = AppServices.instance.authService!.session!.academyId;
+    final plans = await AppServices.instance.feePlanService!.getFeePlans(academyId);
+    if (mounted) setState(() => _feePlans = plans);
   }
 
   Future<void> _fetchStudentsForClass(String classId) async {
@@ -101,7 +120,22 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
                 onChanged: (v) => setState(() => _selectedStudentId = v),
               ),
 
+            AppDropdown<FeePlan>(
+              label: 'Select Fee Plan',
+              items: _feePlans,
+              value: _selectedPlan,
+              itemLabel: (p) => '${p.name} (Rs. ${p.monthlyFee})',
+              onChanged: (v) {
+                setState(() {
+                  _selectedPlan = v;
+                  if (!_isOverrideEnabled) {
+                    _amountCtrl.text = v?.monthlyFee.toStringAsFixed(0) ?? '';
+                  }
+                });
+              },
+            ),
             const SizedBox(height: 16),
+
             AppTextField(
               controller: _titleCtrl,
               label: 'Fee Title',
@@ -109,12 +143,50 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
             ),
 
             const SizedBox(height: 16),
-            AppTextField(
-              controller: _amountCtrl,
-              label: 'Amount (Rs.)',
-              keyboardType: TextInputType.number,
-              prefixIcon: Icons.currency_rupee_rounded,
+            
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    controller: _amountCtrl,
+                    label: 'Amount (Rs.)',
+                    enabled: _isOverrideEnabled && _canOverride,
+                    keyboardType: TextInputType.number,
+                    prefixIcon: Icons.currency_rupee_rounded,
+                    helperText: _isOverrideEnabled ? 'Manually Overridden' : 'Controlled by Fee Plan',
+                  ),
+                ),
+                if (_canOverride) ...[
+                  const SizedBox(width: 12),
+                  Column(
+                    children: [
+                      const Text('Override', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      Switch.adaptive(
+                        value: _isOverrideEnabled,
+                        onChanged: (v) {
+                          setState(() {
+                            _isOverrideEnabled = v;
+                            if (!v && _selectedPlan != null) {
+                              _amountCtrl.text = _selectedPlan!.monthlyFee.toStringAsFixed(0);
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
+
+            if (_isOverrideEnabled) ...[
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _reasonCtrl,
+                label: 'Reason for Override',
+                hintText: 'Required for auditing...',
+                prefixIcon: Icons.edit_note_rounded,
+              ),
+            ],
 
             const SizedBox(height: 32),
             AppPrimaryButton(
@@ -124,23 +196,39 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
               onPressed: () async {
                 if (_selectedClassId == null ||
                     _selectedStudentId == null ||
+                    _selectedPlan == null ||
                     _titleCtrl.text.isEmpty ||
                     _amountCtrl.text.isEmpty) {
                   return;
                 }
 
+                if (_isOverrideEnabled && _reasonCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please provide a reason for override')),
+                  );
+                  return;
+                }
+
                 setState(() => _isLoading = true);
 
-                final amount = double.tryParse(_amountCtrl.text) ?? 0;
+                final originalAmount = _selectedPlan!.monthlyFee;
+                final amount = double.tryParse(_amountCtrl.text) ?? originalAmount;
+                final user = AppServices.instance.authService!.session!;
 
                 final fee = Fee(
                   id: '',
-                  academyId: '', // Filled by service
+                  academyId: user.academyId,
                   studentId: _selectedStudentId!,
                   classId: _selectedClassId!,
+                  feePlanId: _selectedPlan!.id,
                   type: FeeType.other,
                   title: _titleCtrl.text.trim(),
-                  amount: amount,
+                  originalAmount: originalAmount,
+                  finalAmount: amount,
+                  isOverridden: _isOverridden(amount, originalAmount),
+                  overrideReason: _isOverrideEnabled ? _reasonCtrl.text.trim() : null,
+                  overriddenBy: _isOverrideEnabled ? user.user.uid : null,
+                  overriddenAt: _isOverrideEnabled ? DateTime.now() : null,
                   status: FeeStatus.pending,
                   paidAmount: 0,
                   studentName: _students[_selectedStudentId!] ?? '',
@@ -160,5 +248,9 @@ class _CreateOtherFeeDialogState extends State<CreateOtherFeeDialog> {
         ),
       ),
     );
+  }
+
+  bool _isOverridden(double finalAmount, double originalAmount) {
+    return _isOverrideEnabled && (finalAmount != originalAmount);
   }
 }

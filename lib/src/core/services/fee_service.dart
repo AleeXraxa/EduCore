@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/core/services/fee_generation_lock_service.dart';
+import 'package:educore/src/core/services/app_services.dart';
 
 class FeeService {
   final FirebaseFirestore _firestore;
@@ -14,22 +17,38 @@ class FeeService {
       _firestore.collection('academies').doc(academyId).collection('fees');
 
   /// Creates a single fee record with audit logging
-  Future<Fee> createFee(String academyId, Fee fee) async {
+  Future<Fee> createFee(String academyId, Fee fee, {String? overrideBy, DateTime? overrideAt}) async {
     final docRef = _fees(academyId).doc();
-    final newFee = fee.copyWith(id: docRef.id, academyId: academyId);
+    
+    final newFee = fee.copyWith(
+      id: docRef.id, 
+      academyId: academyId,
+      overriddenBy: overrideBy,
+      overriddenAt: overrideAt,
+    );
     
     await docRef.set(newFee.toMap());
 
+    // Original amount logging for overrides
+    final metadata = {
+      'type': newFee.type.name,
+      'studentId': newFee.studentId,
+      'finalAmount': newFee.finalAmount,
+      'originalAmount': newFee.originalAmount,
+    };
+
+    if (newFee.isOverridden) {
+      metadata['isOverridden'] = true;
+      metadata['reason'] = newFee.overrideReason ?? 'No reason provided';
+      metadata['actorId'] = overrideBy ?? 'unknown';
+    }
+
     await _audit.logAction(
-      action: 'fee_create',
+      action: newFee.isOverridden ? 'fee_override' : 'fee_create',
       module: 'fees',
       targetId: newFee.id,
       targetType: 'fee',
-      metadata: {
-        'type': newFee.type.name,
-        'studentId': newFee.studentId,
-        'amount': newFee.amount,
-      },
+      metadata: metadata,
     );
 
     return newFee;
@@ -57,9 +76,11 @@ class FeeService {
       academyId: academyId,
       studentId: studentId,
       classId: classId,
+      feePlanId: '', // To be filled if plan is known
       type: FeeType.admission,
       title: 'Admission Fee',
-      amount: amount,
+      originalAmount: amount,
+      finalAmount: amount,
       status: FeeStatus.pending,
       paidAmount: 0,
       createdAt: DateTime.now(),
@@ -69,147 +90,202 @@ class FeeService {
     await createFee(academyId, fee);
   }
 
-  /// Generates monthly fees for a class
-  /// Prevents duplicates for (studentId + month + type: monthly)
-  /// If [amount] is null, it resolves the fee from each student's FeePlan
+  /// Generates monthly fees for a class.
+  /// Prevents duplicate billing using a Firestore-backed generation lock.
+  /// If [amount] is null, it resolves the fee from each student's FeePlan.
   Future<int> generateMonthlyFees(String academyId, {
     required String classId,
     required String month, // YYYY-MM
     double? amount, // If provided, overrides the plan amount
+    String? overrideReason,
+    String? overriddenBy,
     required String title,
     DateTime? dueDate,
   }) async {
-    // 0. Get the class to find the default plan
-    final classDoc = await _firestore
-        .collection('academies')
-        .doc(academyId)
-        .collection('classes')
-        .doc(classId)
-        .get();
-    
-    final clsDefaultPlanId = classDoc.data()?['feePlanId'] as String?;
+    // --- Lock acquisition ---
+    final lockSvc = AppServices.instance.feeGenerationLockService!;
+    final lockResult = await lockSvc.acquireLock(
+      academyId,
+      classId: classId,
+      month: month,
+    );
 
-    // 1. Get all active students in class
-    final studentsSnapshot = await _firestore
-        .collection('academies')
-        .doc(academyId)
-        .collection('students')
-        .where('classId', isEqualTo: classId)
-        .where('status', isEqualTo: 'active')
-        .get();
+    if (lockResult is LockBlocked) {
+      final msg = lockResult.status == 'completed'
+          ? 'Fees for this class and month have already been generated.'
+          : 'Generation is already in progress for this class and month. Please wait.';
+      throw Exception(msg);
+    }
 
-    // 2. Fetch all fee plans for lookup
-    final plansSnapshot = await _firestore
-        .collection('academies')
-        .doc(academyId)
-        .collection('fee_plans')
-        .get();
-    
-    final plansMap = {
-      for (final doc in plansSnapshot.docs)
-        doc.id: doc.data()['monthlyFee'] as num? ?? 0.0
-    };
-
-    int generatedCount = 0;
-    final batch = _firestore.batch();
-
-    for (final studentDoc in studentsSnapshot.docs) {
-      final studentId = studentDoc.id;
-      final studentData = studentDoc.data();
+    // --- Generation ---
+    try {
+      // 0. Get the class to find the default plan
+      final classDoc = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('classes')
+          .doc(classId)
+          .get();
       
-      // Uniqueness check: One monthly fee per student per month
-      final existing = await _fees(academyId)
-          .where('studentId', isEqualTo: studentId)
-          .where('month', isEqualTo: month)
-          .where('type', isEqualTo: FeeType.monthly.name)
-          .limit(1)
+      final clsDefaultPlanId = classDoc.data()?['feePlanId'] as String?;
+
+      // 1. Get all active students in class
+      final studentsSnapshot = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('students')
+          .where('classId', isEqualTo: classId)
+          .where('status', isEqualTo: 'active')
           .get();
 
-      if (existing.docs.isEmpty) {
-        // Resolve amount
-        double finalAmount = amount ?? 0.0;
-        if (amount == null) {
-          final sPlanId = studentData['feePlanId'] as String? ?? clsDefaultPlanId;
-          finalAmount = (plansMap[sPlanId] ?? 0.0).toDouble();
-        }
-
-        if (finalAmount <= 0) continue; // Skip if no pricing found
-
-        final docRef = _fees(academyId).doc();
-        final fee = Fee(
-          id: docRef.id,
-          academyId: academyId,
-          studentId: studentId,
-          classId: classId,
-          type: FeeType.monthly,
-          title: title,
-          amount: finalAmount,
-          status: FeeStatus.pending,
-          paidAmount: 0,
-          month: month,
-          dueDate: dueDate,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        batch.set(docRef, fee.toMap());
-        generatedCount++;
-      }
-    }
-
-    if (generatedCount > 0) {
-      await batch.commit();
+      // 2. Fetch all fee plans for lookup
+      final plansSnapshot = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('fee_plans')
+          .get();
       
-      await _audit.logAction(
-        action: 'fee_monthly_generate',
-        module: 'fees',
-        targetId: classId,
-        targetType: 'class',
-        metadata: {
-          'month': month,
-          'count': generatedCount,
-          'amountMode': amount == null ? 'plan_driven' : 'override',
-          'amountOverride': amount,
-        },
-      );
-    }
+      final plansMap = {
+        for (final doc in plansSnapshot.docs)
+          doc.id: doc.data()['monthlyFee'] as num? ?? 0.0
+      };
 
-    return generatedCount;
+      int generatedCount = 0;
+      final batch = _firestore.batch();
+
+      for (final studentDoc in studentsSnapshot.docs) {
+        final studentId = studentDoc.id;
+        final studentData = studentDoc.data();
+        
+        // Uniqueness check: One monthly fee per student per month
+        final existing = await _fees(academyId)
+            .where('studentId', isEqualTo: studentId)
+            .where('month', isEqualTo: month)
+            .where('type', isEqualTo: FeeType.monthly.name)
+            .limit(1)
+            .get();
+
+        if (existing.docs.isEmpty) {
+          // Resolve amount from plan
+          final sPlanId = studentData['feePlanId'] as String? ?? clsDefaultPlanId;
+          final originalAmount = (plansMap[sPlanId] ?? 0.0).toDouble();
+          
+          double currentFinalAmount = amount ?? originalAmount;
+          bool isOverridden = amount != null && amount != originalAmount;
+
+          if (currentFinalAmount <= 0) continue; // Skip if no pricing found
+
+          final docRef = _fees(academyId).doc();
+          final fee = Fee(
+            id: docRef.id,
+            academyId: academyId,
+            studentId: studentId,
+            classId: classId,
+            feePlanId: sPlanId ?? '',
+            type: FeeType.monthly,
+            title: title,
+            originalAmount: originalAmount,
+            finalAmount: currentFinalAmount,
+            isOverridden: isOverridden,
+            overrideReason: isOverridden ? overrideReason : null,
+            overriddenBy: isOverridden ? overriddenBy : null,
+            overriddenAt: isOverridden ? DateTime.now() : null,
+            status: FeeStatus.pending,
+            paidAmount: 0,
+            month: month,
+            dueDate: dueDate,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+
+          batch.set(docRef, fee.toMap());
+          generatedCount++;
+        }
+      }
+
+      if (generatedCount > 0) {
+        await batch.commit();
+        
+        await _audit.logAction(
+          action: 'fee_monthly_generate',
+          module: 'fees',
+          targetId: classId,
+          targetType: 'class',
+          metadata: {
+            'month': month,
+            'count': generatedCount,
+            'amountMode': amount == null ? 'plan_driven' : 'override',
+            'amountOverride': amount,
+            'overrideReason': overrideReason,
+            'actorId': overriddenBy,
+          },
+        );
+      }
+
+      // Mark lock as completed on success
+      await lockSvc.completeLock(academyId, classId: classId, month: month);
+
+      return generatedCount;
+    } catch (e) {
+      // Release the lock on failure so the admin can retry
+      await lockSvc.releaseLock(academyId, classId: classId, month: month);
+      rethrow;
+    }
   }
 
-  /// Records a payment for a specific fee
+  /// Records a payment for a specific fee using atomic transaction
   Future<void> collectPayment(String academyId, {
     required String feeId,
     required double paymentAmount,
+    required PaymentMethod method,
+    required String collectedBy, // uid of the admin
+    String? note,
   }) async {
-    final docRef = _fees(academyId).doc(feeId);
+    final feeRef = _fees(academyId).doc(feeId);
+    final txnRef = feeRef.collection('transactions').doc();
     
     double recordedNewPaidAmount = 0.0;
     String recordedStatus = '';
-    final snapshot = await docRef.get();
-    if (!snapshot.exists) {
-      throw Exception('Fee record not found.');
-    }
-    
-    final fee = Fee.fromMap(snapshot.id, snapshot.data()!);
-    final newPaidAmount = fee.paidAmount + paymentAmount;
-    
-    if (newPaidAmount > fee.amount) {
-      throw Exception('Payment exceeds total fee amount.');
-    }
 
-    final newStatus = newPaidAmount >= fee.amount 
-        ? FeeStatus.paid 
-        : FeeStatus.partial;
+    await _firestore.runTransaction((tx) async {
+      final feeSnapshot = await tx.get(feeRef);
+      if (!feeSnapshot.exists) {
+        throw Exception('Fee record not found.');
+      }
+      
+      final fee = Fee.fromMap(feeSnapshot.id, feeSnapshot.data()!);
+      final newPaidAmount = fee.paidAmount + paymentAmount;
+      
+      if (newPaidAmount > fee.finalAmount) {
+        throw Exception('Payment exceeds total fee amount.');
+      }
 
-    await docRef.update({
-      'paidAmount': newPaidAmount,
-      'status': newStatus.name,
-      'updatedAt': Timestamp.now(),
+      final newStatus = newPaidAmount >= fee.finalAmount 
+          ? FeeStatus.paid 
+          : FeeStatus.partial;
+
+      // Ensure that we can't accidentally mark as paid if we somehow exceeded finalAmount via float inaccuracies - though handled by check above
+      
+      tx.update(feeRef, {
+        'paidAmount': newPaidAmount,
+        'status': newStatus.name,
+        'updatedAt': Timestamp.now(),
+      });
+
+      final txn = FeeTransaction(
+        id: txnRef.id,
+        amount: paymentAmount,
+        method: method,
+        collectedBy: collectedBy,
+        collectedAt: DateTime.now(),
+        note: note,
+      );
+
+      tx.set(txnRef, txn.toMap());
+
+      recordedNewPaidAmount = newPaidAmount;
+      recordedStatus = newStatus.name;
     });
-
-    recordedNewPaidAmount = newPaidAmount;
-    recordedStatus = newStatus.name;
 
     // Run audit logging OUTSIDE transaction to prevent C++ SDK crashes on Windows
     await _audit.logAction(
@@ -219,10 +295,37 @@ class FeeService {
       targetType: 'fee',
       metadata: {
         'amountCollected': paymentAmount,
+        'method': method.name,
+        'transactionId': txnRef.id,
         'totalPaid': recordedNewPaidAmount,
         'status': recordedStatus,
       },
     );
+  }
+
+  /// Fetches transactions for a specific fee
+  Future<List<FeeTransaction>> getTransactions(String academyId, String feeId) async {
+    final snapshot = await _fees(academyId)
+        .doc(feeId)
+        .collection('transactions')
+        .orderBy('collectedAt', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => FeeTransaction.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
+  /// Fetches transactions for a specific fee as a stream
+  Stream<List<FeeTransaction>> transactionsStream(String academyId, String feeId) {
+    return _fees(academyId)
+        .doc(feeId)
+        .collection('transactions')
+        .orderBy('collectedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => FeeTransaction.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   /// Fetches fees with various filters

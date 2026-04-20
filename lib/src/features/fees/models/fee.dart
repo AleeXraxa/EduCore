@@ -9,15 +9,21 @@ class Fee {
   final String academyId;
   final String studentId;
   final String classId;
+  final String feePlanId;
   final FeeType type;
   final String title;
-  final double amount;
+  final double originalAmount; // From plan
+  final double finalAmount; // After override
   final FeeStatus status;
   final double paidAmount;
   final DateTime? dueDate;
   final String? month; // Format: "YYYY-MM"
   final String? studentName; // Cached for UI
   final String? className; // Cached for UI
+  final bool isOverridden;
+  final String? overrideReason;
+  final String? overriddenBy;
+  final DateTime? overriddenAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -26,33 +32,48 @@ class Fee {
     required this.academyId,
     required this.studentId,
     required this.classId,
+    required this.feePlanId,
     required this.type,
     required this.title,
-    required this.amount,
+    required this.originalAmount,
+    required this.finalAmount,
     required this.status,
     required this.paidAmount,
     this.dueDate,
     this.month,
     this.studentName,
     this.className,
+    this.isOverridden = false,
+    this.overrideReason,
+    this.overriddenBy,
+    this.overriddenAt,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  // Getter for backward compatibility
+  double get amount => finalAmount;
 
   Map<String, dynamic> toMap() {
     return {
       'academyId': academyId,
       'studentId': studentId,
       'classId': classId,
+      'feePlanId': feePlanId,
       'type': type.name,
       'title': title,
-      'amount': amount,
+      'originalAmount': originalAmount,
+      'finalAmount': finalAmount,
       'status': status.name,
       'paidAmount': paidAmount,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'month': month,
       'studentName': studentName,
       'className': className,
+      'isOverridden': isOverridden,
+      'overrideReason': overrideReason,
+      'overriddenBy': overriddenBy,
+      'overriddenAt': overriddenAt != null ? Timestamp.fromDate(overriddenAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -64,12 +85,14 @@ class Fee {
       academyId: map['academyId'] ?? '',
       studentId: map['studentId'] ?? '',
       classId: map['classId'] ?? '',
+      feePlanId: map['feePlanId'] ?? '',
       type: FeeType.values.firstWhere(
         (e) => e.name == map['type'],
         orElse: () => FeeType.other,
       ),
       title: map['title'] ?? '',
-      amount: (map['amount'] ?? 0.0).toDouble(),
+      originalAmount: (map['originalAmount'] ?? (map['amount'] ?? 0.0)).toDouble(),
+      finalAmount: (map['finalAmount'] ?? (map['amount'] ?? 0.0)).toDouble(),
       status: FeeStatus.values.firstWhere(
         (e) => e.name == map['status'],
         orElse: () => FeeStatus.pending,
@@ -79,6 +102,10 @@ class Fee {
       month: map['month'],
       studentName: map['studentName'],
       className: map['className'],
+      isOverridden: map['isOverridden'] ?? false,
+      overrideReason: map['overrideReason'],
+      overriddenBy: map['overriddenBy'],
+      overriddenAt: (map['overriddenAt'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -89,15 +116,21 @@ class Fee {
     String? academyId,
     String? studentId,
     String? classId,
+    String? feePlanId,
     FeeType? type,
     String? title,
-    double? amount,
+    double? originalAmount,
+    double? finalAmount,
     FeeStatus? status,
     double? paidAmount,
     DateTime? dueDate,
     String? month,
     String? studentName,
     String? className,
+    bool? isOverridden,
+    String? overrideReason,
+    String? overriddenBy,
+    DateTime? overriddenAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -106,19 +139,25 @@ class Fee {
       academyId: academyId ?? this.academyId,
       studentId: studentId ?? this.studentId,
       classId: classId ?? this.classId,
+      feePlanId: feePlanId ?? this.feePlanId,
       type: type ?? this.type,
       title: title ?? this.title,
-      amount: amount ?? this.amount,
+      originalAmount: originalAmount ?? this.originalAmount,
+      finalAmount: finalAmount ?? this.finalAmount,
       status: status ?? this.status,
       paidAmount: paidAmount ?? this.paidAmount,
       dueDate: dueDate ?? this.dueDate,
       month: month ?? this.month,
       studentName: studentName ?? this.studentName,
       className: className ?? this.className,
+      isOverridden: isOverridden ?? this.isOverridden,
+      overrideReason: overrideReason ?? this.overrideReason,
+      overriddenBy: overriddenBy ?? this.overriddenBy,
+      overriddenAt: overriddenAt ?? this.overriddenAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  double get remainingAmount => amount - paidAmount;
+  double get remainingAmount => finalAmount - paidAmount;
 }

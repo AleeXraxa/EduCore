@@ -196,7 +196,8 @@ class FeatureAccessService {
       'admin': {
         'dashboard', 'staff_view', 'staff_manage', 'classes_view', 
         'classes_manage', 'students_view', 'students_manage',
-        'attendance_view', 'exams_view', 'fees_view', 'expense_view'
+        'attendance_view', 'exams_view', 'fees_view', 'expense_view',
+        'fee_override'
       },
       'teacher': {
         'dashboard', 'classes_view', 'students_view', 

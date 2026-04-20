@@ -7,6 +7,7 @@ import 'package:educore/src/features/attendance/models/attendance_record.dart';
 import 'package:flutter/material.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -220,6 +221,10 @@ class _MarkingOverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (controller.hasError) ...[
+            _IndexErrorBanner(error: controller.error!),
+            const SizedBox(height: 16),
+          ],
           _AttendanceAnalytics(controller: controller),
           const SizedBox(height: 32),
           if (controller.attentionNeeded.isNotEmpty) ...[
@@ -1817,6 +1822,91 @@ class _DateField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _IndexErrorBanner extends StatelessWidget {
+  const _IndexErrorBanner({required this.error});
+  final String error;
+
+  String? _extractUrl(String text) {
+    final regExp = RegExp(r'https://console\.firebase\.google\.com/[^\s]+');
+    final match = regExp.firstMatch(text);
+    return match?.group(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = _extractUrl(error);
+    final cs = Theme.of(context).colorScheme;
+
+    if (url == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.errorContainer.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.error.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: cs.error),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                error,
+                style: TextStyle(color: cs.error, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'FIRESTORE INDEX MISSING',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Attendance sorting and filtering requires a composite index in Firestore. Please click the button below to create it automatically.',
+            style: TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => launchUrl(Uri.parse(url)),
+            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+            label: const Text('Create Index Now'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

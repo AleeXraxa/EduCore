@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/services/fee_service.dart';
 
 class FeesController extends BaseController {
@@ -84,7 +85,12 @@ class FeesController extends BaseController {
     }
   }
 
-  Future<bool> collectPayment(String feeId, double amount) async {
+  Future<bool> collectPayment(
+    String feeId, 
+    double amount, {
+    PaymentMethod method = PaymentMethod.cash,
+    String? note,
+  }) async {
     final featureSvc = AppServices.instance.featureAccessService!;
     
     // Feature Check
@@ -102,22 +108,40 @@ class FeesController extends BaseController {
       return false;
     }
 
-    return await runBusy(() async {
+    return (await runBusy(() async {
       try {
-        await _feeService.collectPayment(_academyId, feeId: feeId, paymentAmount: amount);
+        final userId = AppServices.instance.authService!.session!.user.uid;
+        await _feeService.collectPayment(
+          _academyId, 
+          feeId: feeId, 
+          paymentAmount: amount,
+          method: method,
+          collectedBy: userId,
+          note: note,
+        );
         await loadInitialData(); // Refresh everything
         return true;
       } catch (e) {
         debugPrint('Error collecting payment: $e');
         return false;
       }
-    });
+    })) ?? false;
+  }
+
+  Future<List<FeeTransaction>> getFeeTransactions(String feeId) async {
+    try {
+      return await _feeService.getTransactions(_academyId, feeId);
+    } catch (e) {
+      debugPrint('Error fetching fee transactions: $e');
+      return [];
+    }
   }
 
   Future<int> generateMonthlyFees({
     required String classId,
     required String month,
     double? amount,
+    String? overrideReason,
     required String title,
     DateTime? dueDate,
   }) async {
@@ -126,13 +150,15 @@ class FeesController extends BaseController {
       return -1;
     }
 
-    return await runBusy(() async {
+    return (await runBusy(() async {
       try {
         final count = await _feeService.generateMonthlyFees(
           _academyId,
           classId: classId,
           month: month,
           amount: amount,
+          overrideReason: overrideReason,
+          overriddenBy: AppServices.instance.authService!.session!.user.uid,
           title: title,
           dueDate: dueDate,
         );
@@ -143,7 +169,7 @@ class FeesController extends BaseController {
         debugPrint('Error generating monthly fees: $e');
         return -1;
       }
-    });
+    })) ?? -1;
   }
 
   Future<bool> createOtherFee(Fee fee) async {
@@ -151,7 +177,7 @@ class FeesController extends BaseController {
       return false;
     }
 
-    return await runBusy(() async {
+    return (await runBusy(() async {
       try {
         await _feeService.createFee(_academyId, fee);
         await loadInitialData();
@@ -160,6 +186,6 @@ class FeesController extends BaseController {
         debugPrint('Error creating other fee: $e');
         return false;
       }
-    });
+    })) ?? false;
   }
 }
