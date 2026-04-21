@@ -68,13 +68,74 @@ class _FeesViewState extends State<FeesView>
                       2 => FeeType.package,
                       _ => FeeType.other,
                     };
-                    controller.fetchFees(type: type);
+                    controller.loadInitialData(type: type);
                   },
                   tabs: const [
-                    Tab(text: 'Admission Fees'),
-                    Tab(text: 'Monthly Fees'),
-                    Tab(text: 'Package Fees'),
-                    Tab(text: 'Other Fees'),
+                    Tab(text: 'Admission'),
+                    Tab(text: 'Monthly'),
+                    Tab(text: 'Package'),
+                    Tab(text: 'Other'),
+                  ],
+                ),
+              ),
+
+              // Status Filter Row
+              Container(
+                color: cs.surface,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                child: Row(
+                  children: [
+                    Text(
+                      'STATUS FILTER:',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    SegmentedButton<FeeStatus?>(
+                      segments: const [
+                        ButtonSegment(
+                          value: null,
+                          label: Text('All'),
+                          icon: Icon(Icons.all_inclusive_rounded, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: FeeStatus.pending,
+                          label: Text('Pending'),
+                          icon: Icon(Icons.pending_actions_rounded, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: FeeStatus.paid,
+                          label: Text('Paid'),
+                          icon: Icon(Icons.check_circle_outline_rounded, size: 18),
+                        ),
+                      ],
+                      selected: {controller.currentStatus},
+                      onSelectionChanged: (val) {
+                        controller.loadInitialData(status: val.first);
+                      },
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        selectedBackgroundColor: cs.primary,
+                        selectedForegroundColor: cs.onPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Showing ${controller.fees.length} Records',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -256,14 +317,30 @@ class _FeesList extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(32),
-      itemCount: fees.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final fee = fees[index];
-        return _FeeRow(fee: fee, controller: controller);
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scroll) {
+        if (scroll.metrics.pixels >= scroll.metrics.maxScrollExtent * 0.8) {
+          controller.loadMore();
+        }
+        return false;
       },
+      child: ListView.separated(
+        padding: const EdgeInsets.all(32),
+        itemCount: fees.length + (controller.isLoadingMore ? 1 : 0),
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          if (index == fees.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          final fee = fees[index];
+          return _FeeRow(fee: fee, controller: controller);
+        },
+      ),
     );
   }
 }

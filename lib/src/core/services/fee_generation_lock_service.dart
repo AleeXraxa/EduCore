@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Represents the result of attempting to acquire a generation lock.
@@ -49,38 +50,38 @@ class FeeGenerationLockService {
     final lockRef = _locks(academyId).doc(lockId);
 
     try {
-      return await _firestore.runTransaction<LockResult>((tx) async {
-        final snapshot = await tx.get(lockRef);
+      // 1. Get current lock status (Reading outside transaction for Windows stability)
+      final snapshot = await lockRef.get();
 
-        if (snapshot.exists) {
-          final data = snapshot.data()!;
-          final status = data['status'] as String? ?? '';
-          final startedAt = (data['startedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        final status = data['status'] as String? ?? '';
+        final startedAt = (data['startedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-          // Stale "processing" locks older than 10 minutes are auto-recovered.
-          if (status == 'processing') {
-            final age = DateTime.now().difference(startedAt);
-            if (age.inMinutes < 10) {
-              return LockBlocked(status: 'processing', startedAt: startedAt);
-            }
-            // Stale lock — fall through to overwrite below.
-          } else if (status == 'completed') {
-            return LockBlocked(status: 'completed', startedAt: startedAt);
+        // Stale "processing" locks older than 10 minutes are auto-recovered.
+        if (status == 'processing') {
+          final age = DateTime.now().difference(startedAt);
+          if (age.inMinutes < 10) {
+            return LockBlocked(status: 'processing', startedAt: startedAt);
           }
+          // Stale lock — fall through to overwrite below.
+        } else if (status == 'completed') {
+          return LockBlocked(status: 'completed', startedAt: startedAt);
         }
+      }
 
-        // Create (or recover) the lock in "processing" state.
-        tx.set(lockRef, {
-          'classId': classId,
-          'month': month,
-          'status': 'processing',
-          'startedAt': FieldValue.serverTimestamp(),
-          'completedAt': null,
-        });
-
-        return LockAcquired(lockId);
+      // 2. Set the lock (Atomic set for Windows stability)
+      await lockRef.set({
+        'classId': classId,
+        'month': month,
+        'status': 'processing',
+        'startedAt': FieldValue.serverTimestamp(),
+        'completedAt': null,
       });
+
+      return LockAcquired(lockId);
     } catch (e) {
+      debugPrint('Error acquiring lock: $e');
       rethrow;
     }
   }

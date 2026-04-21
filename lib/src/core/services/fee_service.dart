@@ -227,6 +227,17 @@ class FeeService {
           doc.id: FeePlan.fromMap(doc.id, doc.data()),
       };
 
+      // 3. Pre-fetch existing fees for this month to avoid inner-loop queries
+      final existingFeesSnapshot = await _fees(academyId)
+          .where('classId', isEqualTo: classId)
+          .where('month', isEqualTo: month)
+          .where('type', isEqualTo: FeeType.monthly.name)
+          .get();
+      
+      final existingStudentIds = existingFeesSnapshot.docs
+          .map((d) => d.data()['studentId'] as String)
+          .toSet();
+
       int generatedCount = 0;
       final batch = _firestore.batch();
 
@@ -239,15 +250,8 @@ class FeeService {
         final feeMode = studentData['feeMode'] as String? ?? 'monthly';
         if (feeMode == 'package') continue;
 
-        // Uniqueness check: One monthly fee per student per month
-        final existing = await _fees(academyId)
-            .where('studentId', isEqualTo: studentId)
-            .where('month', isEqualTo: month)
-            .where('type', isEqualTo: FeeType.monthly.name)
-            .limit(1)
-            .get();
-
-        if (existing.docs.isEmpty) {
+        // Uniqueness check: Use pre-fetched set
+        if (!existingStudentIds.contains(studentId)) {
           final planId =
               studentData['feePlanId'] as String? ?? clsDefaultPlanId;
           final plan = plansMap[planId];

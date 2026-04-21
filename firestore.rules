@@ -232,6 +232,11 @@ service cloud.firestore {
         allow read: if belongsTo(academyId);
         allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
       }
+
+      match /fee_generation_locks/{lockId} {
+        allow read: if belongsTo(academyId);
+        allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+      }
     }
 
     // ======================================================

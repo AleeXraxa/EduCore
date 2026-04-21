@@ -32,14 +32,22 @@ class FeesController extends BaseController {
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
 
-  Future<void> loadInitialData() async {
+  FeeType? _currentType;
+  FeeStatus? _currentStatus;
+
+  FeeType? get currentType => _currentType;
+  FeeStatus? get currentStatus => _currentStatus;
+
+  Future<void> loadInitialData({FeeType? type, FeeStatus? status}) async {
+    _currentType = type ?? _currentType;
+    _currentStatus = status ?? _currentStatus;
     _lastDoc = null;
     _hasMore = true;
     _fees = [];
     
     await runBusy(() async {
       await Future.wait([
-        _fetchFeesBatch(),
+        _fetchFeesBatch(type: _currentType, status: _currentStatus),
         fetchStats(),
       ]);
     });
@@ -50,7 +58,7 @@ class FeesController extends BaseController {
     _isLoadingMore = true;
     notifyListeners();
     try {
-      await _fetchFeesBatch();
+      await _fetchFeesBatch(type: _currentType, status: _currentStatus);
     } finally {
       _isLoadingMore = false;
       notifyListeners();
