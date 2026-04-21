@@ -156,6 +156,38 @@ class AppDialogs {
     );
   }
 
+  static Future<void> showInfo(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String buttonLabel = 'Understood',
+    IconData? icon,
+    VoidCallback? onConfirm,
+  }) {
+    return showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, _, __) => _BaseDialog(
+        type: _DialogType.info,
+        title: title,
+        message: message,
+        buttonLabel: buttonLabel,
+        onConfirm: onConfirm,
+        customIcon: icon,
+      ),
+      transitionBuilder: (context, animation, secondAnimation, child) {
+        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+    );
+  }
+
   static void hide(BuildContext context) {
     if (_isLoadingVisible) {
       Navigator.pop(context);
@@ -163,7 +195,7 @@ class AppDialogs {
   }
 }
 
-enum _DialogType { success, error }
+enum _DialogType { success, error, info }
 
 class _BaseDialog extends StatelessWidget {
   const _BaseDialog({
@@ -172,6 +204,7 @@ class _BaseDialog extends StatelessWidget {
     required this.message,
     required this.buttonLabel,
     this.onConfirm,
+    this.customIcon,
   });
 
   final _DialogType type;
@@ -179,6 +212,7 @@ class _BaseDialog extends StatelessWidget {
   final String message;
   final String buttonLabel;
   final VoidCallback? onConfirm;
+  final IconData? customIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +237,7 @@ class _BaseDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 32),
-              _AnimatedIcon(type: type),
+              _AnimatedIcon(type: type, icon: customIcon),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -234,9 +268,9 @@ class _BaseDialog extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: AppPrimaryButton(
                   label: buttonLabel,
-                  variant: type == _DialogType.success
-                      ? AppButtonVariant.primary
-                      : AppButtonVariant.danger,
+                  variant: type == _DialogType.error
+                      ? AppButtonVariant.danger
+                      : AppButtonVariant.primary,
                   onPressed: () {
                     Navigator.pop(context);
                     onConfirm?.call();
@@ -253,14 +287,21 @@ class _BaseDialog extends StatelessWidget {
 }
 
 class _AnimatedIcon extends StatelessWidget {
-  const _AnimatedIcon({required this.type});
+  const _AnimatedIcon({required this.type, this.icon});
   final _DialogType type;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final isSuccess = type == _DialogType.success;
-    final color = isSuccess ? const Color(0xFF10B981) : const Color(0xFFF43F5E);
-    final icon = isSuccess ? Icons.check_rounded : Icons.priority_high_rounded;
+    final isError = type == _DialogType.error;
+    final color = isSuccess 
+        ? const Color(0xFF10B981) 
+        : (isError ? const Color(0xFFF43F5E) : AppColors.primary);
+    
+    final displayIcon = icon ?? (isSuccess 
+        ? Icons.check_rounded 
+        : (isError ? Icons.priority_high_rounded : Icons.info_outline_rounded));
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -277,7 +318,7 @@ class _AnimatedIcon extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              icon,
+              displayIcon,
               size: 40 * value,
               color: color,
             ),

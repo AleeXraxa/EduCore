@@ -189,18 +189,19 @@ class AppServices {
         subscriptionService: subscriptionService!,
       );
 
+      attendanceService = AttendanceService(firestore: firestore!);
+      feeGenerationLockService = FeeGenerationLockService(firestore: firestore!);
+
       feeService = FeeService(
         firestore: firestore!,
         auditLogService: auditLogService!,
+        lockService: feeGenerationLockService,
       );
       
       feePlanService = FeePlanService(
         firestore: firestore!,
         auditLogService: auditLogService!,
       );
-
-      attendanceService = AttendanceService(firestore: firestore!);
-      feeGenerationLockService = FeeGenerationLockService(firestore: firestore!);
 
       studentService = StudentService(
         firestore: firestore!,

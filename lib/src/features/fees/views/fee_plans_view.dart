@@ -192,7 +192,15 @@ class _FeePlanCard extends StatelessWidget {
                           ),
                     ),
                     const SizedBox(height: 4),
-                    _ScopeBadge(scope: plan.scope),
+                    Row(
+                      children: [
+                        _ScopeBadge(scope: plan.scope),
+                        if (plan.planType == FeePlanType.package) ...[
+                          const SizedBox(width: 8),
+                          _PackageBadge(),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -226,8 +234,8 @@ class _FeePlanCard extends StatelessWidget {
               ),
               const SizedBox(width: 32),
               _AmountInfo(
-                label: 'Monthly',
-                amount: plan.monthlyFee,
+                label: plan.planType == FeePlanType.monthly ? 'Monthly Fee' : 'Total Course Fee',
+                amount: plan.planType == FeePlanType.monthly ? plan.monthlyFee : plan.totalCourseFee,
                 currency: plan.currency,
               ),
             ],
@@ -237,10 +245,16 @@ class _FeePlanCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.event_note_rounded, size: 16, color: cs.onSurfaceVariant),
+              Icon(
+                plan.planType == FeePlanType.monthly ? Icons.event_note_rounded : Icons.timer_outlined, 
+                size: 16, 
+                color: cs.onSurfaceVariant
+              ),
               const SizedBox(width: 8),
               Text(
-                'Due Day: ${plan.monthlyDueDay}',
+                plan.planType == FeePlanType.monthly 
+                    ? 'Due Day: ${plan.monthlyDueDay}'
+                    : 'Duration: ${plan.durationMonths ?? 1} Months',
                 style: TextStyle(
                   color: cs.onSurfaceVariant,
                   fontSize: 12,
@@ -370,6 +384,33 @@ class _StatusIndicator extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PackageBadge extends StatelessWidget {
+  const _PackageBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = cs.secondary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        'PACKAGE',
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 }

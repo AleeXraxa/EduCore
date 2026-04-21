@@ -36,6 +36,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   String? _selectedFeePlanName;
   late String _status;
   bool _isLoading = false;
+  bool _isFetching = true;
 
   List<InstituteClass> _availableClasses = [];
   List<FeePlan> _availableFeePlans = [];
@@ -62,6 +63,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   }
 
   Future<void> _fetchClasses() async {
+    setState(() => _isFetching = true);
     final academyId = AppServices.instance.authService!.session!.academyId;
     final classesFuture = AppServices.instance.classService!.getClasses(academyId);
     final plansFuture = AppServices.instance.feePlanService!.getFeePlans(academyId);
@@ -72,6 +74,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
     if (mounted) {
       setState(() {
+        _isFetching = false;
         _availableClasses = classes;
         _availableFeePlans = plans.where((p) => p.isActive).toList();
         
@@ -274,30 +277,43 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                       Row(
                         children: [
                            Expanded(
-                            child: _availableClasses.isEmpty
+                            child: _isFetching
                                 ? const Center(child: LinearProgressIndicator())
-                                : AppDropdown<String>(
-                                    value: _selectedClassId,
-                                    label: 'Class',
-                                    prefixIcon: Icons.school_outlined,
-                                    items: _availableClasses.map((e) => e.id).toList(),
-                                    itemLabel: (id) => _availableClasses
-                                        .firstWhere((e) => e.id == id)
-                                        .displayName,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _selectedClassId = v!;
-                                        // Auto-fetch fee plan from class for new students
-                                        if (widget.student == null) {
-                                          final cls = _availableClasses.firstWhere((c) => c.id == v);
-                                          if (cls.feePlanId != null) {
-                                            _selectedFeePlanId = cls.feePlanId!;
-                                            _selectedFeePlanName = cls.feePlanName;
-                                          }
-                                        }
-                                      });
-                                    },
-                                  ),
+                                : _availableClasses.isEmpty
+                                    ? Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: cs.errorContainer.withValues(alpha: 0.1),
+                                          borderRadius: AppRadii.r12,
+                                          border: Border.all(color: cs.error),
+                                        ),
+                                        child: Text(
+                                          'NO CLASSES FOUND. Create a class first.',
+                                          style: TextStyle(color: cs.error, fontWeight: FontWeight.w900, fontSize: 13),
+                                        ),
+                                      )
+                                    : AppDropdown<String>(
+                                        value: _selectedClassId,
+                                        label: 'Class',
+                                        prefixIcon: Icons.school_outlined,
+                                        items: _availableClasses.map((e) => e.id).toList(),
+                                        itemLabel: (id) => _availableClasses
+                                            .firstWhere((e) => e.id == id)
+                                            .displayName,
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _selectedClassId = v!;
+                                            // Auto-fetch fee plan from class for new students
+                                            if (widget.student == null) {
+                                              final cls = _availableClasses.firstWhere((c) => c.id == v);
+                                              if (cls.feePlanId != null) {
+                                                _selectedFeePlanId = cls.feePlanId!;
+                                                _selectedFeePlanName = cls.feePlanName;
+                                              }
+                                            }
+                                          });
+                                        },
+                                      ),
                           ),
                         ],
                       ),
@@ -327,12 +343,17 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                               onChanged: (v) {
                                 setState(() {
                                   _selectedFeePlanId = v!;
-                                  _selectedFeePlanName = _availableFeePlans
-                                      .firstWhere((p) => p.id == v)
-                                      .name;
+                                  final plan = _availableFeePlans.firstWhere((p) => p.id == v);
+                                  _selectedFeePlanName = plan.name;
                                 });
                               },
                             ),
+
+                      if (_selectedFeePlanId.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _buildBillingHint(),
+                        ),
 
                       const SizedBox(height: 20),
                       _buildField(
@@ -367,7 +388,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             Padding(
               padding: const EdgeInsets.all(32),
               child: FilledButton(
-                onPressed: _isLoading ? null : _submit,
+                onPressed: (_isLoading || _selectedClassId.isEmpty) ? null : _submit,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(
@@ -642,7 +663,66 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
   }
 
+  Widget _buildBillingHint() {
+    final plan = _availableFeePlans.firstWhere((p) => p.id == _selectedFeePlanId);
+    final cs = Theme.of(context).colorScheme;
+    final isPkg = plan.planType == FeePlanType.package;
 
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(isPkg ? Icons.inventory_2_outlined : Icons.event_repeat_rounded, 
+                size: 16, color: cs.primary),
+              const SizedBox(width: 8),
+              Text(
+                isPkg ? 'ONE-TIME PACKAGE' : 'MONTHLY SUBSCRIPTION',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: cs.primary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _hintStat('Admission', '${plan.currency} ${plan.admissionFee.toStringAsFixed(0)}'),
+              _hintStat(
+                isPkg ? 'Total Fee' : 'Monthly Fee', 
+                '${plan.currency} ${(isPkg ? plan.totalCourseFee : plan.monthlyFee).toStringAsFixed(0)}'
+              ),
+              if (isPkg)
+                _hintStat('Duration', '${plan.durationMonths ?? 0}m')
+              else
+                _hintStat('Due Day', 'Day ${plan.monthlyDueDay}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _hintStat(String label, String val) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+        Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
 }
 
 class _AddCustomFieldDefinitionDialog extends StatefulWidget {

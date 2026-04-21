@@ -12,6 +12,7 @@ class Student {
     required this.status,
     required this.feePlanId,
     this.feePlanName,
+    this.feeMode = 'monthly',
     required this.createdAt,
     required this.updatedAt,
     this.customFields = const {},
@@ -27,6 +28,7 @@ class Student {
   final String status;
   final String feePlanId;
   final String? feePlanName;
+  final String feeMode; // 'monthly' or 'package'
   final DateTime createdAt;
   final DateTime updatedAt;
   final Map<String, dynamic> customFields;
@@ -42,6 +44,7 @@ class Student {
     String? status,
     String? feePlanId,
     String? feePlanName,
+    String? feeMode,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? customFields,
@@ -57,6 +60,7 @@ class Student {
       status: status ?? this.status,
       feePlanId: feePlanId ?? this.feePlanId,
       feePlanName: feePlanName ?? this.feePlanName,
+      feeMode: feeMode ?? this.feeMode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       customFields: customFields ?? this.customFields,
@@ -74,6 +78,7 @@ class Student {
       'status': status,
       'feePlanId': feePlanId,
       'feePlanName': feePlanName,
+      'feeMode': feeMode,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'customFields': customFields,
@@ -93,6 +98,7 @@ class Student {
       status: map['status'] ?? 'active',
       feePlanId: map['feePlanId'] ?? '',
       feePlanName: map['feePlanName'],
+      feeMode: map['feeMode'] ?? 'monthly',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       customFields: Map<String, dynamic>.from(map['customFields'] ?? {}),

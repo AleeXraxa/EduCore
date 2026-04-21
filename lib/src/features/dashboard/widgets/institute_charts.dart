@@ -100,16 +100,18 @@ class InstituteChartsSection extends StatelessWidget {
                 title: 'Revenue Streams',
                 subtitle: 'Breakdown of collected funds',
                 child: _SimpleBarChart(
-                  labels: const ['Admission', 'Monthly', 'Misc'],
+                  labels: const ['Admission', 'Monthly', 'Package', 'Misc'],
                   values: [
                     controller.admissionCollected,
                     controller.monthlyCollected,
+                    controller.packageCollected,
                     controller.miscCollected,
                   ],
-                  colors: const [
-                    Color(0xFF8B5CF6), // Purple for admission
-                    Color(0xFF0D9488), // Teal for monthly
-                    Color(0xFFF43F5E), // Rose for misc
+                  colors: [
+                    const Color(0xFF8B5CF6), // Purple for admission
+                    const Color(0xFF0D9488), // Teal for monthly
+                    Theme.of(context).colorScheme.secondary, // Secondary for package
+                    const Color(0xFFF43F5E), // Rose for misc
                   ],
                   isCurrency: true,
                 ),

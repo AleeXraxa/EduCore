@@ -5,17 +5,19 @@ import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
 import 'package:educore/src/core/services/audit_log_service.dart';
 import 'package:educore/src/core/services/fee_generation_lock_service.dart';
-import 'package:educore/src/core/services/app_services.dart';
 
 class FeeService {
   final FirebaseFirestore _firestore;
   final AuditLogService _audit;
+  final FeeGenerationLockService? _lockService;
 
-  FeeService({FirebaseFirestore? firestore, AuditLogService? auditLogService})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _audit =
-          auditLogService ??
-          AuditLogService(firestore ?? FirebaseFirestore.instance);
+  FeeService({
+    FirebaseFirestore? firestore,
+    AuditLogService? auditLogService,
+    FeeGenerationLockService? lockService,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _audit = auditLogService ?? AuditLogService(firestore ?? FirebaseFirestore.instance),
+       _lockService = lockService;
 
   CollectionReference<Map<String, dynamic>> _fees(String academyId) =>
       _firestore.collection('academies').doc(academyId).collection('fees');
@@ -81,17 +83,55 @@ class FeeService {
     String academyId, {
     required String studentId,
     required String classId,
+    required String feePlanId,
     required double amount,
   }) async {
-    // Check for existing admission fee
+    // Uniqueness check: No duplicate admission fee per student
     final existing = await _fees(academyId)
         .where('studentId', isEqualTo: studentId)
         .where('type', isEqualTo: FeeType.admission.name)
         .limit(1)
         .get();
 
+    if (existing.docs.isNotEmpty) return;
+
+    final fee = Fee(
+      id: '',
+      academyId: academyId,
+      studentId: studentId,
+      classId: classId,
+      feePlanId: feePlanId,
+      type: FeeType.admission,
+      title: 'Admission Fee',
+      originalAmount: amount,
+      finalAmount: amount,
+      status: FeeStatus.pending,
+      paidAmount: 0,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await createFee(academyId, fee);
+  }
+
+  /// Creates a package fee, providing strict uniqueness (limit 1 per student)
+  Future<void> createPackageFee(
+    String academyId, {
+    required String studentId,
+    required String classId,
+    required String feePlanId,
+    required double amount,
+    String title = 'Full Course Package Fee',
+  }) async {
+    // Uniqueness check: No duplicate package fee per student
+    final existing = await _fees(academyId)
+        .where('studentId', isEqualTo: studentId)
+        .where('type', isEqualTo: FeeType.package.name)
+        .limit(1)
+        .get();
+
     if (existing.docs.isNotEmpty) {
-      throw Exception('Admission fee already exists for this student.');
+      return; // Already exists
     }
 
     final fee = Fee(
@@ -99,9 +139,9 @@ class FeeService {
       academyId: academyId,
       studentId: studentId,
       classId: classId,
-      feePlanId: '', // To be filled if plan is known
-      type: FeeType.admission,
-      title: 'Admission Fee',
+      feePlanId: feePlanId,
+      type: FeeType.package,
+      title: title,
       originalAmount: amount,
       finalAmount: amount,
       status: FeeStatus.pending,
@@ -127,7 +167,11 @@ class FeeService {
     DateTime? dueDate,
   }) async {
     // --- Lock acquisition ---
-    final lockSvc = AppServices.instance.feeGenerationLockService!;
+    final lockSvc = _lockService;
+    if (lockSvc == null) {
+      throw Exception('Fee generation lock service not available.');
+    }
+    
     final lockResult = await lockSvc.acquireLock(
       academyId,
       classId: classId,
@@ -180,6 +224,10 @@ class FeeService {
       for (final studentDoc in studentsSnapshot.docs) {
         final studentId = studentDoc.id;
         final studentData = studentDoc.data();
+
+        // SKIP students who are on a package plan
+        final feeMode = studentData['feeMode'] as String? ?? 'monthly';
+        if (feeMode == 'package') continue;
 
         // Uniqueness check: One monthly fee per student per month
         final existing = await _fees(academyId)
@@ -496,9 +544,20 @@ class FeeService {
         (pendingAggregate.getSum('paidAmount') ?? 0.0).toDouble();
 
     // 3. Distribution (Requires specific sums per type)
+    // 3. Package specific stats
+    final packageAggregate = await rootQuery
+        .where('type', isEqualTo: FeeType.package.name)
+        .aggregate(sum('finalAmount'), sum('paidAmount'))
+        .get();
+        
+    final totalPackageRevenue = (packageAggregate.getSum('paidAmount') ?? 0.0).toDouble();
+    final totalPackagePending = (packageAggregate.getSum('finalAmount') ?? 0.0).toDouble() - totalPackageRevenue;
+
     final result = {
       'totalRevenue': totalRevenue,
       'totalPending': totalPending,
+      'totalPackageRevenue': totalPackageRevenue,
+      'totalPackagePending': totalPackagePending,
       'lastUpdated': FieldValue.serverTimestamp(),
     };
 

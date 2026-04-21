@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
+import 'package:educore/src/features/fees/models/fee_plan.dart';
 
 import 'package:educore/src/core/services/fee_service.dart';
 import 'package:educore/src/core/services/fee_plan_service.dart';
@@ -38,27 +39,47 @@ class StudentService {
     // 1. Enforce Plan Limits
     await _subscriptionService.checkLimit(academyId, 'maxStudents');
 
+    // 2. Resolve Plan Type to set feeMode
+    final plan = await _feePlanService.getFeePlan(academyId, student.feePlanId);
+    final feeMode = (plan?.planType == FeePlanType.package) ? 'package' : 'monthly';
+
     final docRef = _studentsRef(academyId).doc();
     final newStudent = student.copyWith(
       id: docRef.id,
+      feeMode: feeMode,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
     await docRef.set(newStudent.toMap());
     
-    // Auto-generate Admission Fee from Plan
-    try {
-      final plan = await _feePlanService.getFeePlan(academyId, newStudent.feePlanId);
-      if (plan != null && plan.admissionFee > 0) {
-        await _feeService.createAdmissionFee(
-          academyId,
-          studentId: newStudent.id,
-          classId: newStudent.classId,
-          amount: plan.admissionFee,
-        );
+    // Auto-generate Fees from Plan
+    if (plan != null) {
+      try {
+        // A. Admission Fee (If exists)
+        if (plan.admissionFee > 0) {
+          await _feeService.createAdmissionFee(
+            academyId,
+            studentId: newStudent.id,
+            classId: newStudent.classId,
+            feePlanId: plan.id,
+            amount: plan.admissionFee,
+          );
+        }
+
+        // B. Package Fee (If package plan)
+        if (plan.planType == FeePlanType.package && plan.totalCourseFee > 0) {
+          await _feeService.createPackageFee(
+            academyId,
+            studentId: newStudent.id,
+            classId: newStudent.classId,
+            feePlanId: plan.id,
+            amount: plan.totalCourseFee,
+            title: '${plan.name} Package Fee',
+          );
+        }
+      } catch (_) {
+        // Ignored if already exists
       }
-    } catch (_) {
-      // Ignored if already exists
     }
     
     return newStudent;

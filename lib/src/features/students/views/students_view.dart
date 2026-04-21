@@ -53,13 +53,32 @@ class _StudentsViewState extends State<StudentsView> {
     super.dispose();
   }
 
-  void _showStudentForm([Student? student]) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) =>
-          StudentFormDialog(student: student, controller: _controller),
-    );
+  Future<void> _showStudentForm([Student? student]) async {
+    final academyId = AppServices.instance.authService?.session?.academyId;
+    if (academyId == null) return;
+
+    // Fast check for classes
+    final classes = await AppServices.instance.classService!.getClasses(academyId);
+    
+    if (classes.isEmpty && mounted) {
+      AppDialogs.showInfo(
+        context,
+        title: 'No Classes Found',
+        message: 'You cannot add a student without a class. Please create at least one class first in the Classes module.',
+        icon: Icons.school_rounded,
+        buttonLabel: 'Got it',
+      );
+      return;
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) =>
+            StudentFormDialog(student: student, controller: _controller),
+      );
+    }
   }
 
   void _showStudentProfile(Student student) {
@@ -688,6 +707,10 @@ class _StudentCardState extends State<_StudentCard> {
                           ),
                           const SizedBox(width: 8),
                           _StatusBadge(active: isActive),
+                          if (widget.student.feeMode == 'package') ...[
+                            const SizedBox(width: 8),
+                            _BillingBadge(isPackage: true),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -783,6 +806,35 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         active ? 'Active' : 'Inactive',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _BillingBadge extends StatelessWidget {
+  const _BillingBadge({required this.isPackage});
+  final bool isPackage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isPackage) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    final color = cs.secondary;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Package',
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -1012,14 +1064,14 @@ class _ProfileInfoGrid extends StatelessWidget {
           icon: Icons.person_outline,
         ),
         _InfoItem(
-          label: 'Class',
-          value: student.className,
-          icon: Icons.school_outlined,
+          label: 'Fee Plan',
+          value: student.feePlanName ?? 'No Plan',
+          icon: Icons.payments_outlined,
         ),
         _InfoItem(
-          label: 'Phone Number',
-          value: student.phone,
-          icon: Icons.phone_outlined,
+          label: 'Billing Model',
+          value: student.feeMode == 'package' ? 'One-time Package' : 'Monthly Subscription',
+          icon: student.feeMode == 'package' ? Icons.inventory_2_outlined : Icons.event_repeat_rounded,
         ),
         _InfoItem(
           label: 'Enrollment Date',

@@ -29,7 +29,7 @@ class _FeesViewState extends State<FeesView>
     super.initState();
     _controller = FeesController();
     _controller.loadInitialData();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -62,14 +62,18 @@ class _FeesViewState extends State<FeesView>
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   onTap: (index) {
-                    final type = index == 0
-                        ? FeeType.admission
-                        : (index == 1 ? FeeType.monthly : FeeType.other);
+                    final type = switch (index) {
+                      0 => FeeType.admission,
+                      1 => FeeType.monthly,
+                      2 => FeeType.package,
+                      _ => FeeType.other,
+                    };
                     controller.fetchFees(type: type);
                   },
                   tabs: const [
                     Tab(text: 'Admission Fees'),
                     Tab(text: 'Monthly Fees'),
+                    Tab(text: 'Package Fees'),
                     Tab(text: 'Other Fees'),
                   ],
                 ),

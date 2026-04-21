@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum FeeType { admission, monthly, other }
+enum FeeType { admission, monthly, package, other }
 
 enum FeeStatus { pending, partial, paid }
 

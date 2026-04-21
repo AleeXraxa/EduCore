@@ -6,6 +6,8 @@ enum FeePlanScope {
   custom,
 }
 
+enum FeePlanType { monthly, package }
+
 class FeePlan {
   final String id;
   final String name;
@@ -15,8 +17,19 @@ class FeePlan {
   final bool isActive;
   final String currency;
   final double admissionFee;
+  
+  // Monthly Plan Specifics
   final double monthlyFee;
   final int monthlyDueDay;
+  
+  // Package Plan Specifics
+  final double totalCourseFee;
+  final int? durationMonths;
+  final bool allowInstallments;
+  final int? installmentCount;
+  
+  final FeePlanType planType;
+
   final double? lateFeePerDay;
   final bool allowPartialPayment;
   final DiscountType discountType;
@@ -33,8 +46,13 @@ class FeePlan {
     required this.isActive,
     this.currency = 'PKR',
     required this.admissionFee,
-    required this.monthlyFee,
-    required this.monthlyDueDay,
+    this.monthlyFee = 0.0,
+    this.monthlyDueDay = 5,
+    this.totalCourseFee = 0.0,
+    this.durationMonths,
+    this.allowInstallments = false,
+    this.installmentCount,
+    this.planType = FeePlanType.monthly,
     this.lateFeePerDay,
     required this.allowPartialPayment,
     this.discountType = DiscountType.none,
@@ -55,6 +73,14 @@ class FeePlan {
       admissionFee: (map['admissionFee'] as num?)?.toDouble() ?? 0.0,
       monthlyFee: (map['monthlyFee'] as num?)?.toDouble() ?? 0.0,
       monthlyDueDay: map['monthlyDueDay'] as int? ?? 5,
+      totalCourseFee: (map['totalCourseFee'] as num?)?.toDouble() ?? 0.0,
+      durationMonths: map['durationMonths'] as int?,
+      allowInstallments: map['allowInstallments'] ?? false,
+      installmentCount: map['installmentCount'] as int?,
+      planType: FeePlanType.values.firstWhere(
+        (e) => e.name == map['planType'],
+        orElse: () => FeePlanType.monthly,
+      ),
       lateFeePerDay: (map['lateFeePerDay'] as num?)?.toDouble(),
       allowPartialPayment: map['allowPartialPayment'] ?? true,
       discountType: DiscountType.values.firstWhere(
@@ -78,6 +104,11 @@ class FeePlan {
       'admissionFee': admissionFee,
       'monthlyFee': monthlyFee,
       'monthlyDueDay': monthlyDueDay,
+      'totalCourseFee': totalCourseFee,
+      'durationMonths': durationMonths,
+      'allowInstallments': allowInstallments,
+      'installmentCount': installmentCount,
+      'planType': planType.name,
       'lateFeePerDay': lateFeePerDay,
       'allowPartialPayment': allowPartialPayment,
       'discountType': discountType.name,
@@ -97,8 +128,15 @@ class FeePlan {
     double? admissionFee,
     double? monthlyFee,
     int? monthlyDueDay,
+    double? totalCourseFee,
+    int? durationMonths,
+    bool? allowInstallments,
+    int? installmentCount,
+    FeePlanType? planType,
     double? lateFeePerDay,
     bool? allowPartialPayment,
+    DiscountType? discountType,
+    double? discountValue,
   }) {
     return FeePlan(
       id: id,
@@ -111,6 +149,11 @@ class FeePlan {
       admissionFee: admissionFee ?? this.admissionFee,
       monthlyFee: monthlyFee ?? this.monthlyFee,
       monthlyDueDay: monthlyDueDay ?? this.monthlyDueDay,
+      totalCourseFee: totalCourseFee ?? this.totalCourseFee,
+      durationMonths: durationMonths ?? this.durationMonths,
+      allowInstallments: allowInstallments ?? this.allowInstallments,
+      installmentCount: installmentCount ?? this.installmentCount,
+      planType: planType ?? this.planType,
       lateFeePerDay: lateFeePerDay ?? this.lateFeePerDay,
       allowPartialPayment: allowPartialPayment ?? this.allowPartialPayment,
       discountType: discountType ?? this.discountType,

@@ -12,6 +12,7 @@ class InstituteDashboardController extends BaseController {
 
   double admissionCollected = 0;
   double monthlyCollected = 0;
+  double packageCollected = 0;
   double miscCollected = 0;
 
   List<Map<String, dynamic>> recentStudents = [];
@@ -85,6 +86,11 @@ class InstituteDashboardController extends BaseController {
           .where('status', isEqualTo: 'paid')
           .get();
 
+      final packageSumFuture = feesRef
+          .where('type', isEqualTo: 'package')
+          .where('status', isEqualTo: 'paid')
+          .get();
+
       final miscSumFuture = feesRef
           .where('type', isEqualTo: 'misc')
           .where('status', isEqualTo: 'paid')
@@ -110,6 +116,7 @@ class InstituteDashboardController extends BaseController {
         staffCountFuture,
         admissionSumFuture,
         monthlySumFuture,
+        packageSumFuture,
         miscSumFuture,
         recentStudentsFuture,
         recentPaymentsFuture,
@@ -143,16 +150,17 @@ class InstituteDashboardController extends BaseController {
 
       admissionCollected = sumAmount(results[6] as QuerySnapshot);
       monthlyCollected = sumAmount(results[7] as QuerySnapshot);
-      miscCollected = sumAmount(results[8] as QuerySnapshot);
+      packageCollected = sumAmount(results[8] as QuerySnapshot);
+      miscCollected = sumAmount(results[9] as QuerySnapshot);
 
-      final stdSnaps = results[9] as QuerySnapshot;
+      final stdSnaps = results[10] as QuerySnapshot;
       recentStudents = stdSnaps.docs.map((e) {
         final data = e.data() as Map<String, dynamic>;
         data['id'] = e.id;
         return data;
       }).toList();
 
-      final paySnaps = results[10] as QuerySnapshot;
+      final paySnaps = results[11] as QuerySnapshot;
       recentPayments = paySnaps.docs.map((e) {
         final data = e.data() as Map<String, dynamic>;
         data['id'] = e.id;
