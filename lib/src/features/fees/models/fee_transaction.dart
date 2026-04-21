@@ -11,6 +11,7 @@ class FeeTransaction {
   final String collectedBy; // uid
   final DateTime collectedAt;
   final String? note;
+  final String? receiptNumber;
 
   const FeeTransaction({
     required this.id,
@@ -19,6 +20,7 @@ class FeeTransaction {
     required this.collectedBy,
     required this.collectedAt,
     this.note,
+    this.receiptNumber,
   });
 
   Map<String, dynamic> toMap() => {
@@ -27,6 +29,7 @@ class FeeTransaction {
         'collectedBy': collectedBy,
         'collectedAt': Timestamp.fromDate(collectedAt),
         'note': note,
+        if (receiptNumber != null) 'receiptNumber': receiptNumber,
       };
 
   factory FeeTransaction.fromMap(String id, Map<String, dynamic> map) =>
@@ -40,6 +43,7 @@ class FeeTransaction {
         collectedBy: map['collectedBy'] ?? '',
         collectedAt: (map['collectedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         note: map['note'] as String?,
+        receiptNumber: map['receiptNumber'] as String?,
       );
 
   String get methodLabel => switch (method) {

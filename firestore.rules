@@ -188,19 +188,20 @@ service cloud.firestore {
 
       match /fees/{feeId} {
         allow read:   if belongsTo(academyId);
-        allow create: if isAdminOf(academyId) && hasActiveSubscription(academyId);
-        allow update: if isAdminOf(academyId) 
-                         && hasActiveSubscription(academyId)
-                         && (!('isLocked' in resource.data) || resource.data.isLocked == false);
+        allow create: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
+        allow update: if (isAdminOf(academyId) || isStaffOf(academyId)) 
+                         && hasActiveSubscription(academyId);
         allow delete: if false; // Only super_admin via top-level rule
 
         match /transactions/{txnId} {
           allow read:   if belongsTo(academyId);
-          allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+          allow create, update: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
           allow delete: if false; 
         }
       }
-
+      
+      // Additional matches for other subcollections...
+      
       match /attendance/{attendanceId} {
         allow read:   if belongsTo(academyId);
         allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
@@ -230,12 +231,18 @@ service cloud.firestore {
 
       match /finance_summary/{docId} {
         allow read: if belongsTo(academyId);
-        allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow create, update: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
       }
 
       match /fee_generation_locks/{lockId} {
         allow read: if belongsTo(academyId);
-        allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
+      }
+
+      match /settings/{docId} {
+        allow read: if belongsTo(academyId);
+        allow create, update: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
+        allow delete: if false;
       }
     }
 

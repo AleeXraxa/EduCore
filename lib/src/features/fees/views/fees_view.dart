@@ -9,6 +9,7 @@ import 'package:educore/src/features/fees/widgets/collect_payment_dialog.dart';
 import 'package:educore/src/features/fees/widgets/generate_monthly_fees_dialog.dart';
 import 'package:educore/src/features/fees/widgets/create_other_fee_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_details_dialog.dart';
+import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:intl/intl.dart';
 
@@ -460,21 +461,49 @@ class _FeeRow extends StatelessWidget {
                   );
                 },
               ),
+              if (!isPaid) ...[
+                AppActionItem(
+                  label: 'Generate Challan',
+                  icon: Icons.receipt_long_rounded,
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
+                  ),
+                ),
+                if (fee.challanNumber != null)
+                  AppActionItem(
+                    label: 'View Challan (${fee.challanNumber})',
+                    icon: Icons.picture_as_pdf_rounded,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
+                    ),
+                  ),
+              ],
+              if (fee.paidAmount > 0)
+                AppActionItem(
+                  label: 'Generate Receipt',
+                  icon: Icons.task_alt_rounded,
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
+                  ),
+                ),
+              if (fee.receiptNumber != null)
+                AppActionItem(
+                  label: 'View Receipt (${fee.receiptNumber})',
+                  icon: Icons.picture_as_pdf_rounded,
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
+                  ),
+                ),
               AppActionItem(
                 label: 'Edit Record',
                 icon: Icons.edit_rounded,
                 type: AppActionType.edit,
                 isEnabled: !fee.isLocked,
-                onTap: () {
-                  // Edit Record action
-                },
-              ),
-              AppActionItem(
-                label: 'Print Receipt',
-                icon: Icons.receipt_long_rounded,
-                onTap: () {
-                  // Print action
-                },
+                onTap: () {},
               ),
             ],
           ),
@@ -488,8 +517,38 @@ class _FeeRow extends StatelessWidget {
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
-        onCollect: ({required amount, required method, note}) => controller
-            .collectPayment(fee.id, amount, method: method, note: note),
+        onCollect: ({required amount, required method, note}) async {
+          await controller.collectPayment(fee.id, amount, method: method, note: note);
+          // Auto-prompt for receipt after payment
+          if (context.mounted) {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Text('Generate Receipt?',
+                    style: TextStyle(fontWeight: FontWeight.w900)),
+                content: const Text(
+                    'Payment collected successfully. Would you like to generate a payment receipt?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Skip'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Generate Receipt'),
+                  ),
+                ],
+              ),
+            );
+            if ((confirm ?? false) && context.mounted) {
+              showDialog(
+                context: context,
+                builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
+              );
+            }
+          }
+        },
       ),
     );
   }

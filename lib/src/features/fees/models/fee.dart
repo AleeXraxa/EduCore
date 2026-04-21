@@ -32,6 +32,10 @@ class Fee {
   final double discountAmount;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? challanNumber;
+  final String? receiptNumber;
+  final DateTime? lastGeneratedAt;
+  final String? documentModeUsed; // 'challan' | 'receipt'
 
   Fee({
     required this.id,
@@ -59,6 +63,10 @@ class Fee {
     this.discountAmount = 0.0,
     required this.createdAt,
     required this.updatedAt,
+    this.challanNumber,
+    this.receiptNumber,
+    this.lastGeneratedAt,
+    this.documentModeUsed,
   });
 
   // Getter for backward compatibility
@@ -90,6 +98,10 @@ class Fee {
       'overriddenAt': overriddenAt != null ? Timestamp.fromDate(overriddenAt!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      if (challanNumber != null) 'challanNumber': challanNumber,
+      if (receiptNumber != null) 'receiptNumber': receiptNumber,
+      if (lastGeneratedAt != null) 'lastGeneratedAt': Timestamp.fromDate(lastGeneratedAt!),
+      if (documentModeUsed != null) 'documentModeUsed': documentModeUsed,
     };
   }
 
@@ -129,6 +141,10 @@ class Fee {
       overriddenAt: (map['overriddenAt'] as Timestamp?)?.toDate(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      challanNumber: map['challanNumber'] as String?,
+      receiptNumber: map['receiptNumber'] as String?,
+      lastGeneratedAt: (map['lastGeneratedAt'] as Timestamp?)?.toDate(),
+      documentModeUsed: map['documentModeUsed'] as String?,
     );
   }
 
@@ -158,6 +174,10 @@ class Fee {
     DateTime? overriddenAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? challanNumber,
+    String? receiptNumber,
+    DateTime? lastGeneratedAt,
+    String? documentModeUsed,
   }) {
     return Fee(
       id: id ?? this.id,
@@ -185,6 +205,10 @@ class Fee {
       overriddenAt: overriddenAt ?? this.overriddenAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      challanNumber: challanNumber ?? this.challanNumber,
+      receiptNumber: receiptNumber ?? this.receiptNumber,
+      lastGeneratedAt: lastGeneratedAt ?? this.lastGeneratedAt,
+      documentModeUsed: documentModeUsed ?? this.documentModeUsed,
     );
   }
 
