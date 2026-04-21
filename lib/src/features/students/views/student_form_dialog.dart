@@ -54,7 +54,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     _selectedFeePlanId = widget.student?.feePlanId ?? '';
     _selectedFeePlanName = widget.student?.feePlanName;
     _status = widget.student?.status ?? 'active';
-    
+
     _fetchClasses();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,25 +65,52 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   Future<void> _fetchClasses() async {
     setState(() => _isFetching = true);
     final academyId = AppServices.instance.authService!.session!.academyId;
-    final classesFuture = AppServices.instance.classService!.getClasses(academyId);
-    final plansFuture = AppServices.instance.feePlanService!.getFeePlans(academyId);
-    
+    debugPrint('StudentFormDialog: Fetching classes and plans for $academyId');
+
+    final classesFuture = AppServices.instance.classService!.getClasses(
+      academyId,
+    );
+    final plansFuture = AppServices.instance.feePlanService!.getFeePlans(
+      academyId,
+    );
+
     final results = await Future.wait([classesFuture, plansFuture]);
     final classes = results[0] as List<InstituteClass>;
     final plans = results[1] as List<FeePlan>;
+
+    debugPrint(
+      'StudentFormDialog: Found ${classes.length} classes, ${plans.length} total plans',
+    );
 
     if (mounted) {
       setState(() {
         _isFetching = false;
         _availableClasses = classes;
         _availableFeePlans = plans.where((p) => p.isActive).toList();
-        
+        debugPrint(
+          'StudentFormDialog: ${_availableFeePlans.length} active plans',
+        );
+
         if (_selectedClassId.isEmpty && classes.isNotEmpty) {
           _selectedClassId = classes.first.id;
+          debugPrint(
+            'StudentFormDialog: Auto-selected class: ${classes.first.name}',
+          );
           // Auto-fill fee plan from class
-          if (classes.first.feePlanId != null) {
-            _selectedFeePlanId = classes.first.feePlanId!;
-            _selectedFeePlanName = classes.first.feePlanName;
+          if (classes.first.feePlanId != null &&
+              classes.first.feePlanId!.isNotEmpty) {
+            final planId = classes.first.feePlanId!;
+            if (_availableFeePlans.any((p) => p.id == planId)) {
+              _selectedFeePlanId = planId;
+              _selectedFeePlanName = classes.first.feePlanName;
+              debugPrint(
+                'StudentFormDialog: Auto-filled fee plan from class: $_selectedFeePlanId',
+              );
+            } else {
+              debugPrint(
+                'StudentFormDialog: Default plan $planId not found in active plans',
+              );
+            }
           }
         }
       });
@@ -102,13 +129,31 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('StudentFormDialog: _submit called');
+    
+    // Explicitly check fields to log what's failing
+    if (_nameCtrl.text.trim().isEmpty) debugPrint('StudentFormDialog: Validation error - Name is empty');
+    if (_fatherNameCtrl.text.trim().isEmpty) debugPrint('StudentFormDialog: Validation error - Father Name is empty');
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isEmpty) {
+      debugPrint('StudentFormDialog: Validation error - Phone is empty');
+    } else if (!RegExp(r'^03\d{9}$').hasMatch(phone)) {
+      debugPrint('StudentFormDialog: Validation error - Phone format invalid: $phone');
+    }
+    
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('StudentFormDialog: _formKey.validate() returned false');
+      AppToasts.showError(context, message: 'Please correct the errors in the form.');
+      return;
+    }
 
+    debugPrint('StudentFormDialog: Validation passed, starting save...');
     setState(() => _isLoading = true);
 
     final selectedClass = _availableClasses.firstWhere(
       (c) => c.id == _selectedClassId,
-      orElse: () => const InstituteClass(id: '', name: 'Unknown', subjectIds: []),
+      orElse: () =>
+          const InstituteClass(id: '', name: 'Unknown', subjectIds: []),
     );
 
     final newStudent = Student(
@@ -130,12 +175,16 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
 
     try {
+      debugPrint(
+        'StudentFormDialog: Sending to controller - New? ${widget.student == null}',
+      );
       bool success;
       if (widget.student == null) {
         success = await widget.controller.addStudent(newStudent);
       } else {
         success = await widget.controller.updateStudent(newStudent);
       }
+      debugPrint('StudentFormDialog: Controller result: $success');
 
       if (success && mounted) {
         Navigator.of(context).pop();
@@ -152,6 +201,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
         );
       }
     } catch (e) {
+      debugPrint('StudentFormDialog: Error during save: $e');
       setState(() => _isLoading = false);
       if (e is PlanLimitExceededException) {
         if (mounted) {
@@ -161,6 +211,13 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             onUpgrade: () {
               // TODO: Navigate to pricing
             },
+          );
+        }
+      } else {
+        if (mounted) {
+          AppToasts.showError(
+            context,
+            message: 'An unexpected error occurred: ${e.toString()}',
           );
         }
       }
@@ -276,44 +333,75 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
                       Row(
                         children: [
-                           Expanded(
+                          Expanded(
                             child: _isFetching
                                 ? const Center(child: LinearProgressIndicator())
                                 : _availableClasses.isEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: cs.errorContainer.withValues(alpha: 0.1),
-                                          borderRadius: AppRadii.r12,
-                                          border: Border.all(color: cs.error),
-                                        ),
-                                        child: Text(
-                                          'NO CLASSES FOUND. Create a class first.',
-                                          style: TextStyle(color: cs.error, fontWeight: FontWeight.w900, fontSize: 13),
-                                        ),
-                                      )
-                                    : AppDropdown<String>(
-                                        value: _selectedClassId,
-                                        label: 'Class',
-                                        prefixIcon: Icons.school_outlined,
-                                        items: _availableClasses.map((e) => e.id).toList(),
-                                        itemLabel: (id) => _availableClasses
-                                            .firstWhere((e) => e.id == id)
-                                            .displayName,
-                                        onChanged: (v) {
-                                          setState(() {
-                                            _selectedClassId = v!;
-                                            // Auto-fetch fee plan from class for new students
-                                            if (widget.student == null) {
-                                              final cls = _availableClasses.firstWhere((c) => c.id == v);
-                                              if (cls.feePlanId != null) {
-                                                _selectedFeePlanId = cls.feePlanId!;
-                                                _selectedFeePlanName = cls.feePlanName;
-                                              }
-                                            }
-                                          });
-                                        },
+                                ? Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: cs.errorContainer.withValues(
+                                        alpha: 0.1,
                                       ),
+                                      borderRadius: AppRadii.r12,
+                                      border: Border.all(color: cs.error),
+                                    ),
+                                    child: Text(
+                                      'NO CLASSES FOUND. Create a class first.',
+                                      style: TextStyle(
+                                        color: cs.error,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  )
+                                : AppDropdown<String>(
+                                    value: _selectedClassId,
+                                    label: 'Class',
+                                    prefixIcon: Icons.school_outlined,
+                                    items: _availableClasses
+                                        .map((e) => e.id)
+                                        .toList(),
+                                    itemLabel: (id) => _availableClasses
+                                        .firstWhere((e) => e.id == id)
+                                        .displayName,
+                                    onChanged: (v) {
+                                      debugPrint(
+                                        'StudentFormDialog: Class selected: $v',
+                                      );
+                                      setState(() {
+                                        _selectedClassId = v!;
+                                        // Auto-fetch fee plan from class for new students
+                                        if (widget.student == null) {
+                                          final cls = _availableClasses
+                                              .firstWhere((c) => c.id == v);
+                                          debugPrint(
+                                            'StudentFormDialog: Class default plan: ${cls.feePlanId}',
+                                          );
+                                          if (cls.feePlanId != null &&
+                                              cls.feePlanId!.isNotEmpty) {
+                                            final planId = cls.feePlanId!;
+                                            if (_availableFeePlans.any(
+                                              (p) => p.id == planId,
+                                            )) {
+                                              _selectedFeePlanId = planId;
+                                              _selectedFeePlanName =
+                                                  cls.feePlanName;
+                                              debugPrint(
+                                                'StudentFormDialog: Setting _selectedFeePlanId to $_selectedFeePlanId',
+                                              );
+                                            } else {
+                                              debugPrint(
+                                                'StudentFormDialog: Default plan $planId for selected class not found in active plans',
+                                              );
+                                              _selectedFeePlanId = '';
+                                              _selectedFeePlanName = null;
+                                            }
+                                          }
+                                        }
+                                      });
+                                    },
+                                  ),
                           ),
                         ],
                       ),
@@ -321,30 +409,58 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                       const SizedBox(height: 20),
                       _availableFeePlans.isEmpty && !isEditing
                           ? Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: cs.errorContainer.withValues(alpha: 0.1),
                                 borderRadius: AppRadii.r12,
-                                border: Border.all(color: cs.error),
+                                border: Border.all(
+                                  color: cs.error.withValues(alpha: 0.5),
+                                ),
                               ),
-                              child: Text(
-                                'A Fee Plan is REQUIRED.',
-                                style: TextStyle(color: cs.error, fontWeight: FontWeight.w900),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: cs.error,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'A Fee Plan is REQUIRED. Please create a Fee Plan in the Fees module first.',
+                                      style: TextStyle(
+                                        color: cs.error,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             )
                           : AppDropdown<String>(
-                              value: _selectedFeePlanId,
+                              value: _selectedFeePlanId.isEmpty
+                                  ? null
+                                  : _selectedFeePlanId,
                               label: 'Fee Plan',
                               prefixIcon: Icons.payments_outlined,
-                              items: _availableFeePlans.map((e) => e.id).toList(),
+                              items: _availableFeePlans
+                                  .map((e) => e.id)
+                                  .toList(),
                               itemLabel: (id) => _availableFeePlans
                                   .firstWhere((p) => p.id == id)
                                   .name,
                               onChanged: (v) {
                                 setState(() {
-                                  _selectedFeePlanId = v!;
-                                  final plan = _availableFeePlans.firstWhere((p) => p.id == v);
-                                  _selectedFeePlanName = plan.name;
+                                  _selectedFeePlanId = v ?? '';
+                                  if (_selectedFeePlanId.isNotEmpty) {
+                                    final plan = _availableFeePlans.firstWhere(
+                                      (p) => p.id == v,
+                                    );
+                                    _selectedFeePlanName = plan.name;
+                                  } else {
+                                    _selectedFeePlanName = null;
+                                  }
                                 });
                               },
                             ),
@@ -388,7 +504,12 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             Padding(
               padding: const EdgeInsets.all(32),
               child: FilledButton(
-                onPressed: (_isLoading || _selectedClassId.isEmpty) ? null : _submit,
+                onPressed:
+                    (_isLoading ||
+                        _selectedClassId.isEmpty ||
+                        _selectedFeePlanId.isEmpty)
+                    ? null
+                    : _submit,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(
@@ -419,8 +540,6 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       ),
     );
   }
-
-
 
   Widget _sectionTitle(String title) {
     final cs = Theme.of(context).colorScheme;
@@ -664,7 +783,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   }
 
   Widget _buildBillingHint() {
-    final plan = _availableFeePlans.firstWhere((p) => p.id == _selectedFeePlanId);
+    final plan = _availableFeePlans.firstWhere(
+      (p) => p.id == _selectedFeePlanId,
+    );
     final cs = Theme.of(context).colorScheme;
     final isPkg = plan.planType == FeePlanType.package;
 
@@ -679,8 +800,11 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
         children: [
           Row(
             children: [
-              Icon(isPkg ? Icons.inventory_2_outlined : Icons.event_repeat_rounded, 
-                size: 16, color: cs.primary),
+              Icon(
+                isPkg ? Icons.inventory_2_outlined : Icons.event_repeat_rounded,
+                size: 16,
+                color: cs.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 isPkg ? 'ONE-TIME PACKAGE' : 'MONTHLY SUBSCRIPTION',
@@ -697,10 +821,13 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _hintStat('Admission', '${plan.currency} ${plan.admissionFee.toStringAsFixed(0)}'),
               _hintStat(
-                isPkg ? 'Total Fee' : 'Monthly Fee', 
-                '${plan.currency} ${(isPkg ? plan.totalCourseFee : plan.monthlyFee).toStringAsFixed(0)}'
+                'Admission',
+                '${plan.currency} ${plan.admissionFee.toStringAsFixed(0)}',
+              ),
+              _hintStat(
+                isPkg ? 'Total Fee' : 'Monthly Fee',
+                '${plan.currency} ${(isPkg ? plan.totalCourseFee : plan.monthlyFee).toStringAsFixed(0)}',
               ),
               if (isPkg)
                 _hintStat('Duration', '${plan.durationMonths ?? 0}m')
@@ -719,7 +846,10 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
-        Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(
+          val,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
       ],
     );
   }

@@ -15,8 +15,42 @@ class AdminPaymentsService {
 
   CollectionReference<Map<String, dynamic>> get _col => _firestore.collection('payments');
 
+  /// Only streams recent payments to keep dashboard snappy.
+  Stream<List<PaymentRecord>> watchRecentPayments({int limit = 20}) {
+    return _col
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map(PaymentRecord.fromDoc).toList(growable: false),
+        );
+  }
+
+  /// Fetches payments in batches for secondary screens.
+  Future<List<PaymentRecord>> getPaymentsBatch({
+    int limit = 50,
+    DocumentSnapshot? startAfter,
+    String? status,
+  }) async {
+    Query<Map<String, dynamic>> query = _col.orderBy('createdAt', descending: true);
+    if (status != null) {
+      query = query.where('status', isEqualTo: status);
+    }
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+    final snap = await query.limit(limit).get();
+    return snap.docs.map(PaymentRecord.fromDoc).toList(growable: false);
+  }
+
+  /// Legacy stream - capped for safety.
+  @Deprecated('Use watchRecentPayments or getPaymentsBatch')
   Stream<List<PaymentRecord>> watchPayments() {
-    return _col.snapshots().map(
+    return _col
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
           (snap) => snap.docs.map(PaymentRecord.fromDoc).toList(growable: false),
         );
   }

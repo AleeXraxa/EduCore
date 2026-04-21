@@ -27,15 +27,8 @@ class StaffController extends BaseController {
   List<FeatureGroup> _featureGroups = [];
   List<FeatureGroup> get featureGroups => _featureGroups;
 
-  StreamSubscription? _staffSub;
-  StreamSubscription? _featureSub;
-  StreamSubscription? _groupSub;
-
   @override
   void dispose() {
-    _staffSub?.cancel();
-    _featureSub?.cancel();
-    _groupSub?.cancel();
     super.dispose();
   }
 
@@ -47,8 +40,8 @@ class StaffController extends BaseController {
       try {
         final results = await Future.wait([
           _staffService.getStaff(_academyId),
-          _featureService.getFeatures(),
-          _featureService.getGroups(),
+          _featureService.getFeaturesCached(),
+          _featureService.getGroupsCached(),
         ]);
 
         _staffList = results[0] as List<StaffMember>;

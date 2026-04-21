@@ -85,6 +85,8 @@ class FeeService {
     required String classId,
     required String feePlanId,
     required double amount,
+    String? studentName,
+    String? className,
   }) async {
     // Uniqueness check: No duplicate admission fee per student
     final existing = await _fees(academyId)
@@ -107,6 +109,8 @@ class FeeService {
       finalAmount: amount,
       status: FeeStatus.pending,
       paidAmount: 0,
+      studentName: studentName,
+      className: className,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -122,6 +126,8 @@ class FeeService {
     required String feePlanId,
     required double amount,
     String title = 'Full Course Package Fee',
+    String? studentName,
+    String? className,
   }) async {
     // Uniqueness check: No duplicate package fee per student
     final existing = await _fees(academyId)
@@ -146,6 +152,8 @@ class FeeService {
       finalAmount: amount,
       status: FeeStatus.pending,
       paidAmount: 0,
+      studentName: studentName,
+      className: className,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -187,7 +195,7 @@ class FeeService {
 
     // --- Generation ---
     try {
-      // 0. Get the class to find the default plan
+      // 0. Get the class to find metadata
       final classDoc = await _firestore
           .collection('academies')
           .doc(academyId)
@@ -196,6 +204,7 @@ class FeeService {
           .get();
 
       final clsDefaultPlanId = classDoc.data()?['feePlanId'] as String?;
+      final className = classDoc.data()?['name'] as String?;
 
       // 1. Get all active students in class
       final studentsSnapshot = await _firestore
@@ -224,6 +233,7 @@ class FeeService {
       for (final studentDoc in studentsSnapshot.docs) {
         final studentId = studentDoc.id;
         final studentData = studentDoc.data();
+        final studentName = studentData['name'] as String?;
 
         // SKIP students who are on a package plan
         final feeMode = studentData['feeMode'] as String? ?? 'monthly';
@@ -289,6 +299,8 @@ class FeeService {
             paidAmount: 0,
             month: month,
             dueDate: dueDate,
+            studentName: studentName,
+            className: className,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );
@@ -350,48 +362,64 @@ class FeeService {
     double recordedNewPaidAmount = 0.0;
     String recordedStatus = '';
 
-    await _firestore.runTransaction((tx) async {
-      final feeSnapshot = await tx.get(feeRef);
-      if (!feeSnapshot.exists) {
-        throw Exception('Fee record not found.');
-      }
+    debugPrint('FeeService: Starting collectPayment (using batch for Windows stability) for fee $feeId');
+    
+    // 1. Get current state outside batch (Read)
+    final feeSnapshot = await feeRef.get();
+    if (!feeSnapshot.exists) {
+      throw Exception('Fee record not found.');
+    }
 
-      final fee = Fee.fromMap(feeSnapshot.id, feeSnapshot.data()!);
-      final newPaidAmount = fee.paidAmount + paymentAmount;
+    final fee = Fee.fromMap(feeSnapshot.id, feeSnapshot.data()!);
+    final newPaidAmount = fee.paidAmount + paymentAmount;
 
-      if (newPaidAmount > fee.finalAmount) {
-        throw Exception('Payment exceeds total fee amount.');
-      }
+    if (newPaidAmount > fee.finalAmount + 0.01) { // Adding small epsilon for float precision
+      throw Exception('Payment exceeds total fee amount.');
+    }
 
-      final newStatus = newPaidAmount >= fee.finalAmount
-          ? FeeStatus.paid
-          : FeeStatus.partial;
+    final newStatus = newPaidAmount >= fee.finalAmount - 0.01
+        ? FeeStatus.paid
+        : FeeStatus.partial;
 
-      // Ensure that we can't accidentally mark as paid if we somehow exceeded finalAmount via float inaccuracies - though handled by check above
+    final isLocked = newStatus == FeeStatus.paid;
 
-      final isLocked = newStatus == FeeStatus.paid;
+    // 2. Prepare atomic updates (Write)
+    final batch = _firestore.batch();
 
-      tx.update(feeRef, {
-        'paidAmount': newPaidAmount,
-        'status': newStatus.name,
-        'isLocked': isLocked,
-        'updatedAt': Timestamp.now(),
-      });
-
-      final txn = FeeTransaction(
-        id: txnRef.id,
-        amount: paymentAmount,
-        method: method,
-        collectedBy: collectedBy,
-        collectedAt: DateTime.now(),
-        note: note,
-      );
-
-      tx.set(txnRef, txn.toMap());
-
-      recordedNewPaidAmount = newPaidAmount;
-      recordedStatus = newStatus.name;
+    // - Update Fee Record
+    batch.update(feeRef, {
+      'paidAmount': newPaidAmount,
+      'status': newStatus.name,
+      'isLocked': isLocked,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    // - Update Summary record
+    final summaryRef = _summary(academyId);
+    batch.set(summaryRef, {
+      'totalCollected': FieldValue.increment(paymentAmount),
+      'lastTransactionAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // - Create Transaction Record
+    final txn = FeeTransaction(
+      id: txnRef.id,
+      amount: paymentAmount,
+      method: method,
+      collectedBy: collectedBy,
+      collectedAt: DateTime.now(),
+      note: note,
+    );
+    batch.set(txnRef, txn.toMap());
+
+    // 3. Commit
+    await batch.commit();
+    
+    recordedNewPaidAmount = newPaidAmount;
+    recordedStatus = newStatus.name;
+    
+    debugPrint('FeeService: Transaction completed successfully');
 
     // Run audit logging OUTSIDE transaction to prevent C++ SDK crashes on Windows
     await _audit.logAction(
@@ -449,7 +477,7 @@ class FeeService {
         );
   }
 
-  /// Fetches fees with various filters
+  /// Fetches fees with various filters and pagination support.
   Future<List<Fee>> getFees(
     String academyId, {
     String? studentId,
@@ -457,10 +485,9 @@ class FeeService {
     FeeType? type,
     FeeStatus? status,
     int limit = 50,
+    DocumentSnapshot? startAfter,
   }) async {
-    Query query = _fees(
-      academyId,
-    ).orderBy('createdAt', descending: true).limit(limit);
+    Query<Map<String, dynamic>> query = _fees(academyId);
 
     if (studentId != null) {
       query = query.where('studentId', isEqualTo: studentId);
@@ -475,9 +502,16 @@ class FeeService {
       query = query.where('status', isEqualTo: status.name);
     }
 
-    final snapshot = await query.get();
+    // Default ordering
+    query = query.orderBy('createdAt', descending: true);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snapshot = await query.limit(limit).get();
     return snapshot.docs
-        .map((doc) => Fee.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+        .map((doc) => Fee.fromMap(doc.id, doc.data()))
         .toList();
   }
 
@@ -519,39 +553,34 @@ class FeeService {
   Future<Map<String, dynamic>> refreshFeeStats(String academyId) async {
     final rootQuery = _fees(academyId);
 
-    // 1. Calculate Revenue (SUM of finalAmount where status == paid)
-    final revenueQuery = rootQuery.where(
-      'status',
-      isEqualTo: FeeStatus.paid.name,
-    );
-    final revenueAggregate = await revenueQuery
-        .aggregate(sum('finalAmount'))
-        .get();
-    final totalRevenue = (revenueAggregate.getSum('finalAmount') ?? 0.0)
-        .toDouble();
+    // Windows C++ SDK does NOT support sum aggregates yet. 
+    // We will fetch documents and sum them manually as a workaround.
+    // For large datasets, this should be moved to a Cloud Function.
+    
+    double totalRevenue = 0.0;
+    double totalPending = 0.0;
+    double totalPackageRevenue = 0.0;
+    double totalPackagePending = 0.0;
 
-    // 2. Calculate Pending (Strictly: sum(finalAmount) - sum(paidAmount) where status != paid)
-    final pendingQuery = rootQuery.where(
-      'status',
-      isNotEqualTo: FeeStatus.paid.name,
-    );
-    final pendingAggregate = await pendingQuery
-        .aggregate(sum('finalAmount'), sum('paidAmount'))
-        .get();
+    final allFees = await rootQuery.get();
+    for (final doc in allFees.docs) {
+      final data = doc.data();
+      final finalAmt = (data['finalAmount'] ?? 0.0).toDouble();
+      final paidAmt = (data['paidAmount'] ?? 0.0).toDouble();
+      final status = data['status'] as String?;
+      final type = data['type'] as String?;
 
-    final totalPending =
-        (pendingAggregate.getSum('finalAmount') ?? 0.0).toDouble() -
-        (pendingAggregate.getSum('paidAmount') ?? 0.0).toDouble();
+      if (status == FeeStatus.paid.name) {
+        totalRevenue += finalAmt;
+      } else {
+        totalPending += (finalAmt - paidAmt);
+      }
 
-    // 3. Distribution (Requires specific sums per type)
-    // 3. Package specific stats
-    final packageAggregate = await rootQuery
-        .where('type', isEqualTo: FeeType.package.name)
-        .aggregate(sum('finalAmount'), sum('paidAmount'))
-        .get();
-        
-    final totalPackageRevenue = (packageAggregate.getSum('paidAmount') ?? 0.0).toDouble();
-    final totalPackagePending = (packageAggregate.getSum('finalAmount') ?? 0.0).toDouble() - totalPackageRevenue;
+      if (type == FeeType.package.name) {
+        totalPackageRevenue += paidAmt;
+        totalPackagePending += (finalAmt - paidAmt);
+      }
+    }
 
     final result = {
       'totalRevenue': totalRevenue,

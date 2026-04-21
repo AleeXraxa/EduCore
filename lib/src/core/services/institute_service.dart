@@ -96,16 +96,26 @@ class InstituteService {
   CollectionReference<Map<String, dynamic>> get _subscriptions =>
       _firestore.collection('subscriptions');
 
-  Stream<List<Academy>> watchAcademies() {
+  Stream<List<Academy>> watchAcademies({int limit = 20}) {
     return _academies
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(Academy.fromDoc).toList(growable: false));
   }
 
-  Future<List<Academy>> getAcademies() async {
-    final snap = await _academies.get();
+  Future<List<Academy>> getAcademies({int limit = 100}) async {
+    final snap = await _academies
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .get();
     return snap.docs.map(Academy.fromDoc).toList(growable: false);
+  }
+
+  Future<Academy?> getAcademy(String academyId) async {
+    final doc = await _academies.doc(academyId).get();
+    if (!doc.exists) return null;
+    return Academy.fromDoc(doc);
   }
 
   Stream<Academy?> watchAcademy(String academyId) {

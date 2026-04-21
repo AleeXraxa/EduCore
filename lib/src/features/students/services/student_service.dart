@@ -40,7 +40,18 @@ class StudentService {
     await _subscriptionService.checkLimit(academyId, 'maxStudents');
 
     // 2. Resolve Plan Type to set feeMode
-    final plan = await _feePlanService.getFeePlan(academyId, student.feePlanId);
+    FeePlan? plan;
+    if (student.feePlanId.isNotEmpty) {
+      try {
+        plan = await _feePlanService.getFeePlan(academyId, student.feePlanId);
+      } catch (e) {
+        debugPrint('Error fetching fee plan during student creation: $e');
+        // Continue with default monthly mode if plan fetch fails
+      }
+    } else {
+      debugPrint('Warning: Creating student with no feePlanId.');
+    }
+
     final feeMode = (plan?.planType == FeePlanType.package) ? 'package' : 'monthly';
 
     final docRef = _studentsRef(academyId).doc();
@@ -50,11 +61,20 @@ class StudentService {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await docRef.set(newStudent.toMap());
+    
+    try {
+      await docRef.set(newStudent.toMap());
+    } catch (e) {
+      debugPrint('Firestore Error creating student: $e');
+      rethrow;
+    }
     
     // Auto-generate Fees from Plan
     if (plan != null) {
       try {
+        final className = student.className;
+        final studentName = student.name;
+
         // A. Admission Fee (If exists)
         if (plan.admissionFee > 0) {
           await _feeService.createAdmissionFee(
@@ -63,6 +83,8 @@ class StudentService {
             classId: newStudent.classId,
             feePlanId: plan.id,
             amount: plan.admissionFee,
+            studentName: studentName,
+            className: className,
           );
         }
 
@@ -75,10 +97,14 @@ class StudentService {
             feePlanId: plan.id,
             amount: plan.totalCourseFee,
             title: '${plan.name} Package Fee',
+            studentName: studentName,
+            className: className,
           );
         }
-      } catch (_) {
-        // Ignored if already exists
+      } catch (e) {
+        debugPrint('Error generating auto-fees for student: $e');
+        // We don't fail student creation just because fee generation failed,
+        // but we log it.
       }
     }
     
@@ -191,11 +217,12 @@ class StudentService {
     return newField;
   }
 
-  Future<List<Student>> getClassStudents(String academyId, String classId) async {
+  Future<List<Student>> getClassStudents(String academyId, String classId, {int limit = 500}) async {
     final snap = await _studentsRef(academyId)
         .where('classId', isEqualTo: classId)
         .where('status', isEqualTo: 'active')
         .orderBy('name')
+        .limit(limit)
         .get();
     return snap.docs.map((doc) => Student.fromMap(doc.id, doc.data())).toList();
   }

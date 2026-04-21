@@ -14,24 +14,45 @@ class FeatureService {
   CollectionReference<Map<String, dynamic>> get _groupsCol =>
       _firestore.collection('featureGroups');
 
+  List<FeatureFlag>? _cachedFeatures;
+  List<FeatureGroup>? _cachedGroups;
+  DateTime? _lastFetch;
+
+  /// Loads features with memory caching (valid for 15 mins)
+  Future<List<FeatureFlag>> getFeaturesCached({bool force = false}) async {
+    final now = DateTime.now();
+    if (!force && _cachedFeatures != null && _lastFetch != null) {
+      if (now.difference(_lastFetch!).inMinutes < 15) {
+        return _cachedFeatures!;
+      }
+    }
+    
+    _cachedFeatures = await getFeatures();
+    _lastFetch = now;
+    return _cachedFeatures!;
+  }
+
+  /// Loads groups with memory caching
+  Future<List<FeatureGroup>> getGroupsCached({bool force = false}) async {
+    if (!force && _cachedGroups != null) return _cachedGroups!;
+    _cachedGroups = await getGroups();
+    return _cachedGroups!;
+  }
+
+  /// Only for small sets where real-time is strictly required. 
+  /// Limited to 100 docs for safety.
   Stream<List<FeatureFlag>> watchFeatures() {
-    return _col.snapshots().map((snap) {
+    return _col.limit(100).snapshots().map((snap) {
       final list = snap.docs
           .map(FeatureFlag.fromDoc)
           .where((f) => !f.isDeleted)
           .toList();
 
-      // Sort in memory to avoid Firestore 'field must exist' requirement
       list.sort((a, b) {
-        // 1. Group
         final g = a.group.compareTo(b.group);
         if (g != 0) return g;
-
-        // 2. Order
         final o = a.order.compareTo(b.order);
         if (o != 0) return o;
-
-        // 3. Label
         return a.label.compareTo(b.label);
       });
 
@@ -40,15 +61,13 @@ class FeatureService {
   }
 
   Stream<List<FeatureGroup>> watchGroups() {
-    return _groupsCol.snapshots().map((snap) {
+    return _groupsCol.limit(50).snapshots().map((snap) {
       final list = snap.docs
           .map(FeatureGroup.fromDoc)
           .where((g) => !g.isDeleted)
           .toList();
 
-      // Sort in memory
       list.sort((a, b) => a.order.compareTo(b.order));
-
       return List<FeatureGroup>.unmodifiable(list);
     });
   }

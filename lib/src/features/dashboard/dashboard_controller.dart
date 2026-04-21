@@ -55,25 +55,15 @@ class DashboardPendingPaymentItem {
 
 class DashboardController extends BaseController {
   DashboardController() {
-    _subsService = AppServices.instance.adminSubscriptionsService;
-    _paymentsService = AppServices.instance.adminPaymentsService;
-    _usersService = AppServices.instance.adminUsersService;
-    _planService = AppServices.instance.planService;
-    _instituteService = AppServices.instance.instituteService;
-    _attachOrInit();
+    _onInit();
   }
+
+  void _onInit() => loadDashboard();
 
   AdminSubscriptionsService? _subsService;
   AdminPaymentsService? _paymentsService;
-  AdminUsersService? _usersService;
   PlanService? _planService;
   InstituteService? _instituteService;
-
-  StreamSubscription<List<SubscriptionRecord>>? _subsSub;
-  StreamSubscription<List<PaymentRecord>>? _paymentsSub;
-  StreamSubscription? _usersSub;
-  StreamSubscription<List<Plan>>? _plansSub;
-  StreamSubscription<List<Academy>>? _academiesSub;
 
   List<SubscriptionRecord> _subscriptions = const [];
   List<PaymentRecord> _payments = const [];
@@ -215,143 +205,57 @@ class DashboardController extends BaseController {
     return items.take(3).toList(growable: false);
   }
 
-  @override
-  void dispose() {
-    _subsSub?.cancel();
-    _paymentsSub?.cancel();
-    _usersSub?.cancel();
-    _plansSub?.cancel();
-    _academiesSub?.cancel();
-    super.dispose();
-  }
-
-  Future<void> retryInit() => _attachOrInit();
-
-  Future<void> _attachOrInit() async {
-    if (_subsService != null) {
-      _attachAll();
-      return;
-    }
-
+  Future<void> loadDashboard({bool isRefresh = false}) async {
+    // Note: local runBusy does not support isQuiet, so we always show busy state for now.
+    // In a more advanced BaseController we could add silent load support.
     await runBusy<void>(() async {
       await AppServices.instance.init();
+      
+      _subsService = AppServices.instance.adminSubscriptionsService;
+      _paymentsService = AppServices.instance.adminPaymentsService;
+      _planService = AppServices.instance.planService;
+      _instituteService = AppServices.instance.instituteService;
+
+      if (_subsService == null) {
+        errorMessage = AppServices.instance.firebaseInitError?.toString();
+        return;
+      }
+
+      // Fetch all required data in parallel once.
+      // Capped for safety to prevent huge reads on dashboard.
+      final results = await Future.wait([
+        _subsService!.getSubscriptionsBatch(limit: 50),
+        _paymentsService!.getPaymentsBatch(limit: 50),
+        _planService!.getPlans(), // Plans are usually few
+        _instituteService!.getAcademies(limit: 100),
+      ]);
+
+      _subscriptions = results[0] as List<SubscriptionRecord>;
+      _payments = results[1] as List<PaymentRecord>;
+      final plans = results[2] as List<Plan>;
+      _academies = results[3] as List<Academy>;
+
+      // Map patterns for O(1) lookups
+      final pMap = <String, Plan>{};
+      for (final p in plans) { pMap[p.id] = p; }
+      _planById = pMap;
+
+      final aMap = <String, Academy>{};
+      for (final a in _academies) { aMap[a.id] = a; }
+      _academyById = aMap;
+
+      errorMessage = null;
     });
-
-    _subsService = AppServices.instance.adminSubscriptionsService;
-    _paymentsService = AppServices.instance.adminPaymentsService;
-    _usersService = AppServices.instance.adminUsersService;
-    _planService = AppServices.instance.planService;
-    _instituteService = AppServices.instance.instituteService;
-
-    if (_subsService == null) {
-      errorMessage = AppServices.instance.firebaseInitError?.toString();
-      notifyListeners();
-      return;
-    }
-
-    _attachAll();
   }
 
-  void _attachAll() {
-    final subsSvc = _subsService;
-    if (subsSvc != null) _attachSubscriptions(subsSvc);
+  Future<void> retryInit() => loadDashboard();
 
-    final paySvc = _paymentsService;
-    if (paySvc != null) _attachPayments(paySvc);
+  Future<void> refresh() => loadDashboard(isRefresh: true);
 
-    final planSvc = _planService;
-    if (planSvc != null) _attachPlans(planSvc);
-
-    final instSvc = _instituteService;
-    if (instSvc != null) _attachAcademies(instSvc);
-
-    // Users not currently rendered, but fetching keeps door open for future KPIs.
-    final userSvc = _usersService;
-    if (userSvc != null && _usersSub == null) {
-      _usersSub = userSvc.watchUsers().listen(
-        (_) {},
-        onError: (e) {
-          // ignore: avoid_print
-          print('Users stream error: $e');
-        },
-      );
-    }
-  }
-
-  void _attachSubscriptions(AdminSubscriptionsService svc) {
-    if (_subsService == svc && _subsSub != null) return;
-    _subsService = svc;
-    _subsSub?.cancel();
-    _subsSub = svc.watchSubscriptions().listen(
-      (value) {
-        _subscriptions = value;
-        errorMessage = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        errorMessage = e.toString();
-        // ignore: avoid_print
-        print('Dashboard subscriptions error: $e');
-        notifyListeners();
-      },
-    );
-  }
-
-  void _attachPayments(AdminPaymentsService svc) {
-    if (_paymentsService == svc && _paymentsSub != null) return;
-    _paymentsService = svc;
-    _paymentsSub?.cancel();
-    _paymentsSub = svc.watchPayments().listen(
-      (value) {
-        _payments = value;
-        notifyListeners();
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('Dashboard payments error: $e');
-      },
-    );
-  }
-
-  void _attachPlans(PlanService svc) {
-    if (_planService == svc && _plansSub != null) return;
-    _planService = svc;
-    _plansSub?.cancel();
-    _plansSub = svc.watchPlans().listen(
-      (items) {
-        final map = <String, Plan>{};
-        for (final p in items) {
-          map[p.id] = p;
-        }
-        _planById = map;
-        notifyListeners();
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('Dashboard plans error: $e');
-      },
-    );
-  }
-
-  void _attachAcademies(InstituteService svc) {
-    if (_instituteService == svc && _academiesSub != null) return;
-    _instituteService = svc;
-    _academiesSub?.cancel();
-    _academiesSub = svc.watchAcademies().listen(
-      (items) {
-        _academies = items;
-        final map = <String, Academy>{};
-        for (final a in items) {
-          map[a.id] = a;
-        }
-        _academyById = map;
-        notifyListeners();
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('Dashboard academies error: $e');
-      },
-    );
+  @override
+  void dispose() {
+    // No streams to cancel anymore!
+    super.dispose();
   }
 }
 

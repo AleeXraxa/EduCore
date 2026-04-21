@@ -97,13 +97,33 @@ class NotificationService {
   }
 
   /// Fetch all notifications for the super admin panel (paginated/ordered)
-  Stream<List<AppNotification>> watchNotifications() {
+  /// Fetch recent notifications for dashboard.
+  Stream<List<AppNotification>> watchRecentNotifications({int limit = 50}) {
     return _notifications
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => AppNotification.fromFirestore(doc))
             .toList());
+  }
+
+  /// Legacy - capped for safety.
+  Stream<List<AppNotification>> watchNotifications() => watchRecentNotifications();
+
+  /// Paginated fetch for full notification history.
+  Future<List<AppNotification>> getNotificationsBatch({
+    int limit = 50,
+    DocumentSnapshot? startAfter,
+  }) async {
+    Query<Map<String, dynamic>> query = _notifications.orderBy('createdAt', descending: true);
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+    final snap = await query.limit(limit).get();
+    return snap.docs
+        .map((doc) => AppNotification.fromFirestore(doc))
+        .toList();
   }
 
   Future<void> deleteNotification(String id) async {

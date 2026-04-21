@@ -84,9 +84,11 @@ class InstituteRepository {
   }
 
   /// Streams all institutes (useful for dropdowns with few items).
+  /// Capped at 100 for safety.
   Stream<List<Institute>> watchAll() {
     return _collection
         .orderBy('nameLower')
+        .limit(100)
         .snapshots()
         .map(
           (s) => s.docs.map((doc) => Institute.fromAcademyDoc(doc)).toList(),

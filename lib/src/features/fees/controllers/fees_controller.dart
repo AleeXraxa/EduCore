@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
@@ -23,16 +24,40 @@ class FeesController extends BaseController {
   };
   Map<String, dynamic> get stats => _stats;
 
+  DocumentSnapshot? _lastDoc;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  final int _pageSize = 20;
+
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
+
   Future<void> loadInitialData() async {
+    _lastDoc = null;
+    _hasMore = true;
+    _fees = [];
+    
     await runBusy(() async {
       await Future.wait([
-        fetchFees(),
+        _fetchFeesBatch(),
         fetchStats(),
       ]);
     });
   }
 
-  Future<void> fetchFees({
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    try {
+      await _fetchFeesBatch();
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchFeesBatch({
     String? studentId,
     String? classId,
     FeeType? type,
@@ -45,35 +70,51 @@ class FeesController extends BaseController {
         classId: classId,
         type: type,
         status: status,
+        limit: _pageSize,
+        startAfter: _lastDoc,
       );
 
-      // Hydrate with names for intuitive UI rendering.
-      // Load classes unconditionally as there are usually very few
-      final classList = await AppServices.instance.classService!.getClasses(_academyId);
-      final classMap = { for (var c in classList) c.id: c.displayName };
+      if (fetchedFees.length < _pageSize) {
+        _hasMore = false;
+      }
 
-      // Load students to stitch names securely
-      // Limiting drastically reduces fetching overkill for now
-      final studentSnapshot = await AppServices.instance.studentService!.getStudentsBatch(
-        academyId: _academyId, 
-        limit: 1000 // In extreme environments, we'd batch by IDs instead
-      );
-      final studentMap = { 
-        for (var doc in studentSnapshot.docs) 
-          doc.id: doc.data()['name'] as String? 
-      };
+      if (fetchedFees.isNotEmpty) {
+        // Update cursor
+        final lastFee = fetchedFees.last;
+        _lastDoc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('fees')
+            .doc(lastFee.id)
+            .get();
 
-      _fees = fetchedFees.map((fee) {
-        return fee.copyWith(
-          className: fee.className ?? classMap[fee.classId],
-          studentName: fee.studentName ?? studentMap[fee.studentId],
-        );
-      }).toList();
+        _fees.addAll(fetchedFees);
+      }
 
       notifyListeners();
     } catch (e) {
-      debugPrint('Error fetching fees: $e');
+      debugPrint('Error fetching fees batch: $e');
+      _hasMore = false;
     }
+  }
+
+  /// Legacy fetch - wrapper around batch for compatibility
+  @Deprecated('Use loadInitialData or loadMore')
+  Future<void> fetchFees({
+    String? studentId,
+    String? classId,
+    FeeType? type,
+    FeeStatus? status,
+  }) async {
+    _lastDoc = null;
+    _hasMore = true;
+    _fees = [];
+    await _fetchFeesBatch(
+      studentId: studentId,
+      classId: classId,
+      type: type,
+      status: status,
+    );
   }
 
   Future<void> fetchStats() async {
@@ -123,6 +164,7 @@ class FeesController extends BaseController {
         return true;
       } catch (e) {
         debugPrint('Error collecting payment: $e');
+        setError(e.toString());
         return false;
       }
     })) ?? false;

@@ -55,7 +55,12 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
     if (oldWidget.value != widget.value || oldWidget.items != widget.items) {
       final newValue =
           widget.items.contains(widget.value) ? widget.value : null;
-      _controller.value = newValue;
+      if (_controller.value != newValue) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _controller.value = newValue;
+        });
+      }
     }
   }
 
@@ -127,7 +132,11 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
               maxlines: 1,
               onChanged: (value) {
                 state.didChange(value);
-                widget.onChanged(value);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    widget.onChanged(value);
+                  }
+                });
               },
               decoration: CustomDropdownDecoration(
                 closedFillColor: AppColors.surface,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -120,17 +121,42 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
               icon: Icons.check_circle_rounded,
               busy: _isLoading,
               onPressed: () async {
-                final amount = double.tryParse(_amountCtrl.text) ?? 0;
-                if (amount <= 0) return;
+                final amountText = _amountCtrl.text.trim();
+                if (amountText.isEmpty) {
+                  AppToasts.showError(context, message: 'Please enter an amount');
+                  return;
+                }
+                
+                final amount = double.tryParse(amountText) ?? 0;
+                if (amount <= 0) {
+                  AppToasts.showError(context, message: 'Invalid amount');
+                  return;
+                }
+                
+                if (amount > widget.fee.remainingAmount + 0.01) {
+                  AppToasts.showError(context, message: 'Amount exceeds remaining fee');
+                  return;
+                }
                 
                 setState(() => _isLoading = true);
-                await widget.onCollect(
-                  amount: amount,
-                  method: _method,
-                  note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-                );
-                if (!context.mounted) return;
-                Navigator.pop(context);
+                try {
+                  await widget.onCollect(
+                    amount: amount,
+                    method: _method,
+                    note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+                  );
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                } catch (e) {
+                  debugPrint('CollectPaymentDialog: Error: $e');
+                  if (context.mounted) {
+                    setState(() => _isLoading = false);
+                    AppToasts.showError(
+                      context, 
+                      message: 'Failed to collect payment: ${e.toString()}',
+                    );
+                  }
+                }
               },
             ),
           ],

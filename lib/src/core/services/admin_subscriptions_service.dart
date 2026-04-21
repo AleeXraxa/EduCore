@@ -16,11 +16,45 @@ class AdminSubscriptionsService {
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection('subscriptions');
 
+  /// Fetches a batch of subscriptions. Non-realtime.
+  Future<List<SubscriptionRecord>> getSubscriptionsBatch({
+    int limit = 50,
+    DocumentSnapshot? startAfter,
+    String? status,
+  }) async {
+    Query<Map<String, dynamic>> query = _col.orderBy('updatedAt', descending: true);
+    if (status != null) {
+      query = query.where('status', isEqualTo: status);
+    }
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+    final snap = await query.limit(limit).get();
+    return snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false);
+  }
+
+  /// Streams recent active subscriptions for dashboard visibility.
+  Stream<List<SubscriptionRecord>> watchRecentSubscriptions({int limit = 20}) {
+    return _col
+        .orderBy('updatedAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false),
+        );
+  }
+
+  /// Legacy stream - capped for safety.
+  @Deprecated('Use watchRecentSubscriptions or getSubscriptionsBatch')
   Stream<List<SubscriptionRecord>> watchSubscriptions() {
-    return _col.snapshots().map(
-      (snap) =>
-          snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false),
-    );
+    return _col
+        .orderBy('updatedAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map(SubscriptionRecord.fromDoc).toList(growable: false),
+        );
   }
 
   Stream<SubscriptionRecord?> watchSubscription(String academyId) {

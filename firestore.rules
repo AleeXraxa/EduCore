@@ -191,7 +191,7 @@ service cloud.firestore {
         allow create: if isAdminOf(academyId) && hasActiveSubscription(academyId);
         allow update: if isAdminOf(academyId) 
                          && hasActiveSubscription(academyId)
-                         && !resource.data.isLocked;
+                         && (!('isLocked' in resource.data) || resource.data.isLocked == false);
         allow delete: if false; // Only super_admin via top-level rule
 
         match /transactions/{txnId} {
@@ -226,6 +226,11 @@ service cloud.firestore {
       match /fee_plans/{planId} {
         allow read:   if belongsTo(academyId);
         allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
+      }
+
+      match /finance_summary/{docId} {
+        allow read: if belongsTo(academyId);
+        allow create, update: if isAdminOf(academyId) && hasActiveSubscription(academyId);
       }
     }
 

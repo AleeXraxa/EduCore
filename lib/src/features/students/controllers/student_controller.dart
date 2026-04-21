@@ -193,8 +193,8 @@ class StudentController extends BaseController {
         _students.insert(0, newStudent);
         success = true;
       } catch (e, st) {
-        debugPrint('Error adding student: $e $st');
-        if (e is PlanLimitExceededException) rethrow;
+        debugPrint('Error adding student in controller: $e $st');
+        rethrow; // Rethrow to let the UI handle it
       }
     });
     return success;
