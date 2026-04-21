@@ -10,6 +10,7 @@ import 'package:educore/src/features/students/controllers/student_controller.dar
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/views/student_form_dialog.dart';
+import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -81,6 +82,14 @@ class _StudentsViewState extends State<StudentsView> {
     }
   }
 
+  void _showBulkImport() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const BulkImportDialog(),
+    );
+  }
+
   void _showStudentProfile(Student student) {
     showDialog(
       context: context,
@@ -142,6 +151,7 @@ class _StudentsViewState extends State<StudentsView> {
                     controller: controller,
                     searchController: _searchController,
                     onAddStudent: canCreate ? () => _showStudentForm() : null,
+                    onBulkImport: canCreate ? _showBulkImport : null,
                     onRefresh: () => controller.loadInitialData(),
                     errorMessage: controller.errorMessage,
                     selectedClass: _selectedClassId,
@@ -336,6 +346,7 @@ class _StudentsHeader extends StatelessWidget {
     required this.controller,
     required this.searchController,
     required this.onAddStudent,
+    this.onBulkImport,
     required this.onRefresh,
     this.errorMessage,
     required this.selectedClass,
@@ -348,6 +359,7 @@ class _StudentsHeader extends StatelessWidget {
   final StudentController controller;
   final TextEditingController searchController;
   final VoidCallback? onAddStudent;
+  final VoidCallback? onBulkImport;
   final VoidCallback onRefresh;
   final String? errorMessage;
   final String? selectedClass;
@@ -405,6 +417,23 @@ class _StudentsHeader extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (isDesktop && onBulkImport != null) ...[
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: onBulkImport,
+                  icon: const Icon(Icons.upload_file_rounded, size: 20),
+                  label: const Text('Bulk Import'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           if (errorMessage != null) ...[

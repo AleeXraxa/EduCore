@@ -13,6 +13,8 @@ class Student {
     required this.feePlanId,
     this.feePlanName,
     this.feeMode = 'monthly',
+    this.email,
+    this.rollNo,
     required this.createdAt,
     required this.updatedAt,
     this.customFields = const {},
@@ -22,6 +24,8 @@ class Student {
   final String name;
   final String fatherName;
   final String phone;
+  final String? email;
+  final String? rollNo;
   final String classId; // Source of truth
   final String className; // Optional cache
   final DateTime admissionDate;
@@ -45,6 +49,8 @@ class Student {
     String? feePlanId,
     String? feePlanName,
     String? feeMode,
+    String? email,
+    String? rollNo,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? customFields,
@@ -54,6 +60,8 @@ class Student {
       name: name ?? this.name,
       fatherName: fatherName ?? this.fatherName,
       phone: phone ?? this.phone,
+      email: email ?? this.email,
+      rollNo: rollNo ?? this.rollNo,
       classId: classId ?? this.classId,
       className: className ?? this.className,
       admissionDate: admissionDate ?? this.admissionDate,
@@ -79,6 +87,8 @@ class Student {
       'feePlanId': feePlanId,
       'feePlanName': feePlanName,
       'feeMode': feeMode,
+      'email': email,
+      'rollNo': rollNo,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'customFields': customFields,
@@ -99,6 +109,8 @@ class Student {
       feePlanId: map['feePlanId'] ?? '',
       feePlanName: map['feePlanName'],
       feeMode: map['feeMode'] ?? 'monthly',
+      email: map['email'],
+      rollNo: map['rollNo'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       customFields: Map<String, dynamic>.from(map['customFields'] ?? {}),
