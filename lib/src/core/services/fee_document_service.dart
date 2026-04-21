@@ -6,6 +6,7 @@ import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/fees/services/bank_challan_generator.dart';
+import 'package:educore/src/features/fees/models/document_settings.dart';
 import 'package:intl/intl.dart';
 
 /// Manages the lifecycle of fee financial documents (Challans and Receipts).
@@ -29,6 +30,13 @@ class FeeDocumentService {
           .doc(academyId)
           .collection('settings')
           .doc('document_counters');
+
+  DocumentReference<Map<String, dynamic>> _settings(String academyId) =>
+      _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('settings')
+          .doc('document_settings');
 
   // ── Number generation ──────────────────────────────────────────────────────
 
@@ -315,6 +323,45 @@ class FeeDocumentService {
       finePerDay: finePerDay,
       totalFine: totalFine,
     );
+  }
+
+  // ── Document Customization ─────────────────────────────────────────────────
+
+  /// Fetches the dynamic document settings for an academy.
+  Future<DocumentSettings> getDocumentSettings(String academyId) async {
+    try {
+      final snap = await _settings(academyId).get();
+      if (!snap.exists) return const DocumentSettings();
+      return DocumentSettings.fromMap(snap.data()!);
+    } catch (e) {
+      debugPrint('FeeDocumentService: Failed to fetch settings: $e');
+      return const DocumentSettings();
+    }
+  }
+
+  /// Updates document settings and logs the audit trail.
+  Future<void> updateDocumentSettings(
+    String academyId,
+    DocumentSettings settings, {
+    required String actorId,
+  }) async {
+    final oldSnap = await _settings(academyId).get();
+    final oldData = oldSnap.data() ?? {};
+
+    await _settings(academyId).set(settings.toMap());
+
+    await _audit.logAction(
+      action: 'document_settings_updated',
+      module: 'fees',
+      targetId: academyId,
+      targetType: 'academy',
+      metadata: {
+        'actorId': actorId,
+        'before': oldData,
+        'after': settings.toMap(),
+      },
+    );
+    debugPrint('FeeDocumentService: Settings updated for $academyId');
   }
 
   // ── Quick academy id ───────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ enum SettingsSection {
   notificationSettings,
   security,
   systemPreferences,
+  documentCustomization,
 }
 
 enum Currency { pkr, usd }

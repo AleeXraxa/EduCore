@@ -19,6 +19,7 @@ class AppTextField extends StatefulWidget {
     this.onChanged,
     this.validator,
     this.autofillHints,
+    this.maxLines = 1,
   });
 
   final TextEditingController? controller;
@@ -36,6 +37,7 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
   final List<String>? autofillHints;
+  final int? maxLines;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -82,6 +84,7 @@ class _AppTextFieldState extends State<AppTextField> {
       onChanged: widget.onChanged,
       validator: widget.validator,
       autofillHints: widget.autofillHints,
+      maxLines: widget.maxLines,
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hintText,

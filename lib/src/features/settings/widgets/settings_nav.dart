@@ -84,6 +84,11 @@ const _items = <_SettingsNavItem>[
     icon: Icons.payments_rounded,
   ),
   _SettingsNavItem(
+    section: SettingsSection.documentCustomization,
+    label: 'Document Customization',
+    icon: Icons.description_rounded,
+  ),
+  _SettingsNavItem(
     section: SettingsSection.notificationSettings,
     label: 'Notifications',
     icon: Icons.notifications_active_rounded,

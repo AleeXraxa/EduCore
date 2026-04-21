@@ -10,6 +10,7 @@ import 'package:educore/src/features/fees/widgets/generate_monthly_fees_dialog.d
 import 'package:educore/src/features/fees/widgets/create_other_fee_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_details_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
+import 'package:educore/src/features/fees/screens/document_customization_screen.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:intl/intl.dart';
 

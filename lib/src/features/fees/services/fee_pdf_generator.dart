@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/fees/models/fee_transaction.dart';
+import 'package:educore/src/features/fees/models/document_settings.dart';
 
 /// Data bag passed to the PDF generator (avoids passing raw models).
 class FeeDocumentData {
@@ -18,7 +19,9 @@ class FeeDocumentData {
     required this.documentMode, // 'challan' | 'receipt'
     this.challanNumber,
     this.receiptNumber,
+    this.fatherName,
     this.generatedAt,
+    this.settings = const DocumentSettings(),
   });
 
   final Fee fee;
@@ -30,7 +33,9 @@ class FeeDocumentData {
   final String documentMode;
   final String? challanNumber;
   final String? receiptNumber;
+  final String? fatherName;
   final DateTime? generatedAt;
+  final DocumentSettings settings;
 }
 
 /// Generates professional A4 PDF documents for fee challans and receipts.
@@ -45,6 +50,7 @@ class FeePdfGenerator {
   static const PdfColor _textDark = PdfColor.fromInt(0xFF1A237E);
   static const PdfColor _textMuted = PdfColor.fromInt(0xFF546E7A);
   static const PdfColor _white = PdfColor.fromInt(0xFFFFFFFF);
+  static const PdfColor _whiteMuted = PdfColor.fromInt(0xE6FFFFFF);
 
   static final _currencyFmt = NumberFormat('#,##0.00', 'en_US');
   static final _dateFmt = DateFormat('dd MMM yyyy');
@@ -108,15 +114,10 @@ class FeePdfGenerator {
               ),
             pw.SizedBox(height: 14),
             _buildAmountSummary(data, fontBlack, fontBold, font),
-            if (data.documentMode == 'challan')
-              pw.Column(
-                children: [
-                  pw.SizedBox(height: 14),
-                  _buildPaymentInstructions(fontBold, font),
-                ],
-              ),
+            pw.SizedBox(height: 14),
+            _buildNoteSection(data, font),
             pw.Spacer(),
-            _buildFooter(data, fontBold, font),
+            _buildFooterBranding(data, font, fontBold),
           ],
         ),
       ),
@@ -133,101 +134,103 @@ class FeePdfGenerator {
     pw.Font fontBold,
     pw.Font font,
   ) {
+    final dynamic s = data.documentMode == 'challan'
+        ? data.settings.challanSettings
+        : data.settings.receiptSettings;
+
     return pw.Container(
-      decoration: pw.BoxDecoration(
-        gradient: pw.LinearGradient(
-          colors: [_primaryColor, _accentColor],
-          begin: pw.Alignment.centerLeft,
-          end: pw.Alignment.centerRight,
+      padding: const pw.EdgeInsets.all(24),
+      decoration: const pw.BoxDecoration(
+        color: _primaryColor,
+        borderRadius: pw.BorderRadius.only(
+          topLeft: pw.Radius.circular(12),
+          topRight: pw.Radius.circular(12),
         ),
-        borderRadius: pw.BorderRadius.circular(12),
       ),
-      child: pw.Padding(
-        padding: const pw.EdgeInsets.all(24),
-        child: pw.Row(
-          children: [
-            // Logo placeholder (circle with initials)
+      child: pw.Row(
+        children: [
+          if (s.showLogo) ...[
             pw.Container(
-              width: 60,
-              height: 60,
-              decoration: pw.BoxDecoration(
+              width: 70,
+              height: 70,
+              decoration: const pw.BoxDecoration(
                 color: _white,
                 shape: pw.BoxShape.circle,
               ),
               child: pw.Center(
                 child: pw.Text(
-                  _initials(data.academyName),
+                  data.academyName.substring(0, 1).toUpperCase(),
                   style: pw.TextStyle(
+                    fontSize: 32,
                     font: fontBlack,
-                    fontSize: 22,
                     color: _primaryColor,
                   ),
                 ),
               ),
             ),
-            pw.SizedBox(width: 20),
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
+            pw.SizedBox(width: 24),
+          ],
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if (s.showInstituteName)
                   pw.Text(
                     data.academyName.toUpperCase(),
                     style: pw.TextStyle(
+                      fontSize: 22,
                       font: fontBlack,
-                      fontSize: 18,
                       color: _white,
-                      letterSpacing: 1,
+                      letterSpacing: 1.2,
                     ),
                   ),
-                  if (data.academyAddress.isNotEmpty) ...[
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      data.academyAddress,
-                      style: pw.TextStyle(
-                        font: font,
-                        fontSize: 10,
-                        color: _white,
+                pw.SizedBox(height: 4),
+                if (s.showAddress && data.academyAddress.isNotEmpty)
+                  pw.Text(
+                    data.academyAddress,
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      font: font,
+                      color: _whiteMuted,
+                    ),
+                  ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  children: [
+                    if (s.showPhone && data.academyPhone.isNotEmpty)
+                      pw.Text(
+                        'Phone: ${data.academyPhone}',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          font: font,
+                          color: _whiteMuted,
+                        ),
                       ),
-                    ),
+                    if (s.showPhone &&
+                        data.academyPhone.isNotEmpty &&
+                        data.academyEmail.isNotEmpty)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+                        child: pw.Text(
+                          '|',
+                          style: pw.TextStyle(color: _white, fontSize: 10),
+                        ),
+                      ),
+                    if (data.academyEmail.isNotEmpty)
+                      pw.Text(
+                        'Email: ${data.academyEmail}',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          font: font,
+                          color: _whiteMuted,
+                        ),
+                      ),
                   ],
-                  pw.SizedBox(height: 4),
-                  pw.Row(
-                    children: [
-                      if (data.academyPhone.isNotEmpty)
-                        pw.Text(
-                          'Phone: ${data.academyPhone}',
-                          style: pw.TextStyle(
-                            font: font,
-                            fontSize: 9,
-                            color: _white,
-                          ),
-                        ),
-                      if (data.academyPhone.isNotEmpty &&
-                          data.academyEmail.isNotEmpty)
-                        pw.Text(
-                          '   |   ',
-                          style: pw.TextStyle(
-                            font: font,
-                            fontSize: 9,
-                            color: _white,
-                          ),
-                        ),
-                      if (data.academyEmail.isNotEmpty)
-                        pw.Text(
-                          'Email: ${data.academyEmail}',
-                          style: pw.TextStyle(
-                            font: font,
-                            fontSize: 9,
-                            color: _white,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -331,79 +334,67 @@ class FeePdfGenerator {
     pw.Font fontBold,
     pw.Font font,
   ) {
-    final fee = data.fee;
+    final dynamic s = data.documentMode == 'challan'
+        ? data.settings.challanSettings
+        : data.settings.receiptSettings;
+
+    if (!s.showStudentInfo) return pw.SizedBox.shrink();
+
     return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
-        color: _tableBg,
-        borderRadius: pw.BorderRadius.circular(8),
         border: pw.Border.all(color: _borderColor),
+        borderRadius: pw.BorderRadius.circular(8),
       ),
-      child: pw.Padding(
-        padding: const pw.EdgeInsets.all(16),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              'STUDENT INFORMATION',
-              style: pw.TextStyle(
-                font: fontBold,
-                fontSize: 9,
-                color: _primaryColor,
-                letterSpacing: 1.2,
+      child: pw.Column(
+        children: [
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: _infoField(
+                  'Student Name',
+                  data.fee.studentName ?? '',
+                  fontBold,
+                  font,
+                ),
               ),
-            ),
-            pw.Divider(color: _borderColor, height: 16),
-            pw.Row(
-              children: [
+              if (s.showFatherName)
                 pw.Expanded(
-                  child: pw.Column(
-                    children: [
-                      _infoRow(
-                        'Student Name',
-                        fee.studentName ?? fee.studentId,
-                        fontBold,
-                        font,
-                      ),
-                      _infoRow(
-                        'Class',
-                        fee.className ?? fee.classId,
-                        fontBold,
-                        font,
-                      ),
-                      _infoRow('Student ID', fee.studentId, fontBold, font),
-                    ],
+                  child: _infoField(
+                    'Father Name',
+                    data.fatherName ?? '',
+                    fontBold,
+                    font,
                   ),
                 ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            children: [
+              if (s.showClassSection)
                 pw.Expanded(
-                  child: pw.Column(
-                    children: [
-                      _infoRow(
-                        'Fee Type',
-                        _feeTypeLabel(fee.type),
-                        fontBold,
-                        font,
-                      ),
-                      if (fee.month != null)
-                        _infoRow(
-                          'Applicable Month',
-                          fee.month!,
-                          fontBold,
-                          font,
-                        ),
-                      if (fee.dueDate != null)
-                        _infoRow(
-                          'Due Date',
-                          _dateFmt.format(fee.dueDate!),
-                          fontBold,
-                          font,
-                        ),
-                    ],
+                  child: _infoField(
+                    'Class',
+                    data.fee.className ?? '',
+                    fontBold,
+                    font,
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              pw.Expanded(
+                child: _infoField('Fee Type', data.fee.title, fontBold, font),
+              ),
+              pw.Expanded(
+                child: _infoField(
+                  'Student ID',
+                  data.fee.studentId,
+                  fontBold,
+                  font,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -581,7 +572,13 @@ class FeePdfGenerator {
   ) {
     final fee = data.fee;
     final isChallan = data.documentMode == 'challan';
+    final dynamic s = isChallan
+        ? data.settings.challanSettings
+        : data.settings.receiptSettings;
     final totalColor = isChallan ? _warningColor : _successColor;
+
+    if (isChallan && !s.showFeeTable) return pw.SizedBox.shrink();
+    if (!isChallan && !s.showFeeBreakdown) return pw.SizedBox.shrink();
 
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.end,
@@ -611,7 +608,7 @@ class FeePdfGenerator {
                     font,
                     valueColor: _successColor,
                   ),
-                if (fee.paidAmount > 0 && !isChallan)
+                if (fee.paidAmount > 0 && !isChallan && s.showPaymentDetails)
                   _summaryRow(
                     'Amount Paid',
                     'Rs. ${_currencyFmt.format(fee.paidAmount)}',
@@ -669,69 +666,164 @@ class FeePdfGenerator {
     );
   }
 
-  // ── Payment Instructions (Challan only) ───────────────────────────────────
+  // ── Note Section ──────────────────────────────────────────────────────────
 
-  static pw.Widget _buildPaymentInstructions(pw.Font fontBold, pw.Font font) {
-    return pw.Container(
-      decoration: pw.BoxDecoration(
-        color: PdfColor.fromInt(0xFFFFF3E0),
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: PdfColor.fromInt(0xFFFFCC80)),
-      ),
-      child: pw.Padding(
-        padding: const pw.EdgeInsets.all(16),
+  static pw.Widget _buildNoteSection(FeeDocumentData data, pw.Font font) {
+    final dynamic s = data.documentMode == 'challan'
+        ? data.settings.challanSettings
+        : data.settings.receiptSettings;
+    final String note = data.documentMode == 'challan'
+        ? data.settings.challanSettings.footerNote
+        : data.settings.receiptSettings.footerNote;
+
+    if (note.isEmpty) {
+      if (data.documentMode == 'receipt') return pw.SizedBox.shrink();
+
+      return pw.Container(
+        padding: const pw.EdgeInsets.all(12),
+        decoration: pw.BoxDecoration(
+          color: const PdfColor.fromInt(0xFFFFF3E0),
+          borderRadius: pw.BorderRadius.circular(8),
+        ),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
               'PAYMENT INSTRUCTIONS',
               style: pw.TextStyle(
-                font: fontBold,
                 fontSize: 9,
-                color: _warningColor,
-                letterSpacing: 1.2,
+                font: font,
+                fontWeight: pw.FontWeight.bold,
+                color: const PdfColor.fromInt(0xFFE65100),
               ),
             ),
-            pw.SizedBox(height: 8),
-            pw.Text(
-              '• Please pay the exact amount mentioned above before the due date.\n'
-              '• Retain this challan as your payment reference.\n'
-              '• Payment can be made in Cash, Bank Transfer, or Online.\n'
-              '• Contact the institute office for any discrepancies.',
-              style: pw.TextStyle(
-                font: font,
-                fontSize: 9,
-                color: _textMuted,
-                lineSpacing: 4,
-              ),
+            pw.SizedBox(height: 6),
+            _noteBullet(
+              'Please pay the exact amount mentioned above before the due date.',
+              font,
+            ),
+            _noteBullet('Retain this challan as your payment reference.', font),
+            _noteBullet(
+              'Payment can be made in Cash, Bank Transfer, or Online.',
+              font,
+            ),
+            _noteBullet(
+              'Contact the institute office for any discrepancies.',
+              font,
             ),
           ],
         ),
+      );
+    }
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: _lightBg,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: _borderColor, width: 0.5),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'NOTE',
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: _primaryColor,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            note,
+            style: pw.TextStyle(fontSize: 9, font: font, color: _textDark),
+          ),
+        ],
       ),
     );
   }
 
   // ── Footer ────────────────────────────────────────────────────────────────
 
-  static pw.Widget _buildFooter(
+  static pw.Widget _buildFooterBranding(
     FeeDocumentData data,
-    pw.Font fontBold,
     pw.Font font,
+    pw.Font fontBold,
   ) {
+    final dynamic s = data.documentMode == 'challan'
+        ? data.settings.challanSettings
+        : data.settings.receiptSettings;
+
     return pw.Column(
       children: [
-        pw.Divider(color: _borderColor),
+        if (s.showSignature) ...[
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Column(
+                children: [
+                  pw.Container(
+                    width: 150,
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(bottom: pw.BorderSide(width: 0.5)),
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    data.documentMode == 'challan'
+                        ? 'Authorized Signature'
+                        : 'Collected By',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      font: font,
+                      color: _textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+        ],
+        pw.Divider(color: _borderColor, thickness: 0.5),
         pw.SizedBox(height: 8),
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'Generated: ${_dateTimeFmt.format(DateTime.now())}',
-              style: pw.TextStyle(font: font, fontSize: 8, color: _textMuted),
+              'Generated: ${_dateTimeFmt.format(data.generatedAt ?? DateTime.now())}',
+              style: pw.TextStyle(fontSize: 7, font: font, color: _textMuted),
             ),
-            pw.Text(
-              'System-generated document — No signature required',
-              style: pw.TextStyle(font: font, fontSize: 8, color: _textMuted),
+            pw.Column(
+              children: [
+                pw.Text(
+                  'System generated document — No signature required',
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    font: font,
+                    color: _textMuted,
+                  ),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  'EduCore — Powered by TryUnity Solutions',
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    font: font,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _primaryColor,
+                  ),
+                ),
+                pw.Text(
+                  'Email: infotryunity@gmail.com | Phone: +92-302-3476605',
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    font: font,
+                    color: _textMuted,
+                  ),
+                ),
+              ],
             ),
             pw.Text(
               data.academyName,
@@ -787,6 +879,59 @@ class FeePdfGenerator {
           color: color ?? (isHeader ? _white : _textDark),
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
+      ),
+    );
+  }
+
+  static pw.Widget _infoField(
+    String label,
+    String value,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          label.toUpperCase(),
+          style: pw.TextStyle(
+            font: font,
+            fontSize: 7,
+            color: _textMuted,
+            letterSpacing: 0.5,
+          ),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          value,
+          style: pw.TextStyle(font: fontBold, fontSize: 10, color: _textDark),
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _noteBullet(String text, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 4),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            '• ',
+            style: pw.TextStyle(font: font, fontSize: 9, color: _primaryColor),
+          ),
+          pw.Expanded(
+            child: pw.Text(
+              text,
+              style: pw.TextStyle(
+                font: font,
+                fontSize: 8.5,
+                color: _textDark,
+                lineSpacing: 2,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

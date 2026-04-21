@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/services/fee_document_service.dart';
 import 'package:educore/src/features/fees/services/fee_pdf_generator.dart';
 import 'package:educore/src/features/fees/services/bank_challan_generator.dart';
+import 'package:educore/src/features/fees/models/document_settings.dart';
 import 'package:educore/src/features/fees/views/fee_document_preview_page.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
@@ -28,6 +30,7 @@ class FeeDocumentDialog extends StatefulWidget {
 
 class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
   final _docService = FeeDocumentService();
+  final _firestore = FirebaseFirestore.instance;
   bool _isGenerating = false;
   bool _isPrinting = false;
   bool _isSharing = false;
@@ -93,48 +96,60 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
     }
   }
 
-  Future<FeeDocumentData> _buildDocData() async {
-    final academyId = FeeDocumentService.currentAcademyId;
-    final [info, txns] = await Future.wait([
-      _docService.getAcademyInfo(academyId),
-      _docService.getAllTransactions(academyId, widget.fee.id),
-    ]);
-    return FeeDocumentData(
-      fee: widget.fee,
-      transactions: txns as List<FeeTransaction>,
-      academyName: (info as Map<String, String>)['name']!,
-      academyAddress: info['address']!,
-      academyPhone: info['phone']!,
-      academyEmail: info['email']!,
-      documentMode: widget.mode,
-      challanNumber: widget.mode == 'challan' ? _documentNumber : null,
-      receiptNumber: widget.mode == 'receipt' ? _documentNumber : null,
-      generatedAt: DateTime.now(),
-    );
+  Future<FeeDocumentData?> _buildDocData([DocumentSettings? settings]) async {
+    try {
+      final academyId = FeeDocumentService.currentAcademyId;
+      final docSettings = settings ?? await _docService.getDocumentSettings(academyId);
+      final [info, txns, studentSnap] = await Future.wait([
+        _docService.getAcademyInfo(academyId),
+        _docService.getAllTransactions(academyId, widget.fee.id),
+        _firestore.collection('students').doc(widget.fee.studentId).get(),
+      ]);
+      
+      final studentData = (studentSnap as DocumentSnapshot).data() as Map<String, dynamic>?;
+      final fatherName = studentData?['fatherName'] as String? ?? '';
+
+      return FeeDocumentData(
+        fee: widget.fee,
+        transactions: txns as List<FeeTransaction>,
+        academyName: (info as Map<String, String>)['name']!,
+        academyAddress: info['address']!,
+        academyPhone: info['phone']!,
+        academyEmail: info['email']!,
+        documentMode: widget.mode,
+        challanNumber: widget.mode == 'challan' ? _documentNumber : null,
+        receiptNumber: widget.mode == 'receipt' ? _documentNumber : null,
+        fatherName: fatherName,
+        generatedAt: DateTime.now(),
+        settings: docSettings,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> _preview() async {
     setState(() => _isPrinting = true);
     try {
+      final academyId = FeeDocumentService.currentAcademyId;
+      final settings = await _docService.getDocumentSettings(academyId);
+
       if (widget.mode == 'challan') {
-        // For Challan mode, the primary document is the Bank Voucher
-        final academyId = FeeDocumentService.currentAcademyId;
-        final data =
-            await _docService.getBankChallanData(academyId, widget.fee.id);
+        final data = await _docService.getBankChallanData(academyId, widget.fee.id);
+        final dataWithSettings = data.copyWith(settings: settings);
         if (mounted) {
           await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => FeeDocumentPreviewPage(
                 title: 'Bank Challan - ${data.challanNumber}',
-                buildPdf: (format) => BankChallanPdfGenerator.generateBytes(data),
+                buildPdf: (format) => BankChallanPdfGenerator.generateBytes(dataWithSettings),
               ),
             ),
           );
         }
       } else {
-        // For Receipt mode, use the Professional Portrait layout
-        final data = await _buildDocData();
-        if (mounted) {
+        final data = await _buildDocData(settings);
+        if (data != null && mounted) {
           await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => FeeDocumentPreviewPage(
@@ -155,14 +170,18 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
   Future<void> _share() async {
     setState(() => _isSharing = true);
     try {
+      final academyId = FeeDocumentService.currentAcademyId;
+      final settings = await _docService.getDocumentSettings(academyId);
+
       if (widget.mode == 'challan') {
-        final academyId = FeeDocumentService.currentAcademyId;
-        final data =
-            await _docService.getBankChallanData(academyId, widget.fee.id);
-        await BankChallanPdfGenerator.shareDocument(data);
+        final data = await _docService.getBankChallanData(academyId, widget.fee.id);
+        final dataWithSettings = data.copyWith(settings: settings);
+        await BankChallanPdfGenerator.shareDocument(dataWithSettings);
       } else {
-        final data = await _buildDocData();
-        await FeePdfGenerator.shareDocument(data);
+        final data = await _buildDocData(settings);
+        if (data != null) {
+          await FeePdfGenerator.shareDocument(data);
+        }
       }
     } catch (e) {
       if (mounted) AppToasts.showError(context, message: 'Share failed: $e');
@@ -174,7 +193,9 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
   Future<void> _previewPortrait() async {
     setState(() => _isPrinting = true);
     try {
-      final data = await _buildDocData();
+      final academyId = FeeDocumentService.currentAcademyId;
+      final settings = await _docService.getDocumentSettings(academyId);
+      final data = await _buildDocData(settings);
       
       if (data != null && mounted) {
         await Navigator.of(context, rootNavigator: true).push(

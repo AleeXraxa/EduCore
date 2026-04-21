@@ -11,6 +11,7 @@ import 'package:educore/src/features/settings/widgets/sections/payment_settings_
 import 'package:educore/src/features/settings/widgets/sections/plan_features_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/security_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/system_preferences_panel.dart';
+import 'package:educore/src/features/settings/widgets/sections/document_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/settings_nav.dart';
 import 'package:flutter/material.dart';
 
@@ -190,6 +191,8 @@ class _SectionBody extends StatelessWidget {
         PlanFeaturesPanel(controller: controller),
       SettingsSection.paymentSettings =>
         PaymentSettingsPanel(controller: controller),
+      SettingsSection.documentCustomization =>
+        DocumentSettingsPanel(controller: controller),
       SettingsSection.notificationSettings =>
         NotificationSettingsPanel(controller: controller),
       SettingsSection.security => SecuritySettingsPanel(controller: controller),
