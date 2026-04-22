@@ -70,20 +70,21 @@ class _StaffListViewState extends State<StaffListView> {
   }
 
   Future<void> _handleDelete(StaffMember staff) async {
-    final confirmed = await AppDialogs.showConfirm(
+    final confirmed = await AppDialogs.showDeleteConfirmation(
       context,
-      title: 'Delete Staff',
-      message: 'Are you sure you want to delete ${staff.name}? This will block their login access.',
-      confirmLabel: 'Delete',
-      isDanger: true,
+      message: 'Are you sure you want to delete ${staff.name}? This will permanently block their access.',
     );
 
     if (confirmed == true) {
-      if (mounted) AppDialogs.showLoading(context, message: 'Deleting staff...');
+      if (mounted) AppDialogs.showLoading(context, message: 'Deleting record...');
       await _controller.deleteStaff(staff.id);
       if (mounted) {
-        AppDialogs.hide(context);
-        AppToasts.showSuccess(context, message: 'Staff deleted successfully.');
+        AppDialogs.hideLoading(context);
+        AppDialogs.showSuccess(
+          context,
+          title: 'Staff Deleted',
+          message: 'Account for ${staff.name} has been removed.',
+        );
       }
     }
   }

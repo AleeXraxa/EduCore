@@ -55,7 +55,23 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isBusy = true);
+    final isEditing = widget.staff != null;
+
+    // STEP 1: Confirmation
+    final confirmed = isEditing
+        ? await AppDialogs.showEditConfirmation(context)
+        : await AppDialogs.showAddConfirmation(context);
+
+    if (confirmed != true) return;
+
+    // STEP 2: Loading
+    if (mounted) {
+      AppDialogs.showLoading(
+        context,
+        message: isEditing ? 'Updating record...' : 'Creating account...',
+      );
+    }
+
     try {
       if (widget.staff == null) {
         await widget.controller.addStaff(
@@ -77,16 +93,22 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
           ),
         );
       }
+      
+      // STEP 3: Feedback
       if (mounted) {
-        Navigator.pop(context);
-        AppToasts.showSuccess(
+        AppDialogs.hideLoading(context);
+        Navigator.pop(context); // Close form
+        AppDialogs.showSuccess(
           context,
-          message: 'Staff ${widget.staff == null ? 'created' : 'updated'} successfully.',
+          title: isEditing ? 'Update Successful' : 'Account Created',
+          message: isEditing 
+              ? 'Staff member information has been updated.' 
+              : 'A new staff account has been provisioned successfully.',
         );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isBusy = false);
+        AppDialogs.hideLoading(context);
         if (e is PlanLimitExceededException) {
           AppDialogs.showLimitReached(
             context,
@@ -96,9 +118,10 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
             },
           );
         } else {
-          AppToasts.showError(
+          AppDialogs.showError(
             context,
-            message: 'Error: ${e.toString()}',
+            title: 'Operation Failed',
+            message: e.toString(),
           );
         }
       }
@@ -212,7 +235,7 @@ class _AddEditStaffDialogState extends State<AddEditStaffDialog> {
                     child: AppPrimaryButton(
                       label: isEditing ? 'Update Staff' : 'Create Account',
                       onPressed: _submit,
-                      busy: _isBusy,
+                      busy: false,
                     ),
                   ),
                 ],

@@ -1,5 +1,6 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/attendance/controllers/attendance_controller.dart';
 import 'package:educore/src/features/attendance/controllers/attendance_report_controller.dart';
@@ -1602,8 +1603,29 @@ class _AttendanceMarkingPanel extends StatelessWidget {
                 Expanded(
                   child: FilledButton(
                     onPressed: () async {
-                      await controller.saveAttendance();
-                      if (context.mounted) Navigator.pop(context);
+                      AppDialogs.showLoading(context, message: 'Saving records...');
+
+                      try {
+                        await controller.saveAttendance();
+                        if (context.mounted) {
+                          AppDialogs.hideLoading(context);
+                          Navigator.pop(context);
+                          AppDialogs.showSuccess(
+                            context,
+                            title: 'Attendance Saved',
+                            message: 'Daily attendance records have been synchronized successfully.',
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          AppDialogs.hideLoading(context);
+                          AppDialogs.showError(
+                            context,
+                            title: 'Submission Failed',
+                            message: 'An error occurred while saving attendance records.',
+                          );
+                        }
+                      }
                     },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),

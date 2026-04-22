@@ -57,7 +57,8 @@ class _ClassesViewState extends State<ClassesView> {
                         children: [
                           Text(
                             'Class Management',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -1.2,
                                 ),
@@ -65,7 +66,8 @@ class _ClassesViewState extends State<ClassesView> {
                           const SizedBox(height: 4),
                           Text(
                             'Define classes, sections, and assign class teachers.',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
                                   color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -75,7 +77,7 @@ class _ClassesViewState extends State<ClassesView> {
                     ),
                     const SizedBox(width: 32),
                     AppSearchField(
-                      width: 320, 
+                      width: 320,
                       hintText: 'Search classes...',
                       onChanged: controller.setSearchQuery,
                     ),
@@ -85,7 +87,8 @@ class _ClassesViewState extends State<ClassesView> {
                         onPressed: () {
                           showDialog(
                             context: context,
-                            builder: (_) => AddEditClassDialog(controller: controller),
+                            builder: (_) =>
+                                AddEditClassDialog(controller: controller),
                           );
                         },
                         icon: Icons.add_rounded,
@@ -97,8 +100,14 @@ class _ClassesViewState extends State<ClassesView> {
               const SizedBox(height: 48),
               if (controller.busy && controller.classes.isEmpty)
                 const Center(child: CircularProgressIndicator())
-              else if (controller.errorMessage != null && controller.classes.isEmpty)
-                Center(child: Text(controller.errorMessage!, style: TextStyle(color: cs.error)))
+              else if (controller.errorMessage != null &&
+                  controller.classes.isEmpty)
+                Center(
+                  child: Text(
+                    controller.errorMessage!,
+                    style: TextStyle(color: cs.error),
+                  ),
+                )
               else if (controller.classes.isEmpty)
                 AppAnimatedSlide(
                   delayIndex: 1,
@@ -108,35 +117,45 @@ class _ClassesViewState extends State<ClassesView> {
                     decoration: BoxDecoration(
                       color: cs.surface,
                       borderRadius: AppRadii.r24,
-                      border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: cs.outlineVariant.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.class_outlined, size: 64, color: cs.primary.withValues(alpha: 0.2)),
+                        Icon(
+                          Icons.class_outlined,
+                          size: 64,
+                          color: cs.primary.withValues(alpha: 0.2),
+                        ),
                         const SizedBox(height: 24),
                         Text(
-                          controller.searchQuery?.isNotEmpty == true ? 'No matches found' : 'No Classes Defined',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                          controller.searchQuery?.isNotEmpty == true
+                              ? 'No matches found'
+                              : 'No Classes Defined',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          controller.searchQuery?.isNotEmpty == true 
+                          controller.searchQuery?.isNotEmpty == true
                               ? 'Try adjusting your search criteria.'
                               : 'Get started by creating your first class and adding sections.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 color: cs.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
                         const SizedBox(height: 32),
-                        if (controller.canCreate && (controller.searchQuery?.isEmpty ?? true))
+                        if (controller.canCreate &&
+                            (controller.searchQuery?.isEmpty ?? true))
                           AppPrimaryButton(
                             onPressed: () {
                               showDialog(
                                 context: context,
-                                builder: (_) => AddEditClassDialog(controller: controller),
+                                builder: (_) =>
+                                    AddEditClassDialog(controller: controller),
                               );
                             },
                             label: 'Create First Class',
@@ -151,12 +170,13 @@ class _ClassesViewState extends State<ClassesView> {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 380,
-                      mainAxisExtent: 200,
-                      crossAxisSpacing: 24,
-                      mainAxisSpacing: 24,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 380,
+                          mainAxisExtent: 200,
+                          crossAxisSpacing: 24,
+                          mainAxisSpacing: 24,
+                        ),
                     itemCount: controller.classes.length,
                     itemBuilder: (context, index) {
                       final cls = controller.classes[index];
@@ -174,14 +194,14 @@ class _ClassesViewState extends State<ClassesView> {
 
 class _ClassCard extends StatelessWidget {
   const _ClassCard({required this.classData, required this.controller});
-  
+
   final InstituteClass classData;
   final ClassesController controller;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: cs.surface,
@@ -192,7 +212,7 @@ class _ClassCard extends StatelessWidget {
             color: cs.shadow.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Material(
@@ -221,9 +241,9 @@ class _ClassCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
                       ),
                     ),
                     if (controller.canEdit)
@@ -294,23 +314,33 @@ class _ClassCard extends StatelessWidget {
                                 final confirm = await AppDialogs.showConfirm(
                                   context,
                                   title: 'Delete Class?',
-                                  message: 'Are you sure you want to delete ${classData.displayName}? This cannot be undone.',
+                                  message:
+                                      'Are you sure you want to delete ${classData.displayName}? This cannot be undone.',
                                   confirmLabel: 'Delete',
                                   cancelLabel: 'Cancel',
                                   isDanger: true,
                                 );
                                 if (confirm == true) {
                                   try {
-                                    AppDialogs.showLoading(context, message: 'Deleting class...');
+                                    AppDialogs.showLoading(
+                                      context,
+                                      message: 'Deleting class...',
+                                    );
                                     await controller.deleteClass(classData.id);
                                     if (context.mounted) {
                                       AppDialogs.hide(context);
-                                      AppToasts.showSuccess(context, message: 'Class deleted successfully.');
+                                      AppToasts.showSuccess(
+                                        context,
+                                        message: 'Class deleted successfully.',
+                                      );
                                     }
                                   } catch (e) {
                                     if (context.mounted) {
                                       AppDialogs.hide(context);
-                                      AppToasts.showError(context, message: e.toString());
+                                      AppToasts.showError(
+                                        context,
+                                        message: e.toString(),
+                                      );
                                     }
                                   }
                                 }
@@ -323,7 +353,10 @@ class _ClassCard extends StatelessWidget {
                 if (!classData.isActive) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: cs.errorContainer,
                       borderRadius: BorderRadius.circular(4),
@@ -343,16 +376,27 @@ class _ClassCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, size: 16, color: classData.classTeacherId != null ? cs.primary : cs.onSurfaceVariant),
+                    Icon(
+                      Icons.person_pin_rounded,
+                      size: 16,
+                      color: classData.classTeacherId != null
+                          ? cs.primary
+                          : cs.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text.rich(
                         TextSpan(
                           children: [
                             TextSpan(
-                              text: classData.classTeacherName ?? 'No Class Teacher',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: classData.classTeacherId != null ? cs.primary : cs.onSurfaceVariant,
+                              text:
+                                  classData.classTeacherName ??
+                                  'No Class Teacher',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: classData.classTeacherId != null
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
                                     fontWeight: FontWeight.w900,
                                   ),
                             ),
@@ -360,14 +404,17 @@ class _ClassCard extends StatelessWidget {
                               TextSpan(
                                 text: ' (Class Teacher)',
                                 style: TextStyle(
-                                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                                  color: cs.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             if (classData.teacherIds.isNotEmpty) ...[
                               TextSpan(
-                                text: ' + ${classData.teacherIds.where((id) => id != classData.classTeacherId).length} more',
+                                text:
+                                    ' + ${classData.teacherIds.where((id) => id != classData.classTeacherId).length} more',
                                 style: TextStyle(
                                   color: cs.secondary,
                                   fontSize: 10,
@@ -386,15 +433,19 @@ class _ClassCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.groups_rounded, size: 16, color: cs.onSurfaceVariant),
+                    Icon(
+                      Icons.groups_rounded,
+                      size: 16,
+                      color: cs.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${classData.studentCount} Students',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],

@@ -4,8 +4,116 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'dart:ui';
 
+/// Unified Dialog & Feedback System for EduCore ERP.
+/// Provides consistent, premium interaction patterns across all modules.
 class AppDialogs {
   AppDialogs._();
+
+  static bool _isLoadingVisible = false;
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 1. CONFIRMATION DIALOGS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /// Standard Add Confirmation
+  static Future<bool?> showAddConfirmation(
+    BuildContext context, {
+    String title = 'Confirm Add',
+    String message = 'Are you sure you want to add this record?',
+    String confirmLabel = 'Add Now',
+  }) {
+    return _showConfirm(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      icon: Icons.add_task_rounded,
+      iconColor: AppColors.primary,
+    );
+  }
+
+  /// Standard Update Confirmation
+  static Future<bool?> showEditConfirmation(
+    BuildContext context, {
+    String title = 'Confirm Update',
+    String message = 'Save changes to this record?',
+    String confirmLabel = 'Update',
+  }) {
+    return _showConfirm(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      icon: Icons.edit_note_rounded,
+      iconColor: Colors.amber[700]!,
+    );
+  }
+
+  /// Standard Delete Confirmation (Critical Action)
+  static Future<bool?> showDeleteConfirmation(
+    BuildContext context, {
+    String title = 'Delete Record?',
+    String message = 'This action cannot be undone. Are you sure?',
+    String confirmLabel = 'Delete Forever',
+  }) {
+    return _showConfirm(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      isDanger: true,
+      icon: Icons.delete_forever_rounded,
+      iconColor: const Color(0xFFF43F5E),
+    );
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 2. LOADING STATES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /// Shows a premium loading overlay
+  static void showLoading(
+    BuildContext context, {
+    String message = 'Processing...',
+  }) {
+    if (_isLoadingVisible) return;
+    _isLoadingVisible = true;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) => _LoadingDialog(message: message),
+      transitionBuilder: (context, animation, secondAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutBack,
+            )),
+            child: child,
+          ),
+        );
+      },
+    ).then((_) => _isLoadingVisible = false);
+  }
+
+  /// Hides the active loading overlay
+  static void hideLoading(BuildContext context) {
+    if (_isLoadingVisible) {
+      Navigator.of(context, rootNavigator: true).pop();
+      _isLoadingVisible = false;
+    }
+  }
+
+  /// Alias for [hideLoading] — backward compatible with existing call sites.
+  static void hide(BuildContext context) => hideLoading(context);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 3. ACTION FEEDBACK (FULL DIALOG)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   static Future<void> showSuccess(
     BuildContext context, {
@@ -14,26 +122,13 @@ class AppDialogs {
     String buttonLabel = 'Continue',
     VoidCallback? onConfirm,
   }) {
-    return showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.3),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, _, __) => _BaseDialog(
-        type: _DialogType.success,
-        title: title,
-        message: message,
-        buttonLabel: buttonLabel,
-        onConfirm: onConfirm,
-      ),
-      transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
+    return _showBaseDialog(
+      context,
+      type: _DialogType.success,
+      title: title,
+      message: message,
+      buttonLabel: buttonLabel,
+      onConfirm: onConfirm,
     );
   }
 
@@ -44,29 +139,35 @@ class AppDialogs {
     String buttonLabel = 'Try Again',
     VoidCallback? onConfirm,
   }) {
-    return showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.3),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, _, __) => _BaseDialog(
-        type: _DialogType.error,
-        title: title,
-        message: message,
-        buttonLabel: buttonLabel,
-        onConfirm: onConfirm,
-      ),
-      transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
+    return _showBaseDialog(
+      context,
+      type: _DialogType.error,
+      title: title,
+      message: message,
+      buttonLabel: buttonLabel,
+      onConfirm: onConfirm,
     );
   }
 
+  /// Informational feedback dialog (non-error, non-success).
+  static Future<void> showInfo(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String buttonLabel = 'Got It',
+    VoidCallback? onConfirm,
+  }) {
+    return _showBaseDialog(
+      context,
+      type: _DialogType.info,
+      title: title,
+      message: message,
+      buttonLabel: buttonLabel,
+      onConfirm: onConfirm,
+    );
+  }
+
+  /// Generic confirmation dialog — public entry point for ad-hoc confirmations.
   static Future<bool?> showConfirm(
     BuildContext context, {
     required String title,
@@ -75,57 +176,15 @@ class AppDialogs {
     String cancelLabel = 'Cancel',
     bool isDanger = false,
   }) {
-    return showGeneralDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.3),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, _, __) {
-        return _ConfirmDialog(
-          title: title,
-          message: message,
-          confirmLabel: confirmLabel,
-          cancelLabel: cancelLabel,
-          isDanger: isDanger,
-        );
-      },
-      transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
+    return _showConfirm(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      icon: isDanger ? Icons.warning_amber_rounded : Icons.help_outline_rounded,
+      iconColor: isDanger ? const Color(0xFFF43F5E) : AppColors.primary,
+      isDanger: isDanger,
     );
-  }
-
-  static bool _isLoadingVisible = false;
-
-  static void showLoading(
-    BuildContext context, {
-    String message = 'Processing your request...',
-  }) {
-    if (_isLoadingVisible) return;
-    _isLoadingVisible = true;
-
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => _LoadingDialog(message: message),
-      transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-        );
-      },
-    ).then((_) => _isLoadingVisible = false);
   }
 
   static Future<void> showLimitReached(
@@ -133,65 +192,95 @@ class AppDialogs {
     required String message,
     VoidCallback? onUpgrade,
   }) {
-    return showGeneralDialog(
+    return _showBaseDialog(
+      context,
+      type: _DialogType.error,
+      title: 'Plan Limit Reached',
+      message: '$message\n\nUpgrade your plan to unlock more capacity.',
+      buttonLabel: 'View Pricing',
+      onConfirm: onUpgrade,
+    );
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PRIVATE HELPERS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  static Future<bool?> _showConfirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required IconData icon,
+    required Color iconColor,
+    bool isDanger = false,
+  }) {
+    return showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
       barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.4),
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, _, __) => _BaseDialog(
-        type: _DialogType.error,
-        title: 'Plan Limit Reached',
-        message: '$message\n\nUpgrade your plan to unlock more capacity.',
-        buttonLabel: 'Upgrade Now',
-        onConfirm: onUpgrade,
-      ),
+      pageBuilder: (context, _, __) {
+        return _ConfirmDialog(
+          title: title,
+          message: message,
+          confirmLabel: confirmLabel,
+          cancelLabel: 'Cancel',
+          isDanger: isDanger,
+          icon: icon,
+          iconColor: iconColor,
+        );
+      },
       transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(opacity: animation, child: child),
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          ),
         );
       },
     );
   }
 
-  static Future<void> showInfo(
+  static Future<void> _showBaseDialog(
     BuildContext context, {
+    required _DialogType type,
     required String title,
     required String message,
-    String buttonLabel = 'Understood',
-    IconData? icon,
+    required String buttonLabel,
     VoidCallback? onConfirm,
   }) {
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: '',
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.4),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, _, __) => _BaseDialog(
-        type: _DialogType.info,
+        type: type,
         title: title,
         message: message,
         buttonLabel: buttonLabel,
         onConfirm: onConfirm,
-        customIcon: icon,
       ),
       transitionBuilder: (context, animation, secondAnimation, child) {
-        final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curve),
-          child: FadeTransition(opacity: animation, child: child),
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          ),
         );
       },
     );
-  }
-
-  static void hide(BuildContext context) {
-    if (_isLoadingVisible) {
-      Navigator.pop(context);
-    }
   }
 }
 
@@ -204,7 +293,6 @@ class _BaseDialog extends StatelessWidget {
     required this.message,
     required this.buttonLabel,
     this.onConfirm,
-    this.customIcon,
   });
 
   final _DialogType type;
@@ -212,7 +300,6 @@ class _BaseDialog extends StatelessWidget {
   final String message;
   final String buttonLabel;
   final VoidCallback? onConfirm;
-  final IconData? customIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -220,52 +307,53 @@ class _BaseDialog extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 380,
+          width: 400,
           margin: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: AppRadii.r16,
+            borderRadius: AppRadii.r24,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 32),
-              _AnimatedIcon(type: type, icon: customIcon),
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
+              _AnimatedStatusIcon(type: type),
+              const SizedBox(height: 28),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w900,
                         color: AppColors.text,
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.8,
                       ),
                 ),
               ),
               const SizedBox(height: 12),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.textMuted,
-                        height: 1.5,
+                        height: 1.6,
+                        fontSize: 15,
                       ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
                 child: AppPrimaryButton(
                   label: buttonLabel,
                   variant: type == _DialogType.error
@@ -286,40 +374,35 @@ class _BaseDialog extends StatelessWidget {
   }
 }
 
-class _AnimatedIcon extends StatelessWidget {
-  const _AnimatedIcon({required this.type, this.icon});
+class _AnimatedStatusIcon extends StatelessWidget {
+  const _AnimatedStatusIcon({required this.type});
   final _DialogType type;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final isSuccess = type == _DialogType.success;
-    final isError = type == _DialogType.error;
-    final color = isSuccess 
-        ? const Color(0xFF10B981) 
-        : (isError ? const Color(0xFFF43F5E) : AppColors.primary);
-    
-    final displayIcon = icon ?? (isSuccess 
-        ? Icons.check_rounded 
-        : (isError ? Icons.priority_high_rounded : Icons.info_outline_rounded));
+    final (color, icon) = switch (type) {
+      _DialogType.success => (const Color(0xFF10B981), Icons.check_rounded),
+      _DialogType.error   => (const Color(0xFFF43F5E), Icons.priority_high_rounded),
+      _DialogType.info    => (AppColors.primary, Icons.info_outline_rounded),
+    };
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
       curve: Curves.elasticOut,
       builder: (context, value, child) {
         return Transform.scale(
           scale: value,
           child: Container(
-            width: 80,
-            height: 80,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              displayIcon,
-              size: 40 * value,
+              icon,
+              size: 50 * value,
               color: color,
             ),
           ),
@@ -331,70 +414,55 @@ class _AnimatedIcon extends StatelessWidget {
 
 class _LoadingDialog extends StatelessWidget {
   const _LoadingDialog({required this.message});
-
   final String message;
 
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
       child: Center(
         child: Material(
           color: Colors.transparent,
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 40),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            constraints: const BoxConstraints(maxWidth: 320),
+            padding: const EdgeInsets.all(32),
+            constraints: const BoxConstraints(maxWidth: 340),
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.98),
-              borderRadius: AppRadii.r20,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-                width: 1.0,
-              ),
+              color: AppColors.surface,
+              borderRadius: AppRadii.r24,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 40,
-                  offset: const Offset(0, 16),
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 50,
+                  offset: const Offset(0, 25),
                 ),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SpinKitDoubleBounce(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      size: 64,
-                    ),
-                    const SpinKitThreeBounce(
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                  ],
+                const SpinKitFadingCube(
+                  color: AppColors.primary,
+                  size: 40,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
                 Text(
-                  message,
+                  message.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        color: AppColors.text,
-                        height: 1.4,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        letterSpacing: 2.0,
                       ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
-                  'SYSTEM WORKING',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textMuted.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                      ),
+                  'Please wait a moment',
+                  style: TextStyle(
+                    color: AppColors.textMuted.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -412,6 +480,8 @@ class _ConfirmDialog extends StatelessWidget {
     required this.confirmLabel,
     required this.cancelLabel,
     required this.isDanger,
+    required this.icon,
+    required this.iconColor,
   });
 
   final String title;
@@ -419,6 +489,8 @@ class _ConfirmDialog extends StatelessWidget {
   final String confirmLabel;
   final String cancelLabel;
   final bool isDanger;
+  final IconData icon;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -426,17 +498,17 @@ class _ConfirmDialog extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 380,
+          width: 400,
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(40),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: AppRadii.r16,
+            borderRadius: AppRadii.r24,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
               ),
             ],
           ),
@@ -444,26 +516,22 @@ class _ConfirmDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: (isDanger ? const Color(0xFFF43F5E) : AppColors.primary).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: AppRadii.r20,
                 ),
-                child: Icon(
-                  isDanger ? Icons.warning_rounded : Icons.help_outline_rounded,
-                  size: 32,
-                  color: isDanger ? const Color(0xFFF43F5E) : AppColors.primary,
-                ),
+                child: Icon(icon, size: 36, color: iconColor),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: AppColors.text,
-                      letterSpacing: -0.5,
+                      letterSpacing: -0.8,
                     ),
               ),
               const SizedBox(height: 12),
@@ -472,27 +540,28 @@ class _ConfirmDialog extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textMuted,
-                      height: 1.5,
+                      height: 1.6,
+                      fontSize: 15,
                     ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context, false),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadii.r12,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.r16,
                         ),
                       ),
                       child: Text(
                         cancelLabel,
                         style: const TextStyle(
                           color: AppColors.textMuted,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -501,9 +570,10 @@ class _ConfirmDialog extends StatelessWidget {
                   Expanded(
                     child: AppPrimaryButton(
                       label: confirmLabel,
-                      variant: isDanger ? AppButtonVariant.danger : AppButtonVariant.primary,
+                      variant: isDanger
+                          ? AppButtonVariant.danger
+                          : AppButtonVariant.primary,
                       onPressed: () => Navigator.pop(context, true),
-                      width: double.infinity,
                     ),
                   ),
                 ],

@@ -130,31 +130,29 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
   Future<void> _submit() async {
     debugPrint('StudentFormDialog: _submit called');
 
-    // Explicitly check fields to log what's failing
-    if (_nameCtrl.text.trim().isEmpty)
-      debugPrint('StudentFormDialog: Validation error - Name is empty');
-    if (_fatherNameCtrl.text.trim().isEmpty)
-      debugPrint('StudentFormDialog: Validation error - Father Name is empty');
-    final phone = _phoneCtrl.text.trim();
-    if (phone.isEmpty) {
-      debugPrint('StudentFormDialog: Validation error - Phone is empty');
-    } else if (!RegExp(r'^03\d{9}$').hasMatch(phone)) {
-      debugPrint(
-        'StudentFormDialog: Validation error - Phone format invalid: $phone',
-      );
-    }
-
     if (!_formKey.currentState!.validate()) {
       debugPrint('StudentFormDialog: _formKey.validate() returned false');
-      AppToasts.showError(
-        context,
-        message: 'Please correct the errors in the form.',
-      );
       return;
     }
 
+    final isEditing = widget.student != null;
+
+    // STEP 1: Confirmation
+    final confirmed = isEditing
+        ? await AppDialogs.showEditConfirmation(context)
+        : await AppDialogs.showAddConfirmation(context);
+
+    if (confirmed != true) return;
+
     debugPrint('StudentFormDialog: Validation passed, starting save...');
-    setState(() => _isLoading = true);
+
+    // STEP 2: Loading State
+    if (mounted) {
+      AppDialogs.showLoading(
+        context,
+        message: isEditing ? 'Updating record...' : 'Adding record...',
+      );
+    }
 
     final selectedClass = _availableClasses.firstWhere(
       (c) => c.id == _selectedClassId,
@@ -182,36 +180,39 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
 
     try {
-      debugPrint(
-        'StudentFormDialog: Sending to controller - New? ${widget.student == null}',
-      );
       bool success;
       if (widget.student == null) {
         success = await widget.controller.addStudent(newStudent);
       } else {
         success = await widget.controller.updateStudent(newStudent);
       }
-      debugPrint('StudentFormDialog: Controller result: $success');
 
-      if (success && mounted) {
-        Navigator.of(context).pop();
-        AppToasts.showSuccess(
-          context,
-          message:
-              'Student ${widget.student == null ? 'added' : 'updated'} successfully.',
-        );
-      } else if (mounted) {
-        setState(() => _isLoading = false);
-        AppToasts.showError(
-          context,
-          message: 'Failed to save student. Please try again.',
-        );
+      // STEP 3: Success or Error Feedback
+      if (mounted) {
+        AppDialogs.hideLoading(context);
+
+        if (success) {
+          Navigator.of(context).pop(); // Close form
+          AppDialogs.showSuccess(
+            context,
+            title: isEditing ? 'Update Successful' : 'Enrollment Complete',
+            message: isEditing
+                ? 'Student information has been updated.'
+                : 'Student has been successfully enrolled in ${selectedClass.name}.',
+          );
+        } else {
+          AppDialogs.showError(
+            context,
+            title: 'Operation Failed',
+            message: 'Unable to save student records. Please try again.',
+          );
+        }
       }
     } catch (e) {
-      debugPrint('StudentFormDialog: Error during save: $e');
-      setState(() => _isLoading = false);
-      if (e is PlanLimitExceededException) {
-        if (mounted) {
+      if (mounted) {
+        AppDialogs.hideLoading(context);
+
+        if (e is PlanLimitExceededException) {
           AppDialogs.showLimitReached(
             context,
             message: e.message,
@@ -219,12 +220,11 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               // TODO: Navigate to pricing
             },
           );
-        }
-      } else {
-        if (mounted) {
-          AppToasts.showError(
+        } else {
+          AppDialogs.showError(
             context,
-            message: 'An unexpected error occurred: ${e.toString()}',
+            title: 'System Error',
+            message: e.toString(),
           );
         }
       }
@@ -522,8 +522,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               padding: const EdgeInsets.all(32),
               child: FilledButton(
                 onPressed:
-                    (_isLoading ||
-                        _selectedClassId.isEmpty ||
+                    (_selectedClassId.isEmpty ||
                         _selectedFeePlanId.isEmpty)
                     ? null
                     : _submit,

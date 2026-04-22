@@ -3,6 +3,7 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/fees/widgets/collect_payment_dialog.dart';
@@ -250,48 +251,50 @@ class _FeesHeader extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => GenerateMonthlyFeesDialog(
-        onGenerate:
-            ({
-              double? amount,
-              required classId,
-              required month,
-              String? overrideReason,
-              required title,
-              dueDate,
-            }) async {
-              final count = await controller.generateMonthlyFees(
-                classId: classId,
-                month: month,
-                amount: amount,
-                overrideReason: overrideReason,
-                title: title,
-                dueDate: dueDate,
-              );
+        onGenerate: ({
+          double? amount,
+          required classId,
+          required month,
+          String? overrideReason,
+          required title,
+          dueDate,
+        }) async {
+          // STEP 1: Confirmation (Internal to dialog usually, but we handle feedback here)
+          AppDialogs.showLoading(context, message: 'Generating records...');
+          
+          final count = await controller.generateMonthlyFees(
+            classId: classId,
+            month: month,
+            amount: amount,
+            overrideReason: overrideReason,
+            title: title,
+            dueDate: dueDate,
+          );
 
-              if (context.mounted) {
-                if (count > 0) {
-                  AppToasts.showSuccess(
-                    context,
-                    message:
-                        'Successfully generated $count monthly fee records.',
-                  );
-                } else if (count == 0) {
-                  AppToasts.showInfo(
-                    context,
-                    message:
-                        'No new fees were generated. All students in this class already have a fee record for $month.',
-                  );
-                } else if (controller.error == null) {
-                  // Generic failure — lock errors are surfaced inline in the dialog
-                  AppToasts.showError(
-                    context,
-                    message: 'Failed to generate monthly fees.',
-                  );
-                }
-              }
-              // Return count + any error message for the dialog to render inline
-              return (count, controller.error);
-            },
+          if (context.mounted) {
+            AppDialogs.hideLoading(context);
+            if (count > 0) {
+              AppDialogs.showSuccess(
+                context,
+                title: 'Generation Complete',
+                message: 'Successfully generated $count monthly fee records.',
+              );
+            } else if (count == 0) {
+              AppDialogs.showInfo(
+                context,
+                title: 'No New Records',
+                message: 'All students in this class already have a fee record for $month.',
+              );
+            } else {
+              AppDialogs.showError(
+                context,
+                title: 'Process Failed',
+                message: controller.error ?? 'Failed to generate monthly fees.',
+              );
+            }
+          }
+          return (count, controller.error);
+        },
       ),
     );
   }
@@ -519,30 +522,22 @@ class _FeeRow extends StatelessWidget {
       builder: (_) => CollectPaymentDialog(
         fee: fee,
         onCollect: ({required amount, required method, note}) async {
+          AppDialogs.showLoading(context, message: 'Processing payment...');
           await controller.collectPayment(fee.id, amount, method: method, note: note);
-          // Auto-prompt for receipt after payment
+          
           if (context.mounted) {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (_) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: const Text('Generate Receipt?',
-                    style: TextStyle(fontWeight: FontWeight.w900)),
-                content: const Text(
-                    'Payment collected successfully. Would you like to generate a payment receipt?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Skip'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Generate Receipt'),
-                  ),
-                ],
-              ),
+            AppDialogs.hideLoading(context);
+            
+            // Premium confirmation for Receipt
+            final genReceipt = await AppDialogs.showConfirm(
+              context,
+              title: 'Payment Successful',
+              message: 'Payment of Rs. $amount has been recorded. Would you like to generate a receipt now?',
+              confirmLabel: 'Generate Receipt',
+              cancelLabel: 'Later',
             );
-            if ((confirm ?? false) && context.mounted) {
+
+            if (genReceipt == true && context.mounted) {
               showDialog(
                 context: context,
                 builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),

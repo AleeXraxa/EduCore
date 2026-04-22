@@ -5,7 +5,7 @@ import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/widgets/app_search_field.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
-import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
@@ -70,7 +70,6 @@ class _StudentsViewState extends State<StudentsView> {
         title: 'No Classes Found',
         message:
             'You cannot add a student without a class. Please create at least one class first in the Classes module.',
-        icon: Icons.school_rounded,
         buttonLabel: 'Got it',
       );
       return;
@@ -105,29 +104,30 @@ class _StudentsViewState extends State<StudentsView> {
   }
 
   Future<void> _handleDelete(Student student) async {
-    final confirmed = await AppDialogs.showConfirm(
+    final confirmed = await AppDialogs.showDeleteConfirmation(
       context,
-      title: 'Delete Student',
-      message:
-          'Are you sure you want to delete ${student.name}? This action cannot be fully undone.',
-      confirmLabel: 'Delete',
-      isDanger: true,
+      message: 'Are you sure you want to delete ${student.name}? This action cannot be undone.',
     );
 
     if (confirmed == true) {
       if (mounted) {
-        AppDialogs.showLoading(context, message: 'Deleting student...');
+        AppDialogs.showLoading(context, message: 'Deleting record...');
       }
       final success = await _controller.deleteStudent(student.id);
       if (mounted) {
-        AppDialogs.hide(context);
+        AppDialogs.hideLoading(context);
         if (success) {
-          AppToasts.showSuccess(
+          AppDialogs.showSuccess(
             context,
-            message: 'Student deleted successfully.',
+            title: 'Record Deleted',
+            message: '${student.name} has been removed from the system.',
           );
         } else {
-          AppToasts.showError(context, message: 'Failed to delete student.');
+          AppDialogs.showError(
+            context,
+            title: 'Delete Failed',
+            message: 'An error occurred while trying to delete the student record.',
+          );
         }
       }
     }
