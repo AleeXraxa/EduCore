@@ -6,7 +6,6 @@ import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/services/student_service.dart';
-import 'package:educore/src/core/services/plan_limit_exception.dart';
 
 class StudentController extends BaseController {
   final StudentService _studentService;
@@ -25,7 +24,10 @@ class StudentController extends BaseController {
 
   String _searchQuery = '';
   String? _classIdFilter;
+  String? get classIdFilter => _classIdFilter;
   String? _statusFilter;
+  String? get statusFilter => _statusFilter;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -102,11 +104,6 @@ class StudentController extends BaseController {
     notifyListeners();
   }
 
-  Future<void> loadMore() async {
-    if (!_hasMore || busy) return;
-    await _fetchBatch();
-  }
-
   Future<void> _fetchBatch() async {
     _errorMessage = null;
     await runBusy(() async {
@@ -152,18 +149,7 @@ class StudentController extends BaseController {
           // Filter out deleted locally if the query didn't do it
           final visibleStudents = fetchedStudents.where((s) => s.status != 'deleted').toList();
 
-          // Apply local search filtering as Firestore doesn't support substring text search
-          if (_searchQuery.isNotEmpty) {
-            final queryLower = _searchQuery.toLowerCase();
-            final filtered = visibleStudents.where((s) => 
-                s.name.toLowerCase().contains(queryLower) || 
-                s.phone.contains(queryLower) ||
-                s.fatherName.toLowerCase().contains(queryLower)
-            ).toList();
-            _students.addAll(filtered);
-          } else {
-            _students.addAll(visibleStudents);
-          }
+          _students.addAll(visibleStudents);
         }
       } catch (e, st) {
         debugPrint('Error fetching students: $e $st');
@@ -172,18 +158,38 @@ class StudentController extends BaseController {
     });
   }
 
-  void setSearchQuery(String query) {
+  Timer? _searchDebounce;
+
+  void onSearchChanged(String query) {
     if (_searchQuery == query) return;
     _searchQuery = query;
+    debugPrint('Search query changed: $query');
+    
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      loadInitialData();
+    });
+  }
+
+  void onClassFilterChanged(String? classId) {
+    if (_classIdFilter == classId) return;
+    _classIdFilter = (classId == 'all' || classId == null) ? null : classId;
     loadInitialData();
   }
 
-  void setFilter(String? classId, String? status) {
-    if (_classIdFilter == classId && _statusFilter == status) return;
-    _classIdFilter = classId;
+  void onStatusFilterChanged(String? status) {
+    if (_statusFilter == status) return;
     _statusFilter = status;
     loadInitialData();
   }
+
+  Future<void> fetchMore() async {
+    if (!_hasMore || busy) return;
+    await _fetchBatch();
+  }
+
+  @Deprecated('Use fetchMore instead')
+  Future<void> loadMore() => fetchMore();
 
   Future<bool> addStudent(Student student) async {
     bool success = false;
@@ -194,7 +200,7 @@ class StudentController extends BaseController {
         success = true;
       } catch (e, st) {
         debugPrint('Error adding student in controller: $e $st');
-        rethrow; // Rethrow to let the UI handle it
+        rethrow;
       }
     });
     return success;
@@ -229,5 +235,15 @@ class StudentController extends BaseController {
       }
     });
     return success;
+  }
+
+  Future<String> getNextRollNumber() async {
+    return await _studentService.getNextRollNumber(_academyId);
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 }

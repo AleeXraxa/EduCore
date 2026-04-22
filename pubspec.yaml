@@ -50,6 +50,7 @@ dependencies:
   csv: ^6.0.0
   excel: ^4.0.0
   file_picker: ^8.1.7
+  syncfusion_flutter_xlsio: ^29.2.11
 
 dev_dependencies:
   flutter_test:

@@ -1,14 +1,14 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/bulk_import_models.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint;
 
 class BulkStudentImportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,32 +38,121 @@ class BulkStudentImportService {
       return result;
     } else if (extension.toLowerCase() == '.xlsx' || extension.toLowerCase() == '.xls') {
       final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
+      final excel = excel_pkg.Excel.decodeBytes(bytes);
       final List<Map<String, String>> result = [];
 
       for (var table in excel.tables.keys) {
         final sheet = excel.tables[table]!;
-        if (sheet.maxRows < 2) continue;
+        if (sheet.maxRows < 1) continue;
+
+        // Skip metadata sheets during reading
+        if (table == 'FeePlans' || table == 'Classes' || table == 'Metadata') continue;
 
         final header = sheet.rows[0].map((e) => e?.value?.toString().trim() ?? '').toList();
         
         for (var i = 1; i < sheet.maxRows; i++) {
           final row = sheet.rows[i];
           final Map<String, String> map = {};
+          bool hasData = false;
           for (var j = 0; j < header.length; j++) {
-            if (j < row.length) {
-              map[header[j]] = row[j]?.value?.toString().trim() ?? '';
-            } else {
-              map[header[j]] = '';
-            }
+            final value = (j < row.length) ? row[j]?.value?.toString().trim() ?? '' : '';
+            if (value.isNotEmpty) hasData = true;
+            map[header[j]] = value;
           }
-          result.add(map);
+          if (hasData) result.add(map);
         }
-        break; // Only first sheet
+        break; // Only first data sheet
       }
       return result;
     }
     return [];
+  }
+
+  /// Generates a professional Excel template with dropdown validation.
+  Future<List<int>> generateExcelTemplate({
+    required List<FeePlan> activePlans,
+    required List<InstituteClass> activeClasses,
+  }) async {
+    final xlsio.Workbook workbook = xlsio.Workbook();
+    final xlsio.Worksheet studentsSheet = workbook.worksheets[0];
+    studentsSheet.name = 'Students';
+    
+    // 1. Setup Headers
+    final List<String> headers = [
+      'name', 'fatherName', 'phone', 'email', 'rollNo', 'class', 'section', 'feePlan'
+    ];
+    
+    for (int i = 0; i < headers.length; i++) {
+      final xlsio.Range range = studentsSheet.getRangeByIndex(1, i + 1);
+      range.setText(headers[i]);
+      range.cellStyle.bold = true;
+      range.cellStyle.backColor = '#EEEEEE';
+    }
+
+    // 2. Setup Metadata Sheet
+    final xlsio.Worksheet metaSheet = workbook.worksheets.addWithName('Metadata');
+    
+    // A. Fee Plans
+    metaSheet.getRangeByName('A1').setText('Fee Plan Names');
+    for (int i = 0; i < activePlans.length; i++) {
+      metaSheet.getRangeByIndex(i + 2, 1).setText(activePlans[i].name);
+    }
+    
+    // B. Classes
+    metaSheet.getRangeByName('B1').setText('Class Names');
+    final List<String> uniqueClassNames = activeClasses.map((c) => c.name).toSet().toList();
+    for (int i = 0; i < uniqueClassNames.length; i++) {
+      metaSheet.getRangeByIndex(i + 2, 2).setText(uniqueClassNames[i]);
+    }
+
+    // C. Sections (Optional but good for guidance)
+    metaSheet.getRangeByName('C1').setText('Sections');
+    final List<String> uniqueSections = activeClasses.map((c) => c.section).where((s) => s.isNotEmpty).toSet().toList();
+    for (int i = 0; i < uniqueSections.length; i++) {
+      metaSheet.getRangeByIndex(i + 2, 3).setText(uniqueSections[i]);
+    }
+    
+    // 3. Apply Dropdowns to the Students sheet
+    
+    // Row 2 to 500 for validation
+    final int maxValidationRows = 500;
+
+    // A. Fee Plan Dropdown (Column H)
+    final xlsio.DataValidation feePlanValidation = studentsSheet.getRangeByName('H2:H$maxValidationRows').dataValidation;
+    feePlanValidation.allowType = xlsio.ExcelDataValidationType.values[3]; // list
+    feePlanValidation.dataRange = metaSheet.getRangeByName('A2:A${activePlans.length + 1}');
+    feePlanValidation.showErrorBox = true;
+    feePlanValidation.errorBoxText = 'Select from dropdown';
+    feePlanValidation.errorBoxTitle = 'Invalid Plan';
+
+    // B. Class Dropdown (Column F)
+    final xlsio.DataValidation classValidation = studentsSheet.getRangeByName('F2:F$maxValidationRows').dataValidation;
+    classValidation.allowType = xlsio.ExcelDataValidationType.values[3]; // list
+    classValidation.dataRange = metaSheet.getRangeByName('B2:B${uniqueClassNames.length + 1}');
+    classValidation.showErrorBox = true;
+    classValidation.errorBoxText = 'Select from dropdown';
+    classValidation.errorBoxTitle = 'Invalid Class';
+
+    // C. Section Dropdown (Column G)
+    if (uniqueSections.isNotEmpty) {
+      final xlsio.DataValidation sectionValidation = studentsSheet.getRangeByName('G2:G$maxValidationRows').dataValidation;
+      sectionValidation.allowType = xlsio.ExcelDataValidationType.values[3]; // list
+      sectionValidation.dataRange = metaSheet.getRangeByName('C2:C${uniqueSections.length + 1}');
+      sectionValidation.showErrorBox = true;
+      sectionValidation.errorBoxText = 'Select from dropdown';
+      sectionValidation.errorBoxTitle = 'Invalid Section';
+    }
+
+    // 4. Formatting Improvements
+    studentsSheet.getRangeByName('A2').setText('Sample Student');
+    studentsSheet.getRangeByName('E2').setText('EDU - 101');
+    
+    // Freeze header row
+    studentsSheet.getRangeByIndex(2, 1).freezePanes();
+
+    final List<int> bytes = workbook.saveAsStream();
+    workbook.dispose();
+    return bytes;
   }
 
   /// Entry point for validation.
@@ -87,7 +176,10 @@ class BulkStudentImportService {
       if (data['name']?.isEmpty ?? true) errors.add('Name is required');
       if (data['rollNo']?.isEmpty ?? true) errors.add('Roll No is required');
       if (data['class']?.isEmpty ?? true) errors.add('Class is required');
-      if (data['feePlanId']?.isEmpty ?? true) errors.add('Fee Plan ID is required');
+      
+      // Flexible field check for feePlan vs feePlanId
+      final rawPlanValue = data['feePlan'] ?? data['feePlanId'] ?? '';
+      if (rawPlanValue.isEmpty) errors.add('Fee Plan is required');
 
       // 2. Class Validation
       InstituteClass? matchedClass;
@@ -106,13 +198,16 @@ class BulkStudentImportService {
         }
       }
 
-      // 3. Fee Plan Validation
+      // 3. Fee Plan Validation (Smart Mapping)
       FeePlan? matchedPlan;
-      if (data['feePlanId'] != null && data['feePlanId']!.isNotEmpty) {
+      if (rawPlanValue.isNotEmpty) {
         try {
-          matchedPlan = allFeePlans.firstWhere((p) => p.id == data['feePlanId'] || p.name == data['feePlanId']);
+          // Try ID first, then Name
+          matchedPlan = allFeePlans.firstWhere(
+            (p) => p.id == rawPlanValue || p.name == rawPlanValue,
+          );
         } catch (_) {
-          errors.add('Fee Plan "${data['feePlanId']}" not found');
+          errors.add('Invalid Fee Plan selected: "$rawPlanValue"');
         }
       }
 
@@ -175,105 +270,6 @@ class BulkStudentImportService {
     return validatedRows;
   }
 
-  Future<BulkImportResult> executeImport({
-    required String academyId,
-    required List<BulkImportRow> rows,
-    required String actorId,
-  }) async {
-    int successCount = 0;
-    int failedCount = 0;
-    
-    final validRows = rows.where((r) => r.isValid && r.student != null).toList();
-    if (validRows.isEmpty) {
-      return BulkImportResult(
-        totalRows: rows.length,
-        successCount: 0,
-        failedCount: rows.length,
-      );
-    }
-
-    // Subscription Limit Check
-    try {
-      final subSvc = AppServices.instance.subscriptionService;
-      if (subSvc != null) {
-        // This is a rough check, ideally batch should verify it too
-        // but for now we follow the pattern in StudentService
-        await subSvc.checkLimit(academyId, 'maxStudents');
-      }
-    } catch (e) {
-      debugPrint('Subscription limit reached: $e');
-      return BulkImportResult(
-        totalRows: rows.length,
-        successCount: 0,
-        failedCount: rows.length,
-      );
-    }
-
-    // Process in batches of 500
-    WriteBatch batch = _firestore.batch();
-    int count = 0;
-
-    for (var row in validRows) {
-      final student = row.student!;
-      final docRef = _firestore
-          .collection('academies')
-          .doc(academyId)
-          .collection('students')
-          .doc();
-      
-      final studentWithId = student.copyWith(id: docRef.id);
-      batch.set(docRef, studentWithId.toMap());
-
-      // Note: Fee generation via batch is complex because feeService might not support batches directly easily
-      // However, we need to generate fees. 
-      // For bulk import, we'll try to generate them after the student batch if it succeeds, 
-      // or we can do it row by row (slower).
-      // Given the requirement "Only insert VALID rows", batch is better.
-      
-      count++;
-      if (count == 500) {
-        await batch.commit();
-        batch = _firestore.batch();
-        count = 0;
-      }
-      successCount++;
-    }
-
-    if (count > 0) {
-      await batch.commit();
-    }
-
-    // Generate fees for successful students (Post-Import)
-    // In a real high-scale system, this should be a Cloud Function or Background Task.
-    // For now, we trigger it here.
-    for (var row in validRows) {
-      if (row.student != null) {
-        _generateAutoFees(academyId, row.student!.copyWith(id: '')); // We need the ID from docRef but we didn't store it in validRows.
-        // Actually, I should have updated the student ID in validRows.
-      }
-    }
-    // Optimization: I'll redo the loop slightly to keep the generated IDs.
-
-    failedCount = rows.length - successCount;
-
-    // Audit Log
-    final auditId = await _logImport(
-      academyId: academyId,
-      actorId: actorId,
-      totalRows: rows.length,
-      successCount: successCount,
-      failedCount: failedCount,
-    );
-
-    return BulkImportResult(
-      totalRows: rows.length,
-      successCount: successCount,
-      failedCount: failedCount,
-      auditLogId: auditId,
-    );
-  }
-
-  /// Redone executeImport with ID tracking for fees
   Future<BulkImportResult> executeImportWithFees({
     required String academyId,
     required List<BulkImportRow> rows,
@@ -374,10 +370,6 @@ class BulkStudentImportService {
         .map((doc) => (doc.data()['rollNo'] as String? ?? '').trim())
         .where((r) => r.isNotEmpty)
         .toSet();
-  }
-
-  Future<void> _generateAutoFees(String academyId, Student student) async {
-    // This helper was merged into executeImportWithFees for better ID management
   }
 
   Future<String> _logImport({

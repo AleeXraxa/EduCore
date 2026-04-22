@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
-import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
+
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
@@ -27,10 +27,10 @@ class StudentFormDialog extends StatefulWidget {
 
 class _StudentFormDialogState extends State<StudentFormDialog> {
   final _formKey = GlobalKey<FormState>();
-
   late TextEditingController _nameCtrl;
   late TextEditingController _fatherNameCtrl;
   late TextEditingController _phoneCtrl;
+  late TextEditingController _rollNoCtrl;
   late String _selectedClassId;
   late String _selectedFeePlanId;
   String? _selectedFeePlanName;
@@ -50,46 +50,45 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       text: widget.student?.fatherName ?? '',
     );
     _phoneCtrl = TextEditingController(text: widget.student?.phone ?? '');
+    _rollNoCtrl = TextEditingController(text: widget.student?.rollNo ?? '');
     _selectedClassId = widget.student?.classId ?? '';
     _selectedFeePlanId = widget.student?.feePlanId ?? '';
     _selectedFeePlanName = widget.student?.feePlanName;
     _status = widget.student?.status ?? 'active';
 
-    _fetchClasses();
+    _fetchInitialData();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.resetDynamicForm(widget.student?.customFields);
     });
   }
 
-  Future<void> _fetchClasses() async {
+  Future<void> _fetchInitialData() async {
     setState(() => _isFetching = true);
     final academyId = AppServices.instance.authService!.session!.academyId;
-    debugPrint('StudentFormDialog: Fetching classes and plans for $academyId');
 
-    final classesFuture = AppServices.instance.classService!.getClasses(
-      academyId,
-    );
-    final plansFuture = AppServices.instance.feePlanService!.getFeePlans(
-      academyId,
-    );
+    final List<Future<dynamic>> futures = [
+      AppServices.instance.classService!.getClasses(academyId),
+      AppServices.instance.feePlanService!.getFeePlans(academyId),
+    ];
 
-    final results = await Future.wait([classesFuture, plansFuture]);
+    if (widget.student == null && _rollNoCtrl.text.isEmpty) {
+      futures.add(widget.controller.getNextRollNumber());
+    }
+
+    final results = await Future.wait(futures);
     final classes = results[0] as List<InstituteClass>;
     final plans = results[1] as List<FeePlan>;
-
-    debugPrint(
-      'StudentFormDialog: Found ${classes.length} classes, ${plans.length} total plans',
-    );
 
     if (mounted) {
       setState(() {
         _isFetching = false;
         _availableClasses = classes;
         _availableFeePlans = plans.where((p) => p.isActive).toList();
-        debugPrint(
-          'StudentFormDialog: ${_availableFeePlans.length} active plans',
-        );
+
+        if (widget.student == null && results.length > 2) {
+          _rollNoCtrl.text = results[2] as String;
+        }
 
         if (_selectedClassId.isEmpty && classes.isNotEmpty) {
           _selectedClassId = classes.first.id;
@@ -130,20 +129,27 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
 
   Future<void> _submit() async {
     debugPrint('StudentFormDialog: _submit called');
-    
+
     // Explicitly check fields to log what's failing
-    if (_nameCtrl.text.trim().isEmpty) debugPrint('StudentFormDialog: Validation error - Name is empty');
-    if (_fatherNameCtrl.text.trim().isEmpty) debugPrint('StudentFormDialog: Validation error - Father Name is empty');
+    if (_nameCtrl.text.trim().isEmpty)
+      debugPrint('StudentFormDialog: Validation error - Name is empty');
+    if (_fatherNameCtrl.text.trim().isEmpty)
+      debugPrint('StudentFormDialog: Validation error - Father Name is empty');
     final phone = _phoneCtrl.text.trim();
     if (phone.isEmpty) {
       debugPrint('StudentFormDialog: Validation error - Phone is empty');
     } else if (!RegExp(r'^03\d{9}$').hasMatch(phone)) {
-      debugPrint('StudentFormDialog: Validation error - Phone format invalid: $phone');
+      debugPrint(
+        'StudentFormDialog: Validation error - Phone format invalid: $phone',
+      );
     }
-    
+
     if (!_formKey.currentState!.validate()) {
       debugPrint('StudentFormDialog: _formKey.validate() returned false');
-      AppToasts.showError(context, message: 'Please correct the errors in the form.');
+      AppToasts.showError(
+        context,
+        message: 'Please correct the errors in the form.',
+      );
       return;
     }
 
@@ -161,6 +167,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       name: _nameCtrl.text.trim(),
       fatherName: _fatherNameCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
+      rollNo: _rollNoCtrl.text.trim(),
       classId: _selectedClassId,
       className: selectedClass.displayName,
       admissionDate: widget.student?.admissionDate ?? DateTime.now(),
@@ -325,6 +332,16 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
                         icon: Icons.family_restroom_outlined,
                         validator: (v) =>
                             v!.isEmpty ? 'Father name is required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildField(
+                        controller: _rollNoCtrl,
+                        label: 'Roll Number (System Generated)',
+                        hint: 'Roll #',
+                        icon: Icons.tag_rounded,
+                        readOnly: true,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Roll Number is required' : null,
                       ),
 
                       const SizedBox(height: 32),
@@ -732,6 +749,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     void Function(String)? onChanged,
+    bool readOnly = false,
   }) {
     final cs = Theme.of(context).colorScheme;
     return Column(
@@ -747,6 +765,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
           keyboardType: keyboardType,
           validator: validator,
           onChanged: onChanged,
+          readOnly: readOnly,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(

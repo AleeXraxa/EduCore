@@ -262,4 +262,18 @@ class StudentService {
       await batch.commit();
     }
   }
+
+  Future<String> getNextRollNumber(String academyId) async {
+    try {
+      final snapshot = await _studentsRef(academyId)
+          .where('status', isNotEqualTo: 'deleted')
+          .count()
+          .get();
+      final count = snapshot.count ?? 0;
+      return 'EDU - ${count + 1}';
+    } catch (e) {
+      debugPrint('Error getting next roll number: $e');
+      return 'EDU - 1';
+    }
+  }
 }

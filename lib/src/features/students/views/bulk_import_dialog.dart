@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
@@ -9,7 +8,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
-import 'package:csv/csv.dart';
 
 class BulkImportDialog extends StatefulWidget {
   const BulkImportDialog({super.key});
@@ -89,26 +87,31 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
   }
 
   Future<void> _downloadTemplate() async {
-    final List<List<String>> rows = [
-      ['name', 'fatherName', 'phone', 'email', 'rollNo', 'class', 'section', 'feePlanId'],
-      ['John Doe', 'Richard Doe', '03001234567', 'john@example.com', '101', 'Grade 10', 'A', 'PLAN_ID_OR_NAME'],
-    ];
-
-    String csv = const ListToCsvConverter().convert(rows);
+    // Show loading
+    setState(() => _isProcessing = true);
     
-    // For now, copy to clipboard as a simple cross-platform way, or use file_picker to save
-    // On Windows, we can attempt to save
-    String? outputFile = await FilePicker.platform.saveFile(
-      dialogTitle: 'Save Student Import Template',
-      fileName: 'student_import_template.csv',
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
+    try {
+      final bytes = await _importSvc.generateExcelTemplate(
+        activePlans: _allFeePlans,
+        activeClasses: _allClasses,
+      );
 
-    if (outputFile != null) {
-      final file = File(outputFile);
-      await file.writeAsString(csv);
-      if (mounted) AppToasts.showSuccess(context, message: 'Template saved successfully!');
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Student Import Template',
+        fileName: 'student_import_template.xlsx',
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+
+      if (outputFile != null) {
+        final file = File(outputFile);
+        await file.writeAsBytes(bytes);
+        if (mounted) AppToasts.showSuccess(context, message: 'Excel Template saved successfully!');
+      }
+    } catch (e) {
+      if (mounted) AppToasts.showError(context, message: 'Failed to generate template: $e');
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -146,39 +149,79 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
   void _showReport(BulkImportResult result) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Import Completed'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _reportItem('Total Rows', result.totalRows.toString(), Colors.blue),
-            _reportItem('Successfully Imported', result.successCount.toString(), Colors.green),
-            _reportItem('Failed Rows', result.failedCount.toString(), Colors.red),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Pop report
-              Navigator.pop(context); // Pop import dialog
-            },
-            child: const Text('Close'),
+      barrierDismissible: false,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            width: 450,
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success Icon
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Import Completed',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The bulk student onboarding process has finished.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 32),
+                
+                // Result Cards
+                _buildReportCard('Total Processed', result.totalRows.toString(), cs.primary, Icons.format_list_bulleted_rounded),
+                const SizedBox(height: 12),
+                _buildReportCard('Successfully Onboarded', result.successCount.toString(), Colors.green, Icons.person_add_rounded),
+                const SizedBox(height: 12),
+                _buildReportCard('Failed / Skipped', result.failedCount.toString(), result.failedCount > 0 ? Colors.red : cs.onSurfaceVariant, Icons.error_outline_rounded),
+                
+                const SizedBox(height: 32),
+                AppPrimaryButton(
+                  label: 'Done',
+                  onPressed: () {
+                    Navigator.pop(context); // Pop report
+                    Navigator.pop(context); // Pop import dialog
+                  },
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _reportItem(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _buildReportCard(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const Spacer(),
           Text(
             value,
-            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18),
+            style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 20),
           ),
         ],
       ),
@@ -239,7 +282,7 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
                 Text(
-                  'Upload CSV/Excel file to onboard students in bulk',
+                  'Upload Excel file to onboard students. Use dropdowns for Fee Plans.',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                 ),
               ],
@@ -248,7 +291,7 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
           TextButton.icon(
             onPressed: _downloadTemplate,
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Download Template'),
+            label: const Text('Download Excel Template'),
           ),
           const SizedBox(width: 8),
           IconButton(
@@ -276,11 +319,33 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
             'Please select a CSV or Excel file to begin validation',
             style: TextStyle(color: cs.onSurfaceVariant),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded, size: 16, color: Colors.amber),
+                SizedBox(width: 8),
+                Text(
+                  'Use dropdowns in template. Do not edit manually.',
+                  style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           AppPrimaryButton(
             label: 'Select File',
             onPressed: _pickFile,
             icon: Icons.add_rounded,
+            width: 280,
+            variant: AppButtonVariant.secondary,
           ),
         ],
       ),
@@ -309,7 +374,10 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
         // Summary bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+            border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
+          ),
           child: Row(
             children: [
               _summaryChip('Total: ${_rows.length}', cs.primary),
@@ -318,59 +386,134 @@ class _BulkImportDialogState extends State<BulkImportDialog> {
               const SizedBox(width: 12),
               _summaryChip('Errors: $errorCount', Colors.red),
               const Spacer(),
-              Text('File: $_fileName', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Icon(Icons.insert_drive_file_outlined, size: 16, color: cs.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                '$_fileName',
+                style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
+              ),
               const SizedBox(width: 12),
-              TextButton(onPressed: _pickFile, child: const Text('Change File')),
+              TextButton(
+                onPressed: _pickFile,
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                child: const Text('Change File'),
+              ),
             ],
           ),
         ),
-        // Table
+        // Custom Table Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          color: cs.surfaceContainerHigh.withValues(alpha: 0.5),
+          child: Row(
+            children: [
+              _headerCell('#', flex: 1),
+              _headerCell('Status', flex: 1, center: true),
+              _headerCell('Student Name', flex: 3),
+              _headerCell('Father Name', flex: 3),
+              _headerCell('Roll #', flex: 2),
+              _headerCell('Class', flex: 2),
+              _headerCell('Fee Plan', flex: 3),
+              _headerCell('Potential Errors', flex: 4),
+            ],
+          ),
+        ),
+        // Scrollable Rows
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(cs.surfaceContainerHighest.withValues(alpha: 0.5)),
-                columns: const [
-                  DataColumn(label: Text('#')),
-                  DataColumn(label: Text('Status')),
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Roll No')),
-                  DataColumn(label: Text('Class')),
-                  DataColumn(label: Text('Errors')),
-                ],
-                rows: _rows.map((row) {
-                  return DataRow(
-                    color: row.hasErrors 
-                        ? WidgetStateProperty.all(Colors.red.withValues(alpha: 0.05))
-                        : null,
-                    cells: [
-                      DataCell(Text(row.rowNumber.toString())),
-                      DataCell(Icon(
-                        row.isValid ? Icons.check_circle_rounded : Icons.error_rounded,
-                        color: row.isValid ? Colors.green : Colors.red,
-                        size: 20,
-                      )),
-                      DataCell(Text(row.data['name'] ?? '-')),
-                      DataCell(Text(row.data['rollNo'] ?? '-')),
-                      DataCell(Text(row.data['class'] ?? '-')),
-                      DataCell(
-                        row.hasErrors
-                            ? Text(
-                                row.errors.join(', '),
-                                style: const TextStyle(color: Colors.red, fontSize: 12),
-                              )
-                            : const Text('Valid', style: TextStyle(color: Colors.green)),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: _rows.length,
+            separatorBuilder: (context, index) => Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
+            itemBuilder: (context, index) {
+              final row = _rows[index];
+              return _buildTableRow(row, cs);
+            },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _headerCell(String label, {required int flex, bool center = false}) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        label,
+        textAlign: center ? TextAlign.center : TextAlign.start,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildTableRow(BulkImportRow row, ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      color: row.hasErrors ? Colors.red.withValues(alpha: 0.02) : null,
+      child: Row(
+        children: [
+          Expanded(flex: 1, child: Text(row.rowNumber.toString(), style: TextStyle(color: cs.onSurfaceVariant))),
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: Icon(
+                row.isValid ? Icons.check_circle_rounded : Icons.warning_rounded,
+                color: row.isValid ? Colors.green : Colors.orange,
+                size: 20,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              row.data['name'] ?? '-',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              row.data['fatherName'] ?? '-',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+            ),
+          ),
+          Expanded(flex: 2, child: Text(row.data['rollNo'] ?? '-', style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(
+            flex: 2,
+            child: Text(
+              row.data['class'] ?? '-',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                row.data['feePlan'] ?? row.data['feePlanId'] ?? '-',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: cs.onPrimaryContainer, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: row.hasErrors
+                ? Text(
+                    row.errors.join(', '),
+                    style: TextStyle(color: cs.error, fontSize: 12, fontWeight: FontWeight.w500),
+                  )
+                : const Text(
+                    'No issues',
+                    style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -3,6 +3,8 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
+import 'package:educore/src/core/ui/widgets/app_search_field.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
@@ -12,6 +14,7 @@ import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/views/student_form_dialog.dart';
 import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 
 class StudentsView extends StatefulWidget {
@@ -25,8 +28,6 @@ class _StudentsViewState extends State<StudentsView> {
   late final StudentController _controller;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedClassId;
-  String _selectedStatus = 'all';
 
   @override
   void initState() {
@@ -37,12 +38,12 @@ class _StudentsViewState extends State<StudentsView> {
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
-        _controller.loadMore();
+        _controller.fetchMore();
       }
     });
 
     _searchController.addListener(() {
-      _controller.setSearchQuery(_searchController.text);
+      _controller.onSearchChanged(_searchController.text);
     });
   }
 
@@ -59,13 +60,16 @@ class _StudentsViewState extends State<StudentsView> {
     if (academyId == null) return;
 
     // Fast check for classes
-    final classes = await AppServices.instance.classService!.getClasses(academyId);
-    
+    final classes = await AppServices.instance.classService!.getClasses(
+      academyId,
+    );
+
     if (classes.isEmpty && mounted) {
       AppDialogs.showInfo(
         context,
         title: 'No Classes Found',
-        message: 'You cannot add a student without a class. Please create at least one class first in the Classes module.',
+        message:
+            'You cannot add a student without a class. Please create at least one class first in the Classes module.',
         icon: Icons.school_rounded,
         buttonLabel: 'Got it',
       );
@@ -104,18 +108,24 @@ class _StudentsViewState extends State<StudentsView> {
     final confirmed = await AppDialogs.showConfirm(
       context,
       title: 'Delete Student',
-      message: 'Are you sure you want to delete ${student.name}? This action cannot be fully undone.',
+      message:
+          'Are you sure you want to delete ${student.name}? This action cannot be fully undone.',
       confirmLabel: 'Delete',
       isDanger: true,
     );
 
     if (confirmed == true) {
-      if (mounted) AppDialogs.showLoading(context, message: 'Deleting student...');
+      if (mounted) {
+        AppDialogs.showLoading(context, message: 'Deleting student...');
+      }
       final success = await _controller.deleteStudent(student.id);
       if (mounted) {
         AppDialogs.hide(context);
         if (success) {
-          AppToasts.showSuccess(context, message: 'Student deleted successfully.');
+          AppToasts.showSuccess(
+            context,
+            message: 'Student deleted successfully.',
+          );
         } else {
           AppToasts.showError(context, message: 'Failed to delete student.');
         }
@@ -136,108 +146,83 @@ class _StudentsViewState extends State<StudentsView> {
     return ControllerBuilder<StudentController>(
       controller: _controller,
       builder: (context, controller, _) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final size = screenSizeForWidth(constraints.maxWidth);
-            final isCompact = size == ScreenSize.compact;
-
-            return Scaffold(
-              backgroundColor: cs.surfaceContainerLowest.withValues(alpha: 0.5),
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header & Insights
-                   _StudentsHeader(
-                    controller: controller,
-                    searchController: _searchController,
-                    onAddStudent: canCreate ? () => _showStudentForm() : null,
-                    onBulkImport: canCreate ? _showBulkImport : null,
-                    onRefresh: () => controller.loadInitialData(),
-                    errorMessage: controller.errorMessage,
-                    selectedClass: _selectedClassId,
-                    selectedStatus: _selectedStatus,
-                    onStatusFilter: (status) {
-                      setState(() => _selectedStatus = status);
-                      controller.setFilter(
-                        _selectedClassId,
-                        status == 'all' ? null : status,
-                      );
-                    },
-                    onClassChanged: (val) {
-                      setState(() => _selectedClassId = val);
-                      controller.setFilter(
-                        _selectedClassId,
-                        _selectedStatus == 'all' ? null : _selectedStatus,
-                      );
-                    },
-                    onStatusChanged: (val) {
-                      setState(() => _selectedStatus = val);
-                      controller.setFilter(
-                        _selectedClassId,
-                        _selectedStatus == 'all' ? null : _selectedStatus,
-                      );
-                    },
-                  ),
-
-                  const Divider(height: 1),
-
-                  // List Area
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () => controller.loadInitialData(),
-                      child: controller.busy && controller.students.isEmpty
-                          ? _LoadingSkeleton()
-                          : controller.students.isEmpty
-                          ? _EmptyStudents(
-                              onAdd: canCreate
-                                  ? () => _showStudentForm()
-                                  : null,
-                            )
-                          : ListView.separated(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(
-                                32,
-                                24,
-                                32,
-                                80,
-                              ),
-                              itemCount:
-                                  controller.students.length +
-                                  (controller.hasMore ? 1 : 0),
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                if (index == controller.students.length) {
-                                  return const _BottomLoader();
-                                }
-
-                                final student = controller.students[index];
-                                return _StudentCard(
-                                  student: student,
-                                  onView: () => _showStudentProfile(student),
-                                  onEdit: featureSvc.canAccess('student_update')
-                                      ? () => _showStudentForm(student)
-                                      : null,
-                                  onDelete:
-                                      featureSvc.canAccess('student_delete')
-                                      ? () => _handleDelete(student)
-                                      : null,
-                                );
-                              },
-                            ),
+        return Scaffold(
+          backgroundColor: cs.surfaceContainerLowest.withValues(alpha: 0.4),
+          body: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _StudentsPageHeader(
+                  controller: controller,
+                  onAddStudent: canCreate ? () => _showStudentForm() : null,
+                  onBulkImport: canCreate ? _showBulkImport : null,
+                  searchController: _searchController,
+                  errorMessage: controller.errorMessage,
+                ),
+                const SizedBox(height: 24),
+                
+                // KPI Stats Grid
+                _StudentStatsGrid(controller: controller),
+                const SizedBox(height: 24),
+                
+                // Table Container Card
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: cs.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Stats Bar inside the card
+                        _TableStatsBar(controller: controller),
+                        const Divider(height: 1),
+                        
+                        // Table Body
+                        Expanded(
+                          child: RefreshIndicator(
+                            onRefresh: () => controller.loadInitialData(),
+                            child: controller.busy && controller.students.isEmpty
+                                ? const _LoadingSkeleton()
+                                : controller.students.isEmpty
+                                    ? _EmptyStudents(
+                                        onAdd: canCreate ? () => _showStudentForm() : null,
+                                      )
+                                    : _StudentTable(
+                                        controller: controller,
+                                        scrollController: _scrollController,
+                                        onView: _showStudentProfile,
+                                        onEdit: canCreate ? _showStudentForm : null,
+                                        onDelete: featureSvc.canAccess('student_delete')
+                                            ? _handleDelete
+                                            : null,
+                                      ),
+                          ),
+                        ),
+                        
+                        // Footer / Pagination
+                        const Divider(height: 1),
+                        _TableFooter(controller: controller),
+                      ],
                     ),
                   ),
-                ],
-              ),
-              floatingActionButton: isCompact && canCreate
-                  ? FloatingActionButton.extended(
-                      onPressed: () => _showStudentForm(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Student'),
-                    )
-                  : null,
-            );
-          },
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -248,37 +233,33 @@ class _StudentsViewState extends State<StudentsView> {
 // Sub-Widgets
 // ==========================================
 
-class _QuickInsights extends StatelessWidget {
-  const _QuickInsights({
-    required this.controller,
-    required this.onStatusFilter,
-  });
-
+class _StudentStatsGrid extends StatelessWidget {
+  const _StudentStatsGrid({required this.controller});
   final StudentController controller;
-  final Function(String) onStatusFilter;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = screenSizeForWidth(constraints.maxWidth);
-        final columns = size == ScreenSize.compact
-            ? 1
+        final columns = size == ScreenSize.compact 
+            ? 2 
             : (size == ScreenSize.medium ? 2 : 4);
-        const gap = 12.0;
-        final totalGap = gap * (columns - 1);
-        final cardWidth = (constraints.maxWidth - totalGap) / columns;
+            
+        const gap = 16.0;
+        final cardWidth = (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
-        final items = [
+        final stats = [
           (
             'all',
             KpiCardData(
               label: 'Total Students',
               value: controller.totalCount.toString(),
-              icon: Icons.people_rounded,
+              icon: Icons.groups_rounded,
               gradient: [cs.primary, cs.primary.withValues(alpha: 0.7)],
-              trendText: 'Overview',
+              trendText: 'Academic Overview',
               trendUp: true,
             ),
           ),
@@ -288,8 +269,8 @@ class _QuickInsights extends StatelessWidget {
               label: 'Active',
               value: controller.activeCount.toString(),
               icon: Icons.check_circle_rounded,
-              gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
-              trendText: 'Healthy',
+              gradient: const [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+              trendText: 'Healthy enrollment',
               trendUp: true,
             ),
           ),
@@ -300,18 +281,18 @@ class _QuickInsights extends StatelessWidget {
               value: controller.inactiveCount.toString(),
               icon: Icons.pause_circle_rounded,
               gradient: const [Color(0xFF64748B), Color(0xFF94A3B8)],
-              trendText: 'Follow up',
+              trendText: 'Pending follow up',
               trendUp: false,
             ),
           ),
           (
-            'all', // New admissions doesn't have a status filter yet
+            'all', // Future: Add a "New" status if needed
             KpiCardData(
               label: 'New Admissions',
               value: controller.newAdmissionsCount.toString(),
               icon: Icons.auto_awesome_rounded,
               gradient: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
-              trendText: '+5 this month',
+              trendText: 'Growth this month',
               trendUp: true,
             ),
           ),
@@ -320,292 +301,166 @@ class _QuickInsights extends StatelessWidget {
         return Wrap(
           spacing: gap,
           runSpacing: gap,
-          children: items
-              .map(
-                (item) => SizedBox(
-                  width: cardWidth,
-                  child: GestureDetector(
-                    onTap: () => onStatusFilter(item.$1),
-                    behavior: HitTestBehavior.opaque,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: KpiCard(data: item.$2),
+          children: stats.map((stat) {
+            final isSelected = controller.statusFilter == stat.$1 || 
+                             (stat.$1 == 'all' && controller.statusFilter == null);
+                             
+            return SizedBox(
+              width: cardWidth,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => controller.onStatusFilterChanged(stat.$1 == 'all' ? null : stat.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? cs.primary : Colors.transparent,
+                        width: 2,
+                      ),
                     ),
+                    child: KpiCard(data: stat.$2),
                   ),
                 ),
-              )
-              .toList(),
+              ),
+            );
+          }).toList(),
         );
       },
     );
   }
 }
 
-class _StudentsHeader extends StatelessWidget {
-  const _StudentsHeader({
+// ==========================================
+// Sub-Widgets
+// ==========================================
+
+class _StudentsPageHeader extends StatelessWidget {
+  const _StudentsPageHeader({
     required this.controller,
-    required this.searchController,
     required this.onAddStudent,
     this.onBulkImport,
-    required this.onRefresh,
+    required this.searchController,
     this.errorMessage,
-    required this.selectedClass,
-    required this.selectedStatus,
-    required this.onStatusFilter,
-    required this.onClassChanged,
-    required this.onStatusChanged,
   });
 
   final StudentController controller;
-  final TextEditingController searchController;
   final VoidCallback? onAddStudent;
   final VoidCallback? onBulkImport;
-  final VoidCallback onRefresh;
+  final TextEditingController searchController;
   final String? errorMessage;
-  final String? selectedClass;
-  final String selectedStatus;
-  final Function(String) onStatusFilter;
-  final Function(String?) onClassChanged;
-  final Function(String) onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDesktop =
-        screenSizeForWidth(MediaQuery.sizeOf(context).width) !=
-        ScreenSize.compact;
+    final isDesktop = MediaQuery.sizeOf(context).width >= Breakpoints.medium;
 
-    return Container(
-      color: cs.surface,
-      padding: EdgeInsets.all(isDesktop ? 32 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Students',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.0,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh_rounded, size: 20),
-                tooltip: 'Refresh List',
-                style: IconButton.styleFrom(
-                  backgroundColor: cs.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Students Management',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
                   ),
                 ),
-              ),
-              const Spacer(),
-              if (isDesktop && onAddStudent != null)
-                FilledButton.icon(
-                  onPressed: onAddStudent,
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: const Text('Add Student'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 20,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                Text(
+                  'Manage and monitor enrolled students',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 14,
                   ),
                 ),
-              if (isDesktop && onBulkImport != null) ...[
-                const SizedBox(width: 12),
+              ],
+            ),
+            const Spacer(),
+            if (isDesktop) ...[
+              SizedBox(
+                width: 280,
+                child: AppSearchField(
+                  controller: searchController,
+                  hintText: 'Search students...',
+                ),
+              ),
+              const SizedBox(width: 12),
+              _HeaderClassFilter(controller: controller),
+              const SizedBox(width: 12),
+              if (onBulkImport != null)
                 OutlinedButton.icon(
                   onPressed: onBulkImport,
                   icon: const Icon(Icons.upload_file_rounded, size: 20),
-                  label: const Text('Bulk Import'),
+                  label: const Text('Bulk Add'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 20,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              if (onAddStudent != null) ...[
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: onAddStudent,
+                  icon: const Icon(Icons.person_add_rounded, size: 20),
+                  label: const Text('Add Student'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
             ],
-          ),
-          if (errorMessage != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            if (!isDesktop)
+              IconButton.filledTonal(
+                onPressed: onAddStudent,
+                icon: const Icon(Icons.add_rounded),
+              ),
+          ],
+        ),
+        if (errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: cs.errorContainer.withValues(alpha: 0.3),
+                color: cs.errorContainer.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.error.withValues(alpha: 0.2)),
+                border: Border.all(color: cs.error.withValues(alpha: 0.1)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      errorMessage!,
-                      style: TextStyle(
-                        color: cs.error,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                  Icon(Icons.error_outline_rounded, color: cs.error, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    errorMessage!,
+                    style: TextStyle(color: cs.error, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
             ),
-          ],
-          const SizedBox(height: 16),
-          _QuickInsights(
-            controller: controller,
-            onStatusFilter: onStatusFilter,
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _SearchBar(controller: searchController),
-              ),
-              if (isDesktop) ...[
-                const SizedBox(width: 16),
-                _ClassSelector(
-                  selected: selectedClass,
-                  onChanged: onClassChanged,
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 20),
-          _FilterChips(
-            selectedStatus: selectedStatus,
-            onChanged: onStatusChanged,
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
 
-class _SearchBar extends StatefulWidget {
-  const _SearchBar({required this.controller});
-  final TextEditingController controller;
+class _HeaderClassFilter extends StatefulWidget {
+  const _HeaderClassFilter({required this.controller});
+  final StudentController controller;
 
   @override
-  State<_SearchBar> createState() => _SearchBarState();
+  State<_HeaderClassFilter> createState() => _HeaderClassFilterState();
 }
 
-class _SearchBarState extends State<_SearchBar> {
-  bool _hasText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_updateState);
-  }
-
-  void _updateState() {
-    if (mounted) setState(() => _hasText = widget.controller.text.isNotEmpty);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: TextField(
-        controller: widget.controller,
-        decoration: InputDecoration(
-          hintText: 'Search by name or phone...',
-          hintStyle: TextStyle(
-            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
-          prefixIcon: Icon(Icons.search_rounded, color: cs.primary, size: 20),
-          suffixIcon: _hasText
-              ? IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  onPressed: () => widget.controller.clear(),
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterChips extends StatelessWidget {
-  const _FilterChips({required this.selectedStatus, required this.onChanged});
-  final String selectedStatus;
-  final Function(String) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = [
-      ('all', 'All Students'),
-      ('active', 'Active'),
-      ('inactive', 'Inactive'),
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.map((f) {
-          final isSelected = selectedStatus == f.$1;
-          final cs = Theme.of(context).colorScheme;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(f.$2),
-              selected: isSelected,
-              onSelected: (_) => onChanged(f.$1),
-              showCheckmark: false,
-              selectedColor: cs.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              side: BorderSide(
-                color: isSelected
-                    ? cs.primary
-                    : cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
- class _ClassSelector extends StatefulWidget {
-  const _ClassSelector({this.selected, required this.onChanged});
-  final String? selected;
-  final Function(String?) onChanged;
-
-  @override
-  State<_ClassSelector> createState() => _ClassSelectorState();
-}
-
-class _ClassSelectorState extends State<_ClassSelector> {
+class _HeaderClassFilterState extends State<_HeaderClassFilter> {
   List<InstituteClass> _classes = [];
+  bool _loading = true;
 
   @override
   void initState() {
@@ -616,350 +471,423 @@ class _ClassSelectorState extends State<_ClassSelector> {
   Future<void> _fetch() async {
     final academyId = AppServices.instance.authService!.session!.academyId;
     final classes = await AppServices.instance.classService!.getClasses(academyId);
-    if (mounted) setState(() => _classes = classes);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      height: 52,
-      width: 200,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: widget.selected,
-          hint: const Text('Filter by Class'),
-          borderRadius: BorderRadius.circular(16),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('All Classes')),
-            ..._classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.displayName))),
-          ],
-          onChanged: widget.onChanged,
-        ),
-      ),
-    );
-  }
-}
-
-class _StudentCard extends StatefulWidget {
-  const _StudentCard({
-    required this.student,
-    required this.onView,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final Student student;
-  final VoidCallback onView;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  State<_StudentCard> createState() => _StudentCardState();
-}
-
-class _StudentCardState extends State<_StudentCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isActive = widget.student.status == 'active';
-    final isDesktop =
-        screenSizeForWidth(MediaQuery.sizeOf(context).width) !=
-        ScreenSize.compact;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        transform: Matrix4.diagonal3Values(
-          _isHovered ? 1.01 : 1.0,
-          _isHovered ? 1.01 : 1.0,
-          1.0,
-        ),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: _isHovered
-                ? cs.primary.withValues(alpha: 0.4)
-                : cs.outlineVariant.withValues(alpha: 0.5),
-            width: _isHovered ? 1.5 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: _isHovered ? 0.08 : 0.02),
-              blurRadius: _isHovered ? 32 : 12,
-              offset: Offset(0, _isHovered ? 12 : 4),
-            ),
-          ],
-        ),
-        child: InkWell(
-          onTap: widget.onView,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                // Avatar Area
-                _StudentAvatar(name: widget.student.name),
-                const SizedBox(width: 20),
-
-                // Info Area
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.student.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _StatusBadge(active: isActive),
-                          if (widget.student.feeMode == 'package') ...[
-                            const SizedBox(width: 8),
-                            _BillingBadge(isPackage: true),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Father: ${widget.student.fatherName}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      if (!isDesktop) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${widget.student.className} • ${widget.student.phone}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                if (isDesktop) ...[
-                  // Desktop only columns
-                  Expanded(
-                    child: Text(
-                      widget.student.className,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.student.phone,
-                      style: TextStyle(color: cs.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-
-                // Actions Area
-                _CardActions(
-                  onView: widget.onView,
-                  onEdit: widget.onEdit,
-                  onDelete: widget.onDelete,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StudentAvatar extends StatelessWidget {
-  const _StudentAvatar({required this.name});
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: cs.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: cs.primary,
-          fontWeight: FontWeight.w900,
-          fontSize: 18,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.active});
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        active ? 'Active' : 'Inactive',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _BillingBadge extends StatelessWidget {
-  const _BillingBadge({required this.isPackage});
-  final bool isPackage;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!isPackage) return const SizedBox.shrink();
-    final cs = Theme.of(context).colorScheme;
-    final color = cs.secondary;
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        'Package',
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _CardActions extends StatelessWidget {
-  const _CardActions({
-    required this.onView,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final VoidCallback onView;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    if (onEdit == null && onDelete == null) {
-      return IconButton(
-        onPressed: onView,
-        icon: const Icon(Icons.visibility_outlined, size: 20),
-        tooltip: 'View Profile',
-      );
+    if (mounted) {
+      setState(() {
+        _classes = classes;
+        _loading = false;
+      });
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 200,
+      child: AppDropdown<String>(
+        label: 'Filter by Class',
+        showLabel: false,
+        value: widget.controller.classIdFilter ?? 'all',
+        hintText: _loading ? 'Loading...' : 'All Classes',
+        items: ['all', ..._classes.map((c) => c.id)],
+        itemLabel: (id) {
+          if (id == 'all') return 'All Classes';
+          try {
+            return _classes.firstWhere((c) => c.id == id).displayName;
+          } catch (_) {
+            return 'Unknown';
+          }
+        },
+        onChanged: widget.controller.onClassFilterChanged,
+        prefixIcon: Icons.school_outlined,
+        compact: true,
+      ),
+    );
+  }
+}
+
+class _TableStatsBar extends StatelessWidget {
+  const _TableStatsBar({required this.controller});
+  final StudentController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.1),
+      ),
+      child: Row(
+        children: [
+          _miniStat(context, 'Total Enrollments', controller.totalCount.toString(), cs.primary),
+          _vDivider(context),
+          _miniStat(context, 'Active', controller.activeCount.toString(), const Color(0xFF10B981)),
+          _vDivider(context),
+          _miniStat(context, 'New this month', controller.newAdmissionsCount.toString(), const Color(0xFFF59E0B)),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () => controller.loadInitialData(),
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Refresh List'),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStat(BuildContext context, String label, String value, Color color) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          onPressed: onView,
-          icon: const Icon(Icons.visibility_outlined, size: 20),
-          tooltip: 'View Profile',
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        AppActionMenu(
-          actions: [
-            if (onEdit != null)
-              AppActionItem(
-                label: 'Edit Student',
-                icon: Icons.edit_rounded,
-                type: AppActionType.edit,
-                onTap: onEdit!,
-              ),
-            if (onDelete != null)
-              AppActionItem(
-                label: 'Delete Student',
-                icon: Icons.delete_forever_rounded,
-                type: AppActionType.delete,
-                onTap: onDelete!,
-              ),
-          ],
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ],
     );
   }
+
+  Widget _vDivider(BuildContext context) {
+    return Container(
+      height: 12,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      color: Theme.of(context).colorScheme.outlineVariant,
+    );
+  }
 }
 
-class _LoadingSkeleton extends StatelessWidget {
+class _StudentTable extends StatelessWidget {
+  const _StudentTable({
+    required this.controller,
+    required this.scrollController,
+    required this.onView,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  final StudentController controller;
+  final ScrollController scrollController;
+  final Function(Student) onView;
+  final Function(Student)? onEdit;
+  final Function(Student)? onDelete;
+
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(32),
-      itemCount: 6,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => Container(
-        height: 88,
+    final cs = Theme.of(context).colorScheme;
+
+    return Scrollbar(
+      controller: scrollController,
+      child: SingleChildScrollView(
+        controller: scrollController,
+        scrollDirection: Axis.vertical,
+        child: Column(
+          children: [
+            Table(
+              columnWidths: const {
+                0: FixedColumnWidth(100),  // Roll No
+                1: FlexColumnWidth(3),     // Student Profile
+                2: FlexColumnWidth(1.5),   // Class
+                3: FlexColumnWidth(1.5),   // Fee Plan
+                4: FixedColumnWidth(120),  // Status
+                5: FixedColumnWidth(150),  // Last Updated
+                6: FixedColumnWidth(60),   // Actions
+              },
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              children: [
+                // Header
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.15),
+                    border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+                  ),
+                  children: [
+                    _headerCell('Roll No'),
+                    _headerCell('Student'),
+                    _headerCell('Class'),
+                    _headerCell('Fee Plan'),
+                    _headerCell('Status', center: true),
+                    _headerCell('Last Updated'),
+                    _headerCell(''),
+                  ],
+                ),
+                // Rows
+                ...controller.students.map(
+                  (student) => TableRow(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: cs.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ),
+                    children: [
+                      _rollNoCell(context, student),
+                      _studentProfileCell(context, student),
+                      _classCell(context, student),
+                      _feePlanCell(context, student),
+                      _statusCell(context, student.status == 'active'),
+                      _lastUpdatedCell(context, student),
+                      _actionCell(student),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (controller.hasMore)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: controller.busy
+                    ? const CircularProgressIndicator()
+                    : TextButton.icon(
+                        onPressed: () => controller.fetchMore(),
+                        icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                        label: const Text('Load More Data'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        ),
+                      ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerCell(String label, {bool center = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: Text(
+        label.toUpperCase(),
+        textAlign: center ? TextAlign.center : TextAlign.start,
+        style: const TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
+          letterSpacing: 1.0,
+          color: Colors.black54,
+        ),
+      ),
+    );
+  }
+
+  Widget _rollNoCell(BuildContext context, Student student) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20),
+      child: Text(
+        student.rollNo ?? '-',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  Widget _studentProfileCell(BuildContext context, Student student) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: cs.primary.withValues(alpha: 0.1),
+            child: Text(
+              student.name[0].toUpperCase(),
+              style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  student.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  student.fatherName,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _classCell(BuildContext context, Student student) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(
-          child: SizedBox(width: 40, child: LinearProgressIndicator()),
+        child: Text(
+          student.className,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSecondaryContainer,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
         ),
+      ),
+    );
+  }
+
+  Widget _feePlanCell(BuildContext context, Student student) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        student.feePlanName ?? '-',
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Widget _statusCell(BuildContext context, bool isActive) {
+    final color = isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isActive ? 'Active' : 'Inactive',
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lastUpdatedCell(BuildContext context, Student student) {
+    final date = student.updatedAt;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        DateFormat('MMM dd, yyyy').format(date),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _actionCell(Student student) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: AppActionMenu(
+        actions: [
+          AppActionItem(
+            label: 'View',
+            icon: Icons.visibility_outlined,
+            onTap: () => onView(student),
+          ),
+          if (onEdit != null)
+            AppActionItem(
+              label: 'Edit',
+              icon: Icons.edit_outlined,
+              onTap: () => onEdit!(student),
+            ),
+          AppActionItem(
+            label: 'Assign Fee Plan',
+            icon: Icons.payments_outlined,
+            onTap: () {},
+          ),
+          AppActionItem(
+            label: 'Transfer Class',
+            icon: Icons.swap_horiz_rounded,
+            onTap: () {},
+          ),
+          if (onDelete != null)
+            AppActionItem(
+              label: 'Delete',
+              icon: Icons.delete_outline_rounded,
+              type: AppActionType.delete,
+              onTap: () => onDelete!(student),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _BottomLoader extends StatelessWidget {
-  const _BottomLoader();
+class _TableFooter extends StatelessWidget {
+  const _TableFooter({required this.controller});
+  final StudentController controller;
+
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: CircularProgressIndicator(),
+    final cs = Theme.of(context).colorScheme;
+    final count = controller.students.length;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Text(
+            'Showing 1–$count of ${controller.totalCount} students',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          const Spacer(),
+          OutlinedButton(
+            onPressed: null, // Placeholder for pagination
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Previous'),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            onPressed: controller.hasMore ? () => controller.fetchMore() : null,
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Next'),
+          ),
+        ],
       ),
     );
   }
 }
+
+// ==========================================
+// Sub-Widgets
+// ==========================================
+
 
 class _EmptyStudents extends StatelessWidget {
   const _EmptyStudents({required this.onAdd});
@@ -968,37 +896,63 @@ class _EmptyStudents extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person_search_rounded, size: 80, color: cs.outlineVariant),
-          const SizedBox(height: 24),
-          Text(
-            'No students yet',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Add your first student to start managing your institute.',
-            style: TextStyle(color: cs.onSurfaceVariant),
-          ),
-          if (onAdd != null) ...[
+      child: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.people_alt_rounded,
+                size: 80,
+                color: cs.primary.withValues(alpha: 0.5),
+              ),
+            ),
             const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              label: const Text('Add First Student'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 20,
+            Text(
+              'No Students Found',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 400,
+              child: Text(
+                'Add your first student to the institute to start tracking attendance, performance, and fees efficiently.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 15,
+                  height: 1.5,
                 ),
               ),
             ),
+            if (onAdd != null) ...[
+              const SizedBox(height: 40),
+              FilledButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.person_add_rounded),
+                label: const Text('Add Your First Student'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1016,61 +970,179 @@ class _StudentProfileDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Container(
-        width: 600,
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _StudentAvatar(name: student.name),
-                const SizedBox(width: 24),
-                Expanded(
+        width: 700,
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header Gradient Section
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      cs.primary,
+                      cs.primary.withValues(alpha: 0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.white,
+                        child: Text(
+                          student.name[0].toUpperCase(),
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Roll No: ${student.rollNo ?? "N/A"}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _StatusBadge(
+                      active: student.status == 'active',
+                      isWhite: true,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content Section
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        student.name,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      Text(
-                        'Student Enrollment • ${student.id.substring(0, 8)}',
-                        style: TextStyle(color: cs.onSurfaceVariant),
-                      ),
+                      _sectionTitle(context, 'Personal & Academic Details'),
+                      const SizedBox(height: 24),
+                      _ProfileInfoGrid(student: student),
+                      
+                      if (student.customFields.isNotEmpty) ...[
+                        const SizedBox(height: 40),
+                        _sectionTitle(context, 'Custom Information'),
+                        const SizedBox(height: 24),
+                        _ProfileCustomFields(
+                          data: student.customFields,
+                          definitions: customFields,
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                _StatusBadge(active: student.status == 'active'),
-              ],
-            ),
-            const SizedBox(height: 32),
-            const Divider(),
-            const SizedBox(height: 32),
-            _ProfileInfoGrid(student: student),
-            const SizedBox(height: 32),
-            if (student.customFields.isNotEmpty) ...[
-              _sectionTitle(context, 'Additional Information'),
-              const SizedBox(height: 20),
-              _ProfileCustomFields(
-                data: student.customFields,
-                definitions: customFields,
+              ),
+
+              // Footer Section
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                  border: Border(
+                    top: BorderSide(
+                      color: cs.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
+                      child: const Text('Close Profile'),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      onPressed: () {
+                        // TODO: Implement Edit
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Edit Student'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1088,6 +1160,11 @@ class _ProfileInfoGrid extends StatelessWidget {
       runSpacing: 32,
       children: [
         _InfoItem(
+          label: 'Roll Number',
+          value: student.rollNo ?? 'N/A',
+          icon: Icons.tag_rounded,
+        ),
+        _InfoItem(
           label: 'Father Name',
           value: student.fatherName,
           icon: Icons.person_outline,
@@ -1099,8 +1176,17 @@ class _ProfileInfoGrid extends StatelessWidget {
         ),
         _InfoItem(
           label: 'Billing Model',
-          value: student.feeMode == 'package' ? 'One-time Package' : 'Monthly Subscription',
-          icon: student.feeMode == 'package' ? Icons.inventory_2_outlined : Icons.event_repeat_rounded,
+          value: student.feeMode == 'package'
+              ? 'One-time Package'
+              : 'Monthly Subscription',
+          icon: student.feeMode == 'package'
+              ? Icons.inventory_2_outlined
+              : Icons.event_repeat_rounded,
+        ),
+        _InfoItem(
+          label: 'Class',
+          value: student.className,
+          icon: Icons.school_outlined,
         ),
         _InfoItem(
           label: 'Enrollment Date',
@@ -1192,8 +1278,8 @@ class _ProfileCustomFields extends StatelessWidget {
         String displayValue = entry.value?.toString() ?? 'N/A';
         if (type == CustomFieldType.date && entry.value != null) {
           try {
-            final date = entry.value is DateTime 
-                ? entry.value as DateTime 
+            final date = entry.value is DateTime
+                ? entry.value as DateTime
                 : DateTime.parse(entry.value.toString());
             displayValue = DateFormat.yMMMd().format(date);
           } catch (_) {}
@@ -1210,10 +1296,85 @@ class _ProfileCustomFields extends StatelessWidget {
 
   IconData _getIconForType(CustomFieldType type) {
     switch (type) {
-      case CustomFieldType.text: return Icons.notes_rounded;
-      case CustomFieldType.number: return Icons.tag_rounded;
-      case CustomFieldType.date: return Icons.event_rounded;
-      case CustomFieldType.dropdown: return Icons.list_rounded;
+      case CustomFieldType.text:
+        return Icons.notes_rounded;
+      case CustomFieldType.number:
+        return Icons.tag_rounded;
+      case CustomFieldType.date:
+        return Icons.event_rounded;
+      case CustomFieldType.dropdown:
+        return Icons.list_rounded;
     }
+  }
+}
+
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.active, this.isWhite = false});
+  final bool active;
+  final bool isWhite;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? const Color(0xFF10B981) : const Color(0xFF64748B);
+    final bgColor = isWhite ? Colors.white24 : color.withValues(alpha: 0.1);
+    final textColor = isWhite ? Colors.white : color;
+    final borderColor = isWhite ? Colors.white30 : color.withValues(alpha: 0.2);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: isWhite ? Colors.white : color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            active ? 'Active' : 'Inactive',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingSkeleton extends StatelessWidget {
+  const _LoadingSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SpinKitPulse(color: cs.primary.withValues(alpha: 0.3), size: 100),
+          const SizedBox(height: 24),
+          Text(
+            'Retrieving student records...',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
