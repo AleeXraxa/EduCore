@@ -4,14 +4,14 @@ import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
-import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
 import 'package:educore/src/features/fees/widgets/collect_payment_dialog.dart';
 import 'package:educore/src/features/fees/widgets/generate_monthly_fees_dialog.dart';
 import 'package:educore/src/features/fees/widgets/create_other_fee_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_details_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
-import 'package:educore/src/features/fees/screens/document_customization_screen.dart';
+
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:intl/intl.dart';
 

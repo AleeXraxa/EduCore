@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
 
-import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
 
