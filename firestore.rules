@@ -220,6 +220,24 @@ service cloud.firestore {
                                          && hasActiveSubscription(academyId);
       }
 
+      match /examSchedules/{scheduleId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /marks/{markId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /results/{resultId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
       match /staff/{staffId} {
         allow read:   if belongsTo(academyId);
         allow create, update, delete: if isAdminOf(academyId) && hasActiveSubscription(academyId);
@@ -243,6 +261,31 @@ service cloud.firestore {
       match /fee_generation_locks/{lockId} {
         allow read: if belongsTo(academyId);
         allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
+      }
+
+      // --- Monthly Tests & Assessments ---
+      match /monthlyTests/{testId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /testQuestions/{questionId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /testMarks/{markId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /testResults/{resultId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
       }
 
       match /settings/{docId} {

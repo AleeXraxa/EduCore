@@ -2,10 +2,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
-import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/fees/models/document_settings.dart';
 import 'dart:typed_data';
-
 
 /// Data class specifically for professional Bank Challans.
 class BankChallanData {
@@ -100,8 +98,9 @@ class BankChallanPdfGenerator {
   static Future<void> generateAndPrint(BankChallanData data) async {
     final bytes = await generateBytes(data);
     await Printing.layoutPdf(
-        onLayout: (format) async => bytes,
-        name: 'Challan_${data.challanNumber}');
+      onLayout: (format) async => bytes,
+      name: 'Challan_${data.challanNumber}',
+    );
   }
 
   static Future<void> shareDocument(BankChallanData data) async {
@@ -144,13 +143,22 @@ class BankChallanPdfGenerator {
       margin: const pw.EdgeInsets.symmetric(horizontal: 5),
       decoration: const pw.BoxDecoration(
         border: pw.Border(
-          right: pw.BorderSide(width: 0.5, color: PdfColors.black, style: pw.BorderStyle.dashed),
+          right: pw.BorderSide(
+            width: 0.5,
+            color: PdfColors.black,
+            style: pw.BorderStyle.dashed,
+          ),
         ),
       ),
     );
   }
 
-  static pw.Widget _buildHeader(BankChallanData data, String copyName, pw.Font fontBold, pw.Font font) {
+  static pw.Widget _buildHeader(
+    BankChallanData data,
+    String copyName,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
     return pw.Column(
       children: [
         if (data.settings.challanSettings.showLogo) ...[
@@ -199,11 +207,17 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _buildBankSection(BankChallanData data, pw.Font fontBold, pw.Font font) {
+  static pw.Widget _buildBankSection(
+    BankChallanData data,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
     final b = data.settings.bankDetails;
     final bankName = b.bankName.isNotEmpty ? b.bankName : data.bankName;
     final branch = b.branchName.isNotEmpty ? b.branchName : data.bankBranch;
-    final accNo = b.accountNumber.isNotEmpty ? b.accountNumber : data.accountNumber;
+    final accNo = b.accountNumber.isNotEmpty
+        ? b.accountNumber
+        : data.accountNumber;
     final title = b.accountTitle.isNotEmpty ? b.accountTitle : data.academyName;
 
     return pw.Container(
@@ -228,7 +242,11 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _buildStudentSection(BankChallanData data, pw.Font fontBold, pw.Font font) {
+  static pw.Widget _buildStudentSection(
+    BankChallanData data,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
     final s = data.settings.challanSettings;
     if (!s.showStudentInfo) return pw.SizedBox.shrink();
 
@@ -242,14 +260,24 @@ class BankChallanPdfGenerator {
           _infoRow('Class', data.className, fontBold, font),
           _infoRow('Section', data.section, fontBold, font),
         ],
-        _infoRow('Roll No / GR', '${data.rollNo} / ${data.grNo}', fontBold, font),
+        _infoRow(
+          'Roll No / GR',
+          '${data.rollNo} / ${data.grNo}',
+          fontBold,
+          font,
+        ),
         _infoRow('Fee Month', data.feeMonth, fontBold, font),
       ],
     );
   }
 
-  static pw.Widget _buildDatesSection(BankChallanData data, pw.Font fontBold, pw.Font font) {
-    if (!data.settings.challanSettings.showDueDates) return pw.SizedBox.shrink();
+  static pw.Widget _buildDatesSection(
+    BankChallanData data,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
+    if (!data.settings.challanSettings.showDueDates)
+      return pw.SizedBox.shrink();
 
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -290,18 +318,31 @@ class BankChallanPdfGenerator {
                 },
                 children: [
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey100,
+                    ),
                     children: [
                       _tableCell('Fee Description', fontBold, isHeader: true),
-                      _tableCell('Amount', fontBold, isHeader: true, align: pw.TextAlign.right),
+                      _tableCell(
+                        'Amount',
+                        fontBold,
+                        isHeader: true,
+                        align: pw.TextAlign.right,
+                      ),
                     ],
                   ),
-                  ...data.feeBreakdown.entries.map((e) => pw.TableRow(
-                        children: [
-                          _tableCell(e.key, font),
-                          _tableCell(_currencyFmt.format(e.value), font, align: pw.TextAlign.right),
-                        ],
-                      )),
+                  ...data.feeBreakdown.entries.map(
+                    (e) => pw.TableRow(
+                      children: [
+                        _tableCell(e.key, font),
+                        _tableCell(
+                          _currencyFmt.format(e.value),
+                          font,
+                          align: pw.TextAlign.right,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             pw.SizedBox(height: 10),
@@ -309,17 +350,22 @@ class BankChallanPdfGenerator {
             // Totals section - Professional Structured Layout
             if (data.settings.challanSettings.showFeeTable)
               pw.Container(
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(width: 0.5),
-                ),
+                decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
                 child: pw.Column(
                   children: [
                     _summaryRow('Total Current Fee', data.totalOriginal, font),
                     if (data.settings.challanSettings.showFineDetails)
                       _summaryRow('Fine after Due Date', data.totalFine, font),
                     pw.Container(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey100),
-                      child: _summaryRow('TOTAL PAYABLE', data.totalWithFine, fontBold, isTotal: true),
+                      decoration: const pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                      ),
+                      child: _summaryRow(
+                        'TOTAL PAYABLE',
+                        data.totalWithFine,
+                        fontBold,
+                        isTotal: true,
+                      ),
                     ),
                   ],
                 ),
@@ -330,7 +376,11 @@ class BankChallanPdfGenerator {
             if (data.settings.challanSettings.footerNote.isNotEmpty)
               pw.Text(
                 data.settings.challanSettings.footerNote,
-                style: pw.TextStyle(font: font, fontSize: 6, color: PdfColors.grey700),
+                style: pw.TextStyle(
+                  font: font,
+                  fontSize: 6,
+                  color: PdfColors.grey700,
+                ),
                 textAlign: pw.TextAlign.justify,
               ),
 
@@ -358,7 +408,10 @@ class BankChallanPdfGenerator {
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   pw.Divider(thickness: 0.5, color: PdfColors.black),
-                  pw.Text('Bank Stamp and Signature', style: pw.TextStyle(font: font, fontSize: 7)),
+                  pw.Text(
+                    'Bank Stamp and Signature',
+                    style: pw.TextStyle(font: font, fontSize: 7),
+                  ),
                 ],
               ),
             ),
@@ -381,7 +434,11 @@ class BankChallanPdfGenerator {
                     decoration: const pw.BoxDecoration(color: PdfColors.black),
                     child: pw.Text(
                       'ANY CORRECTION / OVERWRITING IS INVALID',
-                      style: pw.TextStyle(font: fontBold, fontSize: 6, color: PdfColors.white),
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 6,
+                        color: PdfColors.white,
+                      ),
                       textAlign: pw.TextAlign.center,
                     ),
                   ),
@@ -399,18 +456,29 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _infoRow(String label, String value, pw.Font labelFont, pw.Font valueFont) {
+  static pw.Widget _infoRow(
+    String label,
+    String value,
+    pw.Font labelFont,
+    pw.Font valueFont,
+  ) {
     return pw.Padding(
       padding: const pw.EdgeInsets.only(bottom: 2),
       child: pw.Row(
         children: [
-          pw.Text('$label: ', style: pw.TextStyle(font: labelFont, fontSize: 8)),
+          pw.Text(
+            '$label: ',
+            style: pw.TextStyle(font: labelFont, fontSize: 8),
+          ),
           pw.Expanded(
             child: pw.Container(
               decoration: const pw.BoxDecoration(
                 border: pw.Border(bottom: pw.BorderSide(width: 0.5)),
               ),
-              child: pw.Text(value, style: pw.TextStyle(font: valueFont, fontSize: 8)),
+              child: pw.Text(
+                value,
+                style: pw.TextStyle(font: valueFont, fontSize: 8),
+              ),
             ),
           ),
         ],
@@ -418,7 +486,12 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _bankRow(String label, String value, pw.Font fontBold, pw.Font font) {
+  static pw.Widget _bankRow(
+    String label,
+    String value,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -430,8 +503,13 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _dateField(String label, DateTime date, pw.Font fontBold, pw.Font font,
-      {bool isImportant = false}) {
+  static pw.Widget _dateField(
+    String label,
+    DateTime date,
+    pw.Font fontBold,
+    pw.Font font, {
+    bool isImportant = false,
+  }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -463,12 +541,18 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _tableCell(String text, pw.Font font,
-      {bool isHeader = false, pw.TextAlign align = pw.TextAlign.left}) {
+  static pw.Widget _tableCell(
+    String text,
+    pw.Font font, {
+    bool isHeader = false,
+    pw.TextAlign align = pw.TextAlign.left,
+  }) {
     return pw.Container(
       height: 18, // Enforces uniform row height
       padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-      alignment: align == pw.TextAlign.right ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
+      alignment: align == pw.TextAlign.right
+          ? pw.Alignment.centerRight
+          : pw.Alignment.centerLeft,
       child: pw.Text(
         text,
         maxLines: 1,
@@ -481,13 +565,21 @@ class BankChallanPdfGenerator {
     );
   }
 
-  static pw.Widget _summaryRow(String label, double amount, pw.Font font, {bool isTotal = false}) {
+  static pw.Widget _summaryRow(
+    String label,
+    double amount,
+    pw.Font font, {
+    bool isTotal = false,
+  }) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(label, style: pw.TextStyle(font: font, fontSize: isTotal ? 8 : 7)),
+          pw.Text(
+            label,
+            style: pw.TextStyle(font: font, fontSize: isTotal ? 8 : 7),
+          ),
           pw.Text(
             'Rs. ${_currencyFmt.format(amount)}',
             style: pw.TextStyle(font: font, fontSize: isTotal ? 8.5 : 7),

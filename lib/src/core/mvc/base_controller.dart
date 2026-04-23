@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 abstract class BaseController extends ChangeNotifier {
   bool _busy = false;
@@ -40,7 +41,13 @@ abstract class BaseController extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    if (!_disposed) {
+    if (_disposed) return;
+    // Guard against "setState() called during build" — defer if we're mid-frame.
+    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed) super.notifyListeners();
+      });
+    } else {
       super.notifyListeners();
     }
   }

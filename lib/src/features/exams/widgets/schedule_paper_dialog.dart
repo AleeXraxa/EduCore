@@ -131,44 +131,71 @@ class _SchedulePaperDialogState extends State<SchedulePaperDialog> {
 
     return Dialog(
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
+      elevation: 24,
       clipBehavior: Clip.antiAlias,
       child: Container(
-        width: 500,
-        color: cs.surface,
+        width: 550,
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: AppRadii.r24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Header with Gradient
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+              padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    cs.primaryContainer.withValues(alpha: 0.6),
+                    cs.surface,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.calendar_month_rounded,
                       color: cs.primary,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: cs.primary.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.calendar_today_rounded,
+                      color: Colors.white,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Schedule Paper',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w900),
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           'For ${widget.exam.name}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: cs.onSurfaceVariant),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
                         ),
                       ],
                     ),
@@ -188,87 +215,67 @@ class _SchedulePaperDialogState extends State<SchedulePaperDialog> {
                         controller: _subjectNameController,
                         label: 'Subject Name',
                         hintText: 'e.g., Mathematics',
+                        prefixIcon: Icons.subject_rounded,
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
-                      const SizedBox(height: 16),
-                      InkWell(
+                      const SizedBox(height: 24),
+                      _DateSelector(
+                        label: 'Paper Date',
+                        value: df.format(_paperDate),
+                        icon: Icons.calendar_today_rounded,
                         onTap: _selectDate,
-                        borderRadius: AppRadii.r12,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Paper Date',
-                            filled: true,
-                            border: OutlineInputBorder(
-                              borderRadius: AppRadii.r12,
-                            ),
-                          ),
-                          child: Text(df.format(_paperDate)),
-                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
-                            child: InkWell(
+                            child: _DateSelector(
+                              label: 'Start Time',
+                              value: _startTime.format(context),
+                              icon: Icons.schedule_rounded,
                               onTap: () => _selectTime(true),
-                              borderRadius: AppRadii.r12,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'Start Time',
-                                  filled: true,
-                                  border: OutlineInputBorder(
-                                    borderRadius: AppRadii.r12,
-                                  ),
-                                ),
-                                child: Text(_startTime.format(context)),
-                              ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 20),
                           Expanded(
-                            child: InkWell(
+                            child: _DateSelector(
+                              label: 'End Time',
+                              value: _endTime.format(context),
+                              icon: Icons.update_rounded,
                               onTap: () => _selectTime(false),
-                              borderRadius: AppRadii.r12,
-                              child: InputDecorator(
-                                decoration: InputDecoration(
-                                  labelText: 'End Time',
-                                  filled: true,
-                                  border: OutlineInputBorder(
-                                    borderRadius: AppRadii.r12,
-                                  ),
-                                ),
-                                child: Text(_endTime.format(context)),
-                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
                             child: AppTextField(
                               controller: _totalMarksController,
                               label: 'Total Marks',
+                              prefixIcon: Icons.score_rounded,
                               keyboardType: TextInputType.number,
                               validator: (v) => v!.isEmpty ? 'Req' : null,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 20),
                           Expanded(
                             child: AppTextField(
                               controller: _passingMarksController,
                               label: 'Passing Marks',
+                              prefixIcon: Icons.check_circle_outline_rounded,
                               keyboardType: TextInputType.number,
                               validator: (v) => v!.isEmpty ? 'Req' : null,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       AppTextField(
                         controller: _durationController,
                         label: 'Duration (Minutes)',
+                        prefixIcon: Icons.timer_rounded,
                         keyboardType: TextInputType.number,
                         validator: (v) => v!.isEmpty ? 'Req' : null,
                       ),
@@ -277,21 +284,81 @@ class _SchedulePaperDialogState extends State<SchedulePaperDialog> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(24),
+            // Footer
+            Container(
+              padding: const EdgeInsets.fromLTRB(32, 8, 32, 32),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  AppPrimaryButton(onPressed: _submit, label: 'Schedule'),
+                  AppPrimaryButton(
+                    onPressed: _submit,
+                    label: 'Schedule Paper',
+                    icon: Icons.add_rounded,
+                  ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateSelector extends StatelessWidget {
+  const _DateSelector({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadii.r12,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+          filled: true,
+          fillColor: cs.surfaceContainerLow.withValues(alpha: 0.5),
+          border: OutlineInputBorder(
+            borderRadius: AppRadii.r12,
+            borderSide: BorderSide(color: cs.outlineVariant),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: AppRadii.r12,
+            borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+          ),
+        ),
+        child: Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ),
     );

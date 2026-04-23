@@ -15,6 +15,8 @@ import 'package:educore/src/features/attendance/views/attendance_view.dart';
 import 'package:educore/src/features/staff/views/staff_list_view.dart';
 import 'package:educore/src/features/fees/views/fee_plans_view.dart';
 import 'package:educore/src/features/fees/views/fees_view.dart';
+import 'package:educore/src/features/exams/views/exams_view.dart';
+import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -61,6 +63,8 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
             _InstituteNav.classes => const ClassesView(),
             _InstituteNav.attendance => const AttendanceView(),
             _InstituteNav.fees => const FeesView(),
+            _InstituteNav.exams => const ExamsView(),
+            _InstituteNav.monthlyTests => const MonthlyTestsView(),
             _InstituteNav.feePlans => const FeePlansView(),
             _InstituteNav.staff => const StaffListView(),
             _InstituteNav.settings => const SettingsView(),
@@ -120,6 +124,18 @@ enum _InstituteNav {
     Icons.badge_rounded,
     featureKey: 'staff_view',
   ),
+  exams(
+    'exams',
+    'Exams & Results',
+    'Academic Assessments',
+    Icons.assessment_rounded,
+  ),
+  monthlyTests(
+    'monthly_tests',
+    'Monthly Tests',
+    'Monthly Assessments',
+    Icons.quiz_rounded,
+  ),
   settings(
     'settings',
     'Settings',
@@ -150,6 +166,8 @@ enum _InstituteNav {
         classes.toSidebarItem(),
         attendance.toSidebarItem(),
         fees.toSidebarItem(),
+        exams.toSidebarItem(),
+        monthlyTests.toSidebarItem(),
         staff.toSidebarItem(),
       ],
     ),
@@ -643,8 +661,10 @@ class _QuickActionsRow extends StatelessWidget {
     final showAddStudent = featureSvc.canAccess('student_create');
     final showMarkAttendance = featureSvc.canAccess('attendance_mark');
     final showCollectFee = featureSvc.canAccess('fee_collect');
+    const showCreateExam = true;
+    const showMonthlyTest = true;
 
-    if (!showAddStudent && !showMarkAttendance && !showCollectFee) {
+    if (!showAddStudent && !showMarkAttendance && !showCollectFee && !showCreateExam && !showMonthlyTest) {
       return const SizedBox.shrink();
     }
 
@@ -689,6 +709,30 @@ class _QuickActionsRow extends StatelessWidget {
                 icon: Icons.payments_rounded,
                 onPressed: () {},
                 gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
+              ),
+            if (showCreateExam)
+              _QuickActionButton(
+                label: 'Create Exam',
+                icon: Icons.assessment_rounded,
+                onPressed: () {
+                  final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
+                  if (state != null) {
+                    state._navigateTo(_InstituteNav.exams);
+                  }
+                },
+                gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+              ),
+            if (showMonthlyTest)
+              _QuickActionButton(
+                label: 'Monthly Test',
+                icon: Icons.quiz_rounded,
+                onPressed: () {
+                  final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
+                  if (state != null) {
+                    state._navigateTo(_InstituteNav.monthlyTests);
+                  }
+                },
+                gradient: const [Color(0xFFEC4899), Color(0xFFDB2777)],
               ),
           ],
         ),
