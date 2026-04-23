@@ -143,7 +143,7 @@ class _ExamsViewState extends State<ExamsView> {
                           label: 'Active / Upcoming',
                           value: activeExams.toString(),
                           icon: Icons.event_available_rounded,
-                          gradient: [const Color(0xFFF59E0B), const Color(0xFFFCD34D)],
+                          gradient: const [Color(0xFFF59E0B), Color(0xFFFCD34D)],
                         ),
                       ),
                     ),
@@ -154,7 +154,7 @@ class _ExamsViewState extends State<ExamsView> {
                           label: 'Published Results',
                           value: publishedExams.toString(),
                           icon: Icons.verified_rounded,
-                          gradient: [const Color(0xFF10B981), const Color(0xFF34D399)],
+                          gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
                         ),
                       ),
                     ),
@@ -283,7 +283,7 @@ class _ExamsTable extends StatelessWidget {
                         ));
                       },
                     ),
-                    if (featureSvc.canAccess('exam_edit'))
+                    if (AppServices.instance.featureAccessService?.canAccess('exam_edit') ?? false)
                       AppActionItem(
                         label: 'Edit Exam',
                         icon: Icons.edit_rounded,
@@ -295,7 +295,7 @@ class _ExamsTable extends StatelessWidget {
                            );
                         },
                       ),
-                    if (featureSvc.canAccess('exam_delete'))
+                    if (AppServices.instance.featureAccessService?.canAccess('exam_delete') ?? false)
                       AppActionItem(
                         label: 'Delete',
                         icon: Icons.delete_rounded,
@@ -310,6 +310,7 @@ class _ExamsTable extends StatelessWidget {
                           isDanger: true,
                         );
                         if (confirm == true) {
+                           if (!context.mounted) return;
                            AppDialogs.showLoading(context, message: 'Deleting...');
                            final success = await controller.deleteExam(e.id);
                            if (!context.mounted) return;

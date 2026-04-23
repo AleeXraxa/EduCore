@@ -12,6 +12,8 @@ import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/features/classes/views/class_details_view.dart';
 import 'package:educore/src/features/classes/widgets/assign_teacher_dialogs.dart';
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 
 class ClassesView extends StatefulWidget {
   const ClassesView({super.key});

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 class InstitutesTable extends StatelessWidget {
   const InstitutesTable({
     super.key,
+    required this.items,
     required this.planLabel,
     required this.onAction,
   });

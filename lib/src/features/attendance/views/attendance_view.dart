@@ -196,16 +196,16 @@ class _AttendanceHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          const TabBar(
+          TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
             dividerColor: Colors.transparent,
             tabs: [
-              Tab(text: 'MARK ATTENDANCE'),
+              const Tab(text: 'MARK ATTENDANCE'),
               if (AppServices.instance.featureAccessService!.canAccess('attendance_report'))
-                Tab(text: 'ADVANCED REPORTS'),
+                const Tab(text: 'ADVANCED REPORTS'),
             ],
           ),
         ],
@@ -1906,11 +1906,11 @@ class _IndexErrorBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.amber),
-              const SizedBox(width: 12),
-              const Expanded(
+              Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              SizedBox(width: 12),
+              Expanded(
                 child: Text(
                   'FIRESTORE INDEX MISSING',
                   style: TextStyle(

@@ -12,6 +12,7 @@ import 'package:educore/src/features/students/controllers/student_controller.dar
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/views/student_form_dialog.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';

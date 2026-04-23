@@ -9,6 +9,8 @@ import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 
 class AuditLogsView extends StatefulWidget {
   const AuditLogsView({super.key});

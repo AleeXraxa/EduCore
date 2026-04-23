@@ -368,6 +368,7 @@ class _FeeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isPaid = fee.status == FeeStatus.paid;
+    final featureSvc = AppServices.instance.featureAccessService!;
 
     return Container(
       padding: const EdgeInsets.all(16),

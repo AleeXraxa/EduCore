@@ -377,6 +377,7 @@ class _PlanPill extends StatelessWidget {
   }
 }
 
+class _RowMenu extends StatelessWidget {
   const _RowMenu({
     required this.status,
     required this.onSelected,

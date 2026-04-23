@@ -6,6 +6,8 @@ import 'package:educore/src/features/analytics/widgets/analytics_charts_section.
 import 'package:educore/src/features/analytics/widgets/analytics_insights_section.dart';
 import 'package:educore/src/features/analytics/widgets/analytics_kpis_section.dart';
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 
 class AnalyticsView extends StatefulWidget {
   const AnalyticsView({super.key});
