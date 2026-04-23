@@ -82,7 +82,7 @@ class _InstitutesViewState extends State<InstitutesView> with FeatureGuard {
                         context,
                         message: 'Creating academy...',
                       );
-                      await controller.createInstitute(
+                      final success = await controller.createInstitute(
                         name: draft.name,
                         ownerName: draft.ownerName,
                         email: draft.email,
@@ -93,12 +93,21 @@ class _InstitutesViewState extends State<InstitutesView> with FeatureGuard {
                       );
                       if (!context.mounted) return;
                       AppDialogs.hide(context);
-                      AppDialogs.showSuccess(
-                        context,
-                        title: 'Academy Created',
-                        message:
-                            '${draft.name} has been successfully registered on the platform.',
-                      );
+                      if (success) {
+                        AppDialogs.showSuccess(
+                          context,
+                          title: 'Academy Created',
+                          message:
+                              '${draft.name} has been successfully registered on the platform.',
+                        );
+                      } else {
+                        AppDialogs.showError(
+                          context,
+                          title: 'Creation Failed',
+                          message: controller.errorMessage ??
+                              'An unexpected error occurred. Please try again.',
+                        );
+                      }
                     } catch (e) {
                       if (!context.mounted) return;
                       AppDialogs.hide(context);

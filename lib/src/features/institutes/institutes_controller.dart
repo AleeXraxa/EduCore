@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -54,7 +55,7 @@ class InstitutesController extends BaseController {
       _repository = AppServices.instance.instituteRepository;
       _planService = AppServices.instance.planService;
     }
-    
+
     await refresh();
     _subscribeToPlans();
   }
@@ -65,7 +66,7 @@ class InstitutesController extends BaseController {
     _lastDoc = null;
     _hasMore = true;
     _all.clear();
-    
+
     await runBusy<void>(() async {
       await _fetchNextBatch();
     });
@@ -85,7 +86,7 @@ class InstitutesController extends BaseController {
 
   Future<void> _fetchNextBatch() async {
     if (_repository == null) return;
-    
+
     try {
       final statusVal = switch (_filter) {
         InstitutesFilter.all => 'all',
@@ -106,7 +107,10 @@ class InstitutesController extends BaseController {
 
       if (results.isNotEmpty) {
         final lastInst = results.last;
-        final doc = await FirebaseFirestore.instance.collection('academies').doc(lastInst.id).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(lastInst.id)
+            .get();
         _lastDoc = doc;
         _all.addAll(results);
       }
@@ -120,14 +124,11 @@ class InstitutesController extends BaseController {
     final planSvc = _planService;
     if (planSvc != null) {
       _planSub?.cancel();
-      _planSub = planSvc.watchPlans().listen(
-        (value) {
-          plans = value;
-          _planNameById = {for (final p in value) p.id: p.name};
-          notifyListeners();
-        },
-        onError: (e) => errorMessage = e.toString(),
-      );
+      _planSub = planSvc.watchPlans().listen((value) {
+        plans = value;
+        _planNameById = {for (final p in value) p.id: p.name};
+        notifyListeners();
+      }, onError: (e) => errorMessage = e.toString());
     }
   }
 
@@ -139,7 +140,7 @@ class InstitutesController extends BaseController {
 
   void setQuery(String value) {
     _query = value;
-    // Local filtering for query is fine for smallish sets, 
+    // Local filtering for query is fine for smallish sets,
     // but in large scale this should be a server search.
     notifyListeners();
   }
@@ -149,7 +150,7 @@ class InstitutesController extends BaseController {
     unawaited(refresh());
   }
 
-  Future<void> createInstitute({
+  Future<bool> createInstitute({
     required String name,
     required String ownerName,
     required String email,
@@ -158,8 +159,12 @@ class InstitutesController extends BaseController {
     required String adminEmail,
     required String adminPassword,
   }) async {
-    if (_repository == null) return;
-    await runBusy<void>(() async {
+    if (_repository == null) return false;
+    errorMessage = null;
+
+    bool success = false;
+    try {
+      setBusy(true);
       await _repository!.createInstitute(
         name: name,
         ownerName: ownerName,
@@ -169,8 +174,34 @@ class InstitutesController extends BaseController {
         adminEmail: adminEmail,
         adminPassword: adminPassword,
       );
-    });
-    await refresh();
+      success = true;
+    } on FirebaseAuthException catch (e) {
+      errorMessage = _authErrorMessage(e.code);
+    } catch (e) {
+      errorMessage = e.toString();
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+
+    if (success) await refresh();
+    return success;
+  }
+
+  /// Maps Firebase Auth error codes to human-readable messages.
+  String _authErrorMessage(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'This email is already registered. Please use a different email for the admin account.';
+      case 'invalid-email':
+        return 'The admin email address is not valid.';
+      case 'weak-password':
+        return 'The password is too weak. Please use at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled. Contact support.';
+      default:
+        return 'Authentication error: $code';
+    }
   }
 
   Future<void> toggleBlocked(String academyId) async {
@@ -181,9 +212,11 @@ class InstitutesController extends BaseController {
     final next = current.status == AcademyStatus.blocked
         ? AcademyStatus.active
         : AcademyStatus.blocked;
-    
-    await runBusy<void>(() => _repository!.updateInstituteStatus(academyId, next.name));
-    
+
+    await runBusy<void>(
+      () => _repository!.updateInstituteStatus(academyId, next.name),
+    );
+
     // Local sync
     _all[idx] = current.copyWith(status: next);
     notifyListeners();
@@ -202,16 +235,13 @@ class InstitutesController extends BaseController {
   }) async {
     if (_repository == null) return;
     await runBusy<void>(() async {
-      await _repository!.updateInstitute(
-        academyId,
-        {
-          'name': name,
-          'ownerName': ownerName,
-          'email': email,
-          'phone': phone,
-          'address': address,
-        },
-      );
+      await _repository!.updateInstitute(academyId, {
+        'name': name,
+        'ownerName': ownerName,
+        'email': email,
+        'phone': phone,
+        'address': address,
+      });
 
       await _repository!.updateInstituteStatus(academyId, status.name);
 
@@ -221,7 +251,8 @@ class InstitutesController extends BaseController {
         await _repository!.updateInstitutePlan(academyId, planId);
       }
 
-      final subs = _subsService ?? AppServices.instance.adminSubscriptionsService;
+      final subs =
+          _subsService ?? AppServices.instance.adminSubscriptionsService;
       if (subs != null) {
         await subs.updateSubscription(
           academyId,

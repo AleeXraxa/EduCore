@@ -517,36 +517,38 @@ class _FeeRow extends StatelessWidget {
   }
 
   void _collectPayment(BuildContext context) {
-    showDialog(
+    showDialog<double>(
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
         onCollect: ({required amount, required method, note}) async {
-          AppDialogs.showLoading(context, message: 'Processing payment...');
+          // The dialog manages its own _isLoading state and will pop itself.
+          // Just delegate to the controller — no extra loading overlay here.
           await controller.collectPayment(fee.id, amount, method: method, note: note);
-          
-          if (context.mounted) {
-            AppDialogs.hideLoading(context);
-            
-            // Premium confirmation for Receipt
-            final genReceipt = await AppDialogs.showConfirm(
-              context,
-              title: 'Payment Successful',
-              message: 'Payment of Rs. $amount has been recorded. Would you like to generate a receipt now?',
-              confirmLabel: 'Generate Receipt',
-              cancelLabel: 'Later',
-            );
-
-            if (genReceipt == true && context.mounted) {
-              showDialog(
-                context: context,
-                builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
-              );
-            }
-          }
         },
       ),
-    );
+    ).then((paidAmount) async {
+      // Dialog has already closed at this point.
+      // Use the outer context (FeeRow/Scaffold) which is still mounted.
+      if (!context.mounted) return;
+
+      // Ask whether to generate a receipt.
+      final genReceipt = await AppDialogs.showConfirm(
+        context,
+        title: 'Payment Successful',
+        message:
+            'Payment has been recorded. Would you like to generate a receipt now?',
+        confirmLabel: 'Generate Receipt',
+        cancelLabel: 'Later',
+      );
+
+      if (genReceipt == true && context.mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
+        );
+      }
+    });
   }
 }
 
