@@ -9,6 +9,8 @@ import 'package:educore/src/features/notifications/notifications_controller.dart
 import 'package:educore/src/features/notifications/widgets/create_notification_dialog.dart';
 import 'package:educore/src/features/notifications/widgets/notifications_table.dart';
 import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
 
 class NotificationsView extends StatefulWidget {
@@ -40,6 +42,11 @@ class _NotificationsViewState extends State<NotificationsView> {
     return ControllerBuilder<NotificationsController>(
       controller: _controller,
       builder: (context, controller, child) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('notifications_view')) {
+          return const AccessDeniedView(featureName: 'Notifications Hub');
+        }
+
         return LayoutBuilder(
           builder: (context, constraints) {
             final size = screenSizeForWidth(constraints.maxWidth);
@@ -115,19 +122,21 @@ class _NotificationsViewState extends State<NotificationsView> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        AppPrimaryButton(
-                          variant: AppButtonVariant.secondary,
-                          onPressed: () => controller.triggerExpiryReminders(),
-                          icon: Icons.auto_fix_high_rounded,
-                          label: 'Run Expiry Check',
-                        ),
+                        if (featureSvc.canAccess('notifications_maintenance'))
+                          AppPrimaryButton(
+                            variant: AppButtonVariant.secondary,
+                            onPressed: () => controller.triggerExpiryReminders(),
+                            icon: Icons.auto_fix_high_rounded,
+                            label: 'Run Expiry Check',
+                          ),
                         const SizedBox(width: 12),
-                        AppPrimaryButton(
-                          onPressed: () =>
-                              _showCreateDialog(context, controller),
-                          icon: Icons.add_rounded,
-                          label: 'New Notification',
-                        ),
+                        if (featureSvc.canAccess('notifications_add'))
+                          AppPrimaryButton(
+                            onPressed: () =>
+                                _showCreateDialog(context, controller),
+                            icon: Icons.add_rounded,
+                            label: 'New Notification',
+                          ),
                       ],
                     ),
                   ),
@@ -144,7 +153,9 @@ class _NotificationsViewState extends State<NotificationsView> {
                       delayIndex: 2,
                       child: NotificationsTable(
                         notifications: controller.notifications,
-                        onDelete: controller.deleteNotification,
+                        onDelete: featureSvc.canAccess('notifications_delete') 
+                            ? controller.deleteNotification 
+                            : null,
                       ),
                     ),
                   ),

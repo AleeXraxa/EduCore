@@ -144,8 +144,8 @@ class _StudentsViewState extends State<StudentsView> {
   @override
   Widget build(BuildContext context) {
     final featureSvc = AppServices.instance.featureAccessService;
-    if (featureSvc == null || !featureSvc.canAccess('student_view')) {
-      return const Center(child: Text('Access Denied. Missing permissions.'));
+    if (featureSvc == null || !featureSvc.canAccess('students_view')) {
+      return const AccessDeniedView(featureName: 'Students Management');
     }
 
     final cs = Theme.of(context).colorScheme;
@@ -164,7 +164,7 @@ class _StudentsViewState extends State<StudentsView> {
                 _StudentsPageHeader(
                   controller: controller,
                   onAddStudent: canCreate ? () => _showStudentForm() : null,
-                  onBulkImport: canCreate ? _showBulkImport : null,
+                  onBulkImport: featureSvc.canAccess('bulk_import') ? _showBulkImport : null,
                   searchController: _searchController,
                   errorMessage: controller.errorMessage,
                 ),

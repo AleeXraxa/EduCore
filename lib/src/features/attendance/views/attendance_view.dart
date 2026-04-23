@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
+import 'package:educore/src/core/services/app_services.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -67,6 +69,10 @@ class _AttendanceViewState extends State<AttendanceView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final featureSvc = AppServices.instance.featureAccessService;
+    if (featureSvc == null || !featureSvc.canAccess('attendance_view')) {
+      return const AccessDeniedView(featureName: 'Attendance Hub');
+    }
 
     return ControllerBuilder<AttendanceController>(
       controller: _controller,
@@ -107,7 +113,10 @@ class _AttendanceViewState extends State<AttendanceView> {
                             controller: _controller,
                             isMobile: isMobile,
                           ),
-                          _ReportsTab(controller: _reportController),
+                          if (featureSvc.canAccess('attendance_report'))
+                            _ReportsTab(controller: _reportController)
+                          else
+                            const AccessDeniedView(featureName: 'Attendance Reports'),
                         ],
                       ),
                     ),
@@ -169,7 +178,7 @@ class _AttendanceHeader extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              if (isDesktop)
+              if (isDesktop && AppServices.instance.featureAccessService!.canAccess('attendance_mark'))
                 FilledButton.icon(
                   onPressed: onMarkPressed,
                   icon: const Icon(Icons.edit_calendar_rounded, size: 18),
@@ -195,7 +204,8 @@ class _AttendanceHeader extends StatelessWidget {
             dividerColor: Colors.transparent,
             tabs: [
               Tab(text: 'MARK ATTENDANCE'),
-              Tab(text: 'ADVANCED REPORTS'),
+              if (AppServices.instance.featureAccessService!.canAccess('attendance_report'))
+                Tab(text: 'ADVANCED REPORTS'),
             ],
           ),
         ],

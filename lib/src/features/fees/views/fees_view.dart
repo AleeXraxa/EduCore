@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 
 import 'package:educore/src/features/fees/controllers/fees_controller.dart';
@@ -45,6 +47,10 @@ class _FeesViewState extends State<FeesView>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final featureSvc = AppServices.instance.featureAccessService;
+    if (featureSvc == null || !featureSvc.canAccess('fees_view')) {
+      return const AccessDeniedView(featureName: 'Fee Management');
+    }
 
     return ControllerBuilder<FeesController>(
       controller: _controller,
@@ -163,6 +169,7 @@ class _FeesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final featureSvc = AppServices.instance.featureAccessService!;
     final cs = Theme.of(context).colorScheme;
     final stats = controller.stats;
 
@@ -182,17 +189,19 @@ class _FeesHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              FilledButton.icon(
-                onPressed: () => _showGenerateDialog(context),
-                icon: const Icon(Icons.auto_fix_high_rounded),
-                label: const Text('Generate Monthly Fees'),
-              ),
+              if (featureSvc.canAccess('fee_plan_manage'))
+                FilledButton.icon(
+                  onPressed: () => _showGenerateDialog(context),
+                  icon: const Icon(Icons.auto_fix_high_rounded),
+                  label: const Text('Generate Monthly Fees'),
+                ),
               const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: () => _showCreateOtherFeeDialog(context),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Create Manual Fee'),
-              ),
+              if (featureSvc.canAccess('fees_manage'))
+                FilledButton.tonalIcon(
+                  onPressed: () => _showCreateOtherFeeDialog(context),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Create Manual Fee'),
+                ),
             ],
           ),
           const SizedBox(height: 24),
@@ -436,7 +445,7 @@ class _FeeRow extends StatelessWidget {
           const SizedBox(width: 24),
           _StatusChip(status: fee.status),
           const SizedBox(width: 16),
-          if (!isPaid && !fee.isLocked)
+          if (!isPaid && !fee.isLocked && featureSvc.canAccess('fee_collect'))
             IconButton.filledTonal(
               onPressed: () => _collectPayment(context),
               icon: const Icon(Icons.payments_rounded, size: 20),
@@ -466,14 +475,15 @@ class _FeeRow extends StatelessWidget {
                 },
               ),
               if (!isPaid) ...[
-                AppActionItem(
-                  label: 'Generate Challan',
-                  icon: Icons.receipt_long_rounded,
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
+                if (featureSvc.canAccess('challan_generate'))
+                  AppActionItem(
+                    label: 'Generate Challan',
+                    icon: Icons.receipt_long_rounded,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
+                    ),
                   ),
-                ),
                 if (fee.challanNumber != null)
                   AppActionItem(
                     label: 'View Challan (${fee.challanNumber})',
@@ -484,7 +494,7 @@ class _FeeRow extends StatelessWidget {
                     ),
                   ),
               ],
-              if (fee.paidAmount > 0)
+              if (fee.paidAmount > 0 && featureSvc.canAccess('challan_generate'))
                 AppActionItem(
                   label: 'Generate Receipt',
                   icon: Icons.task_alt_rounded,
@@ -502,13 +512,14 @@ class _FeeRow extends StatelessWidget {
                     builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
                   ),
                 ),
-              AppActionItem(
-                label: 'Edit Record',
-                icon: Icons.edit_rounded,
-                type: AppActionType.edit,
-                isEnabled: !fee.isLocked,
-                onTap: () {},
-              ),
+              if (featureSvc.canAccess('fees_manage'))
+                AppActionItem(
+                  label: 'Edit Record',
+                  icon: Icons.edit_rounded,
+                  type: AppActionType.edit,
+                  isEnabled: !fee.isLocked,
+                  onTap: () {},
+                ),
             ],
           ),
         ],

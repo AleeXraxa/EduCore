@@ -22,6 +22,8 @@ import 'package:educore/src/features/subscriptions/subscriptions_view.dart';
 import 'package:educore/src/features/users/users_view.dart';
 import 'package:educore/src/features/audit/audit_logs_view.dart';
 import 'package:educore/src/features/system/platform_health_view.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
 
 class SuperAdminDashboardView extends StatefulWidget {
@@ -74,25 +76,29 @@ class _SuperAdminDashboardViewState extends State<SuperAdminDashboardView> {
         },
         child: KeyedSubtree(
           key: ValueKey<String>(_selected),
-          child: switch (current) {
-            _SuperAdminNav.dashboard => const _DashboardHomeBody(),
-            _SuperAdminNav.institutes => const InstitutesView(),
-            _SuperAdminNav.subscriptions => const SubscriptionsView(),
-            _SuperAdminNav.payments => const PaymentsView(),
-            _SuperAdminNav.analytics => const AnalyticsView(),
-            _SuperAdminNav.users => const UsersView(),
-            _SuperAdminNav.notifications => const NotificationsView(),
-            _SuperAdminNav.features => const FeaturesView(),
-            _SuperAdminNav.featureOverrides => const FeatureAccessControlView(),
-            _SuperAdminNav.plans => const PlansView(),
-            _SuperAdminNav.plansImport => const PlansImportView(),
-            _SuperAdminNav.auditLogs => const AuditLogsView(),
-            _SuperAdminNav.platformHealth => const PlatformHealthView(),
-            _SuperAdminNav.settings => const SettingsView(),
-          },
+          child: _buildBody(current),
         ),
       ),
     );
+  }
+
+  Widget _buildBody(_SuperAdminNav nav) {
+    return switch (nav) {
+      _SuperAdminNav.dashboard => const _DashboardHomeBody(),
+      _SuperAdminNav.institutes => const InstitutesView(),
+      _SuperAdminNav.subscriptions => const SubscriptionsView(),
+      _SuperAdminNav.payments => const PaymentsView(),
+      _SuperAdminNav.analytics => const AnalyticsView(),
+      _SuperAdminNav.users => const UsersView(),
+      _SuperAdminNav.notifications => const NotificationsView(),
+      _SuperAdminNav.features => const FeaturesView(),
+      _SuperAdminNav.featureOverrides => const FeatureAccessControlView(),
+      _SuperAdminNav.plans => const PlansView(),
+      _SuperAdminNav.plansImport => const PlansImportView(),
+      _SuperAdminNav.auditLogs => const AuditLogsView(),
+      _SuperAdminNav.platformHealth => const PlatformHealthView(),
+      _SuperAdminNav.settings => const SettingsView(),
+    };
   }
 }
 

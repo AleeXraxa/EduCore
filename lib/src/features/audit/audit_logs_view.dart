@@ -31,6 +31,10 @@ class _AuditLogsViewState extends State<AuditLogsView> {
     return ControllerBuilder<AuditLogsController>(
       controller: _controller,
       builder: (context, controller, child) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('audit_view')) {
+          return const AccessDeniedView(featureName: 'System Audit Logs');
+        }
         return LayoutBuilder(
           builder: (context, constraints) {
             final screen = screenSizeForWidth(constraints.maxWidth);

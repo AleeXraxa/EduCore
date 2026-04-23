@@ -40,6 +40,11 @@ class _ClassesViewState extends State<ClassesView> {
     return ControllerBuilder<ClassesController>(
       controller: _controller,
       builder: (context, controller, child) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('classes_view')) {
+          return const AccessDeniedView(featureName: 'Class Management');
+        }
+
         final cs = Theme.of(context).colorScheme;
 
         return SingleChildScrollView(

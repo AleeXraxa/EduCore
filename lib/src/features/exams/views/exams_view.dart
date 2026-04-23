@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
@@ -41,6 +43,11 @@ class _ExamsViewState extends State<ExamsView> {
     return ControllerBuilder<ExamController>(
       controller: _controller,
       builder: (context, controller, _) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('exams_view')) {
+          return const AccessDeniedView(featureName: 'Exams & Results');
+        }
+
         final cs = Theme.of(context).colorScheme;
 
         // KPI Math
@@ -98,16 +105,17 @@ class _ExamsViewState extends State<ExamsView> {
                       },
                     ),
                     const SizedBox(width: 16),
-                    AppPrimaryButton(
-                      onPressed: () {
-                         showDialog(
-                           context: context,
-                           builder: (_) => AddEditExamDialog(controller: controller),
-                         );
-                      },
-                      icon: Icons.add_rounded,
-                      label: 'Create Exam',
-                    ),
+                    if (featureSvc.canAccess('exam_create'))
+                      AppPrimaryButton(
+                        onPressed: () {
+                           showDialog(
+                             context: context,
+                             builder: (_) => AddEditExamDialog(controller: controller),
+                           );
+                        },
+                        icon: Icons.add_rounded,
+                        label: 'Create Exam',
+                      ),
                   ],
                 ),
               ),
@@ -275,22 +283,24 @@ class _ExamsTable extends StatelessWidget {
                         ));
                       },
                     ),
-                    AppActionItem(
-                      label: 'Edit Exam',
-                      icon: Icons.edit_rounded,
-                      type: AppActionType.edit,
-                      onTap: () {
-                         showDialog(
-                           context: context,
-                           builder: (_) => AddEditExamDialog(controller: controller, exam: e),
-                         );
-                      },
-                    ),
-                    AppActionItem(
-                      label: 'Delete',
-                      icon: Icons.delete_rounded,
-                      type: AppActionType.delete,
-                      onTap: () async {
+                    if (featureSvc.canAccess('exam_edit'))
+                      AppActionItem(
+                        label: 'Edit Exam',
+                        icon: Icons.edit_rounded,
+                        type: AppActionType.edit,
+                        onTap: () {
+                           showDialog(
+                             context: context,
+                             builder: (_) => AddEditExamDialog(controller: controller, exam: e),
+                           );
+                        },
+                      ),
+                    if (featureSvc.canAccess('exam_delete'))
+                      AppActionItem(
+                        label: 'Delete',
+                        icon: Icons.delete_rounded,
+                        type: AppActionType.delete,
+                        onTap: () async {
                         final confirm = await AppDialogs.showConfirm(
                           context,
                           title: 'Delete Exam?',
@@ -383,15 +393,16 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Start evaluating students by creating an exam schedule.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 32),
-            AppPrimaryButton(
-              onPressed: () {
-                 showDialog(
-                   context: context,
-                   builder: (_) => AddEditExamDialog(controller: controller),
-                 );
-              },
-              label: 'Create First Exam',
-            ),
+            if (AppServices.instance.featureAccessService?.canAccess('exam_create') ?? false)
+              AppPrimaryButton(
+                onPressed: () {
+                   showDialog(
+                     context: context,
+                     builder: (_) => AddEditExamDialog(controller: controller),
+                   );
+                },
+                label: 'Create First Exam',
+              ),
           ],
         ),
       ),

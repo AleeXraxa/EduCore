@@ -30,7 +30,13 @@ class _ExamDetailsViewState extends State<ExamDetailsView> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    final featureSvc = AppServices.instance.featureAccessService!;
+    int tabCount = 1;
+    if (featureSvc.canAccess('exam_edit')) tabCount++;
+    if (featureSvc.canAccess('marks_entry')) tabCount++;
+    if (featureSvc.canAccess('result_publish')) tabCount++;
+
+    _tabController = TabController(length: tabCount, vsync: this);
     widget.controller.selectExam(widget.exam);
   }
 
@@ -61,16 +67,17 @@ class _ExamDetailsViewState extends State<ExamDetailsView> with SingleTickerProv
               tabAlignment: TabAlignment.start,
               labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Schedule Papers'),
-                Tab(text: 'Marks Entry'),
-                Tab(text: 'Results'),
+              tabs: [
+                const Tab(text: 'Overview'),
+                if (AppServices.instance.featureAccessService!.canAccess('exam_edit'))
+                  const Tab(text: 'Schedule Papers'),
+                if (AppServices.instance.featureAccessService!.canAccess('marks_entry'))
+                  const Tab(text: 'Marks Entry'),
+                if (AppServices.instance.featureAccessService!.canAccess('result_publish'))
+                  const Tab(text: 'Results'),
               ],
             ),
           ),
-          body: TabBarView(
-            controller: _tabController,
             children: [
               // 1. Overview
               SingleChildScrollView(
@@ -105,13 +112,16 @@ class _ExamDetailsViewState extends State<ExamDetailsView> with SingleTickerProv
               ),
 
               // 2. Schedule
-              _SchedulesTab(exam: currentExam, controller: controller),
+              if (AppServices.instance.featureAccessService!.canAccess('exam_edit'))
+                _SchedulesTab(exam: currentExam, controller: controller),
 
               // 3. Marks Entry 
-              MarksEntryView(controller: controller, exam: currentExam),
+              if (AppServices.instance.featureAccessService!.canAccess('marks_entry'))
+                MarksEntryView(controller: controller, exam: currentExam),
 
               // 4. Results
-              ResultsView(controller: controller, exam: currentExam),
+              if (AppServices.instance.featureAccessService!.canAccess('result_publish'))
+                ResultsView(controller: controller, exam: currentExam),
             ],
           ),
         );

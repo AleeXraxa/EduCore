@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 class InstitutesTable extends StatelessWidget {
   const InstitutesTable({
     super.key,
-    required this.items,
     required this.planLabel,
     required this.onAction,
   });
@@ -351,7 +350,10 @@ class _PlanPill extends StatelessWidget {
 }
 
 class _RowMenu extends StatelessWidget {
-  const _RowMenu({required this.blocked, required this.onSelected});
+  const _RowMenu({
+    required this.blocked,
+    required this.onSelected,
+  });
 
   final bool blocked;
   final ValueChanged<InstituteMenuAction> onSelected;
@@ -397,7 +399,9 @@ class _RowMenu extends StatelessWidget {
           child: _MenuRow(icon: Icons.edit_rounded, label: 'Edit Institute'),
         ),
         PopupMenuItem(
-          value: blocked ? InstituteMenuAction.unblock : InstituteMenuAction.block,
+          value: blocked
+              ? InstituteMenuAction.unblock
+              : InstituteMenuAction.block,
           height: 48,
           padding: EdgeInsets.zero,
           child: _MenuRow(

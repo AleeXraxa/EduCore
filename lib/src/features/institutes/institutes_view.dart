@@ -11,7 +11,6 @@ import 'package:educore/src/features/institutes/widgets/institute_details_panel.
 import 'package:educore/src/features/institutes/widgets/edit_institute_dialog.dart';
 import 'package:educore/src/features/institutes/widgets/institutes_table.dart';
 import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
-import 'package:educore/src/core/mixins/feature_guard.dart';
 import 'package:flutter/material.dart';
 
 class InstitutesView extends StatefulWidget {
@@ -21,12 +20,12 @@ class InstitutesView extends StatefulWidget {
   State<InstitutesView> createState() => _InstitutesViewState();
 }
 
-class _InstitutesViewState extends State<InstitutesView> with FeatureGuard {
+class _InstitutesViewState extends State<InstitutesView> {
   late final InstitutesController _controller;
   final _search = TextEditingController();
   InstitutesFilter _filter = InstitutesFilter.all;
 
-  static const _featureKey = 'system_institutes';
+
 
   @override
   void initState() {
@@ -72,7 +71,6 @@ class _InstitutesViewState extends State<InstitutesView> with FeatureGuard {
                   },
                   onSearchChanged: controller.setQuery,
                   onAdd: () async {
-                    if (!checkAccess(_featureKey, context: context)) return;
                     
                     final draft = await AddInstituteDialog.show(context);
                     if (draft == null) return;
@@ -151,7 +149,6 @@ class _InstitutesViewState extends State<InstitutesView> with FeatureGuard {
                               );
                               break;
                             case InstituteMenuAction.edit:
-                              if (!checkAccess(_featureKey, context: context)) return;
 
                               final institute = controller.list.firstWhere(
                                 (e) => e.id == action.instituteId,
@@ -268,7 +265,7 @@ class _Header extends StatelessWidget {
   final InstitutesFilter filter;
   final ValueChanged<InstitutesFilter> onFilterChanged;
   final ValueChanged<String> onSearchChanged;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -334,15 +331,17 @@ class _Header extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 12),
-        SizedBox(
-          height: toolbarHeight,
-          child: AppPrimaryButton(
-            label: 'Add Institute',
-            icon: Icons.add_rounded,
-            onPressed: onAdd,
+        if (onAdd != null) ...[
+          const SizedBox(width: 12),
+          SizedBox(
+            height: toolbarHeight,
+            child: AppPrimaryButton(
+              label: 'Add Institute',
+              icon: Icons.add_rounded,
+              onPressed: onAdd,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

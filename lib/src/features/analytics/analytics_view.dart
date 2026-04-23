@@ -37,6 +37,11 @@ class _AnalyticsViewState extends State<AnalyticsView> {
     return ControllerBuilder<AnalyticsController>(
       controller: _controller,
       builder: (context, controller, _) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('analytics_view')) {
+          return const AccessDeniedView(featureName: 'System Analytics');
+        }
+
         final snap = controller.snapshot;
 
         return SingleChildScrollView(

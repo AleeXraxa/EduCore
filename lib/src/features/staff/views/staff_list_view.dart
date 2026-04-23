@@ -5,6 +5,7 @@ import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
 import 'package:educore/src/core/ui/widgets/kpi_card.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/features/staff/controllers/staff_controller.dart';
 import 'package:educore/src/features/staff/models/staff_member.dart';
 import 'package:educore/src/features/staff/views/add_edit_staff_dialog.dart';
@@ -102,7 +103,10 @@ class _StaffListViewState extends State<StaffListView> {
 
   @override
   Widget build(BuildContext context) {
-    final featureSvc = AppServices.instance.featureAccessService!;
+    final featureSvc = AppServices.instance.featureAccessService;
+    if (featureSvc == null || !featureSvc.canAccess('staff_view')) {
+      return const AccessDeniedView(featureName: 'Staff Management');
+    }
     final cs = Theme.of(context).colorScheme;
 
     return ControllerBuilder<StaffController>(
@@ -129,7 +133,7 @@ class _StaffListViewState extends State<StaffListView> {
                             onView: _showStaffProfile,
                             onEdit: featureSvc.canAccess('staff_edit') ? _showAddEditStaff : null,
                             onManageAccess: featureSvc.canAccess('role_management') ? _showManageAccess : null,
-                            onStatusToggle: _handleToggleStatus,
+                            onStatusToggle: featureSvc.canAccess('staff_edit') ? _handleToggleStatus : null,
                             onDelete: featureSvc.canAccess('staff_delete') ? _handleDelete : null,
                           ),
               ),
@@ -262,7 +266,7 @@ class _StaffGrid extends StatelessWidget {
   final Function(StaffMember) onView;
   final Function(StaffMember)? onEdit;
   final Function(StaffMember)? onManageAccess;
-  final Function(StaffMember) onStatusToggle;
+  final Function(StaffMember)? onStatusToggle;
   final Function(StaffMember)? onDelete;
 
   @override
@@ -278,7 +282,7 @@ class _StaffGrid extends StatelessWidget {
           onView: () => onView(member),
           onEdit: onEdit != null ? () => onEdit!(member) : null,
           onManageAccess: onManageAccess != null ? () => onManageAccess!(member) : null,
-          onStatusToggle: () => onStatusToggle(member),
+          onStatusToggle: onStatusToggle != null ? () => onStatusToggle!(member) : null,
           onDelete: onDelete != null ? () => onDelete!(member) : null,
         );
       },
@@ -300,7 +304,7 @@ class _StaffCard extends StatelessWidget {
   final VoidCallback onView;
   final VoidCallback? onEdit;
   final VoidCallback? onManageAccess;
-  final VoidCallback onStatusToggle;
+  final VoidCallback? onStatusToggle;
   final VoidCallback? onDelete;
 
   @override
@@ -368,11 +372,12 @@ class _StaffCard extends StatelessWidget {
                     icon: Icons.lock_open_rounded,
                     onTap: onManageAccess!,
                   ),
-                AppActionItem(
-                  label: member.isActive ? 'Block Staff' : 'Unblock Staff',
-                  icon: member.isActive ? Icons.block_rounded : Icons.check_circle_outline,
-                  onTap: onStatusToggle,
-                ),
+                if (onStatusToggle != null)
+                  AppActionItem(
+                    label: member.isActive ? 'Block Staff' : 'Unblock Staff',
+                    icon: member.isActive ? Icons.block_rounded : Icons.check_circle_outline,
+                    onTap: onStatusToggle!,
+                  ),
                 if (onDelete != null)
                   AppActionItem(
                     label: 'Delete',

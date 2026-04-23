@@ -4,12 +4,12 @@ import 'package:intl/intl.dart';
 
 class NotificationsTable extends StatelessWidget {
   final List<AppNotification> notifications;
-  final Function(String) onDelete;
+  final Function(String)? onDelete;
 
   const NotificationsTable({
     super.key,
     required this.notifications,
-    required this.onDelete,
+    this.onDelete,
   });
 
   @override
@@ -82,10 +82,13 @@ class NotificationsTable extends StatelessWidget {
                 ),
                 DataCell(_StatusBadge(status: n.status)),
                 DataCell(
-                  IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: cs.error),
-                    onPressed: () => _confirmDelete(context, n),
-                  ),
+                  onDelete != null
+                      ? IconButton(
+                          icon: Icon(Icons.delete_outline_rounded,
+                              color: cs.error),
+                          onPressed: () => _confirmDelete(context, n),
+                        )
+                      : const SizedBox.shrink(),
                 ),
               ],
             );
@@ -116,8 +119,8 @@ class NotificationsTable extends StatelessWidget {
       ),
     );
 
-    if (confirmed == true) {
-      onDelete(n.id);
+    if (confirmed == true && onDelete != null) {
+      onDelete!(n.id);
     }
   }
 }

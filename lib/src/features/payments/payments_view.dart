@@ -48,6 +48,8 @@ class _PaymentsViewState extends State<PaymentsView> {
     return ControllerBuilder<PaymentsController>(
       controller: _controller,
       builder: (context, controller, _) {
+
+
         final kpis = controller.kpis;
 
         return SingleChildScrollView(
@@ -153,45 +155,45 @@ class _PaymentsViewState extends State<PaymentsView> {
                     ),
                     const SizedBox(width: 12),
                     AppPrimaryButton(
-                      onPressed: () async {
-                        final res = await AddPaymentDialog.show(
-                          context,
-                          academies: controller.academies,
-                          plans: controller.plans,
-                        );
-                        if (res != null) {
-                          try {
-                            AppDialogs.showLoading(context,
-                                message: 'Recording payment...');
-                            await controller.addPayment(
-                              academyId: res.academyId,
-                              planId: res.planId,
-                              amount: res.amount,
-                              method: res.method,
-                              transactionId: res.transactionId,
-                            );
-                            if (!context.mounted) return;
-                            AppDialogs.hide(context);
-                            AppDialogs.showSuccess(
-                              context,
-                              title: 'Payment Recorded',
-                              message:
-                                  'The payment has been successfully recorded and is pending review.',
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            AppDialogs.hide(context);
-                            AppDialogs.showError(
-                              context,
-                              title: 'Submission Failed',
-                              message: e.toString(),
-                            );
+                        onPressed: () async {
+                          final res = await AddPaymentDialog.show(
+                            context,
+                            academies: controller.academies,
+                            plans: controller.plans,
+                          );
+                          if (res != null) {
+                            try {
+                              AppDialogs.showLoading(context,
+                                  message: 'Recording payment...');
+                              await controller.addPayment(
+                                academyId: res.academyId,
+                                planId: res.planId,
+                                amount: res.amount,
+                                method: res.method,
+                                transactionId: res.transactionId,
+                              );
+                              if (!context.mounted) return;
+                              AppDialogs.hide(context);
+                              AppDialogs.showSuccess(
+                                context,
+                                title: 'Payment Recorded',
+                                message:
+                                    'The payment has been successfully recorded and is pending review.',
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              AppDialogs.hide(context);
+                              AppDialogs.showError(
+                                context,
+                                title: 'Submission Failed',
+                                message: e.toString(),
+                              );
+                            }
                           }
-                        }
-                      },
-                      icon: Icons.add_rounded,
-                      label: 'Add Payment',
-                    ),
+                        },
+                        icon: Icons.add_rounded,
+                        label: 'Add Payment',
+                      ),
                   ],
                 ),
               ),

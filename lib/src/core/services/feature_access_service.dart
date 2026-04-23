@@ -194,17 +194,27 @@ class FeatureAccessService {
     // These defaults are only applied WITHIN the academy's plan boundary
     final defaults = {
       'admin': {
-        'dashboard', 'staff_view', 'staff_manage', 'classes_view', 
-        'classes_manage', 'students_view', 'students_manage',
-        'attendance_view', 'exams_view', 'fees_view', 'expense_view',
-        'fee_override'
+        'dashboard', 'staff_view', 'staff_manage', 'staff_add', 'staff_edit', 'staff_delete', 'role_management',
+        'classes_view', 'classes_manage', 'class_create', 'class_edit', 'class_delete', 'section_management', 'teacher_assignment',
+        'students_view', 'students_manage', 'student_create', 'student_edit', 'student_delete', 'bulk_import',
+        'attendance_view', 'attendance_mark', 'attendance_edit', 'attendance_report',
+        'exams_view', 'exams_manage', 'exam_create', 'exam_edit', 'exam_delete', 'marks_entry', 'result_publish',
+        'monthly_tests_view', 'monthly_tests_manage', 'test_create', 'test_edit', 'test_delete', 'question_manage',
+        'fees_view', 'fees_manage', 'fee_collect', 'fee_refund', 'challan_generate', 'fee_plan_view', 'fee_plan_manage',
+        'expense_view', 'expense_manage', 'fee_override', 
+        'payments_view', 'payment_approve', 'payment_reject', 'payment_create',
+        'analytics_view', 'audit_view',
+        'settings_view', 'settings_edit',
+        'notifications_view', 'notifications_add', 'notifications_delete', 'notifications_maintenance'
       },
       'teacher': {
         'dashboard', 'classes_view', 'students_view', 
-        'attendance_view', 'attendance_manage', 'exams_view', 'exams_manage'
+        'attendance_view', 'attendance_mark', 'exams_view', 'exams_manage',
+        'monthly_tests_view', 'monthly_tests_manage'
       },
       'accountant': {
-        'dashboard', 'fees_view', 'fees_manage', 'expense_view', 'expense_manage'
+        'dashboard', 'fees_view', 'fees_manage', 'expense_view', 'expense_manage',
+        'settings_view'
       },
     };
 

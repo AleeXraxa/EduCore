@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
@@ -47,6 +49,11 @@ class _MonthlyTestsViewState extends State<MonthlyTestsView> {
     return ControllerBuilder<MonthlyTestController>(
       controller: _controller,
       builder: (context, controller, _) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('monthly_tests_view')) {
+          return const AccessDeniedView(featureName: 'Monthly Tests');
+        }
+
         final cs = Theme.of(context).colorScheme;
 
         // Filter
@@ -127,16 +134,17 @@ class _MonthlyTestsViewState extends State<MonthlyTestsView> {
                       onChanged: (v) => setState(() => _searchQuery = v),
                     ),
                     const SizedBox(width: 16),
-                    AppPrimaryButton(
-                      onPressed: () {
-                         showDialog(
-                           context: context,
-                           builder: (_) => AddEditTestDialog(controller: controller),
-                         );
-                      },
-                      icon: Icons.add_rounded,
-                      label: 'Create Test',
-                    ),
+                    if (featureSvc.canAccess('test_create'))
+                      AppPrimaryButton(
+                        onPressed: () {
+                           showDialog(
+                             context: context,
+                             builder: (_) => AddEditTestDialog(controller: controller),
+                           );
+                        },
+                        icon: Icons.add_rounded,
+                        label: 'Create Test',
+                      ),
                   ],
                 ),
               ),
@@ -337,29 +345,31 @@ class _TestsTable extends StatelessWidget {
                     width: 48,
                     child: AppActionMenu(
                       actions: [
-                        AppActionItem(
-                          label: 'Manage Questions',
-                          icon: Icons.library_add_rounded,
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => _ManageQuestionsDialog(test: t, controller: controller),
-                            );
-                          },
-                        ),
-                        AppActionItem(
-                          label: 'Enter Marks',
-                          icon: Icons.edit_note_rounded,
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => Dialog(
-                                shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
-                                child: MarksEntryView(test: t, controller: controller),
-                              ),
-                            );
-                          },
-                        ),
+                        if (AppServices.instance.featureAccessService?.canAccess('question_manage') ?? false)
+                          AppActionItem(
+                            label: 'Manage Questions',
+                            icon: Icons.library_add_rounded,
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => _ManageQuestionsDialog(test: t, controller: controller),
+                              );
+                            },
+                          ),
+                        if (AppServices.instance.featureAccessService?.canAccess('marks_entry') ?? false)
+                          AppActionItem(
+                            label: 'Enter Marks',
+                            icon: Icons.edit_note_rounded,
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => Dialog(
+                                  shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
+                                  child: MarksEntryView(test: t, controller: controller),
+                                ),
+                              );
+                            },
+                          ),
                         AppActionItem(
                           label: 'View Results',
                           icon: Icons.analytics_rounded,
@@ -373,40 +383,42 @@ class _TestsTable extends StatelessWidget {
                             );
                           },
                         ),
-                        AppActionItem(
-                          label: 'Edit',
-                          icon: Icons.edit_rounded,
-                          type: AppActionType.edit,
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => AddEditTestDialog(controller: controller, test: t),
-                            );
-                          },
-                        ),
-                        AppActionItem(
-                          label: 'Delete',
-                          icon: Icons.delete_rounded,
-                          type: AppActionType.delete,
-                          onTap: () async {
-                            final confirm = await AppDialogs.showConfirm(
-                              context,
-                              title: 'Delete Test?',
-                              message: 'Are you sure you want to delete ${t.title}? This will also delete all questions, marks, and results.',
-                              confirmLabel: 'Delete',
-                              isDanger: true,
-                            );
-                            if (confirm == true) {
-                               if (!context.mounted) return;
-                               AppDialogs.showLoading(context, message: 'Deleting...');
-                               try {
-                                 await controller.deleteTest(t.id);
-                               } finally {
-                                 if (context.mounted) AppDialogs.hide(context);
-                               }
-                            }
-                          },
-                        ),
+                        if (AppServices.instance.featureAccessService?.canAccess('test_edit') ?? false)
+                          AppActionItem(
+                            label: 'Edit',
+                            icon: Icons.edit_rounded,
+                            type: AppActionType.edit,
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AddEditTestDialog(controller: controller, test: t),
+                              );
+                            },
+                          ),
+                        if (AppServices.instance.featureAccessService?.canAccess('test_delete') ?? false)
+                          AppActionItem(
+                            label: 'Delete',
+                            icon: Icons.delete_rounded,
+                            type: AppActionType.delete,
+                            onTap: () async {
+                              final confirm = await AppDialogs.showConfirm(
+                                context,
+                                title: 'Delete Test?',
+                                message: 'Are you sure you want to delete ${t.title}? This will also delete all questions, marks, and results.',
+                                confirmLabel: 'Delete',
+                                isDanger: true,
+                              );
+                              if (confirm == true) {
+                                 if (!context.mounted) return;
+                                 AppDialogs.showLoading(context, message: 'Deleting...');
+                                 try {
+                                   await controller.deleteTest(t.id);
+                                 } finally {
+                                   if (context.mounted) AppDialogs.hide(context);
+                                 }
+                              }
+                            },
+                          ),
                       ],
                     ),
                   ),

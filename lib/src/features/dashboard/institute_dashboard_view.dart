@@ -18,6 +18,7 @@ import 'package:educore/src/features/fees/views/fees_view.dart';
 import 'package:educore/src/features/exams/views/exams_view.dart';
 import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -57,21 +58,32 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
         ),
         child: KeyedSubtree(
           key: ValueKey<String>(_selected),
-          child: switch (current) {
-            _InstituteNav.dashboard => const _InstituteDashboardHome(),
-            _InstituteNav.students => const StudentsView(),
-            _InstituteNav.classes => const ClassesView(),
-            _InstituteNav.attendance => const AttendanceView(),
-            _InstituteNav.fees => const FeesView(),
-            _InstituteNav.exams => const ExamsView(),
-            _InstituteNav.monthlyTests => const MonthlyTestsView(),
-            _InstituteNav.feePlans => const FeePlansView(),
-            _InstituteNav.staff => const StaffListView(),
-            _InstituteNav.settings => const SettingsView(),
-          },
+          child: _buildBody(current),
         ),
       ),
     );
+  }
+
+  Widget _buildBody(_InstituteNav nav) {
+    if (nav.featureKey != null) {
+      final hasAccess = AppServices.instance.featureAccessService?.canAccess(nav.featureKey!) ?? true;
+      if (!hasAccess) {
+        return AccessDeniedView(featureName: nav.label);
+      }
+    }
+    
+    return switch (nav) {
+      _InstituteNav.dashboard => const _InstituteDashboardHome(),
+      _InstituteNav.students => const StudentsView(),
+      _InstituteNav.classes => const ClassesView(),
+      _InstituteNav.attendance => const AttendanceView(),
+      _InstituteNav.fees => const FeesView(),
+      _InstituteNav.exams => const ExamsView(),
+      _InstituteNav.monthlyTests => const MonthlyTestsView(),
+      _InstituteNav.feePlans => const FeePlansView(),
+      _InstituteNav.staff => const StaffListView(),
+      _InstituteNav.settings => const SettingsView(),
+    };
   }
 }
 
@@ -87,14 +99,14 @@ enum _InstituteNav {
     'Students',
     'Student Directory',
     Icons.people_alt_rounded,
-    featureKey: 'student_view',
+    featureKey: 'students_view',
   ),
   classes(
     'classes',
     'Classes',
     'Class Management',
     Icons.class_rounded,
-    featureKey: 'class_view',
+    featureKey: 'classes_view',
   ),
   attendance(
     'attendance',
@@ -108,14 +120,14 @@ enum _InstituteNav {
     'Fees / Payments',
     'Fee Collection',
     Icons.request_quote_rounded,
-    featureKey: 'fee_view',
+    featureKey: 'fees_view',
   ),
   feePlans(
     'fee_plans',
     'Fee Plans',
     'Pricing Structures',
     Icons.payments_rounded,
-    featureKey: 'fee_plan_view',
+    featureKey: 'fee_plans_view',
   ),
   staff(
     'staff',
@@ -129,18 +141,21 @@ enum _InstituteNav {
     'Exams & Results',
     'Academic Assessments',
     Icons.assessment_rounded,
+    featureKey: 'exams_view',
   ),
   monthlyTests(
     'monthly_tests',
     'Monthly Tests',
     'Monthly Assessments',
     Icons.quiz_rounded,
+    featureKey: 'monthly_tests_view',
   ),
   settings(
     'settings',
     'Settings',
     'Institute Settings',
     Icons.settings_rounded,
+    featureKey: 'settings_view',
   );
 
   const _InstituteNav(this.id, this.label, this.title, this.icon,
@@ -305,32 +320,36 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
                       direction: size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          flex: 1,
-                          child: _RecentList(
-                            title: 'Recent Students',
-                            items: controller.recentStudents,
-                            icon: Icons.person_add_alt_1_rounded,
-                            emptyMessage: 'No students enrolled yet.',
-                            titleKey: 'name',
-                            subtitleKey: 'className',
+                        if (AppServices.instance.featureAccessService?.canAccess('students_view') ?? true)
+                          Expanded(
+                            flex: 1,
+                            child: _RecentList(
+                              title: 'Recent Students',
+                              items: controller.recentStudents,
+                              icon: Icons.person_add_alt_1_rounded,
+                              emptyMessage: 'No students enrolled yet.',
+                              titleKey: 'name',
+                              subtitleKey: 'className',
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: size == ScreenSize.compact ? 0 : 24,
-                          height: size == ScreenSize.compact ? 24 : 0,
-                        ),
-                        Expanded(
-                          child: _RecentList(
-                            title: 'Recent Payments',
-                            items: controller.recentPayments,
-                            icon: Icons.receipt_long_rounded,
-                            emptyMessage: 'No recent fees collected.',
-                            titleKey: 'studentName',
-                            subtitleKey: 'amount',
-                            isCurrency: true,
+                        if ((AppServices.instance.featureAccessService?.canAccess('students_view') ?? true) &&
+                            (AppServices.instance.featureAccessService?.canAccess('fees_view') ?? true))
+                          SizedBox(
+                            width: size == ScreenSize.compact ? 0 : 24,
+                            height: size == ScreenSize.compact ? 24 : 0,
                           ),
-                        ),
+                        if (AppServices.instance.featureAccessService?.canAccess('fees_view') ?? true)
+                          Expanded(
+                            child: _RecentList(
+                              title: 'Recent Payments',
+                              items: controller.recentPayments,
+                              icon: Icons.receipt_long_rounded,
+                              emptyMessage: 'No recent fees collected.',
+                              titleKey: 'studentName',
+                              subtitleKey: 'amount',
+                              isCurrency: true,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -661,8 +680,8 @@ class _QuickActionsRow extends StatelessWidget {
     final showAddStudent = featureSvc.canAccess('student_create');
     final showMarkAttendance = featureSvc.canAccess('attendance_mark');
     final showCollectFee = featureSvc.canAccess('fee_collect');
-    const showCreateExam = true;
-    const showMonthlyTest = true;
+    final showCreateExam = featureSvc.canAccess('exam_create');
+    final showMonthlyTest = featureSvc.canAccess('test_create');
 
     if (!showAddStudent && !showMarkAttendance && !showCollectFee && !showCreateExam && !showMonthlyTest) {
       return const SizedBox.shrink();

@@ -35,55 +35,56 @@ class _ResultsViewState extends State<ResultsView> {
             children: [
               Text('Results & Rankings', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               if (widget.exam.status != 'published')
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: () async {
-                        AppDialogs.showLoading(context, message: 'Calculating results...');
-                        final success = await widget.controller.generateResults(widget.exam);
-                        if (context.mounted) {
-                          AppDialogs.hide(context);
-                          if (success) {
-                            AppDialogs.showInfo(context, title: 'Success', message: 'Results generated. Please review before publishing.');
-                          } else {
-                            AppDialogs.showError(context, title: 'Notice', message: widget.controller.error ?? 'Failed to generate.');
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.calculate_rounded),
-                      label: const Text('Generate Results'),
-                    ),
-                    const SizedBox(width: 16),
-                    AppPrimaryButton(
-                      onPressed: () async {
-                        if (results.isEmpty) {
-                           AppDialogs.showError(context, title: 'Missing Results', message: 'Generate results first before publishing.');
-                           return;
-                        }
-                        final confirm = await AppDialogs.showConfirm(
-                          context,
-                          title: 'Publish Results?',
-                          message: 'Once published, marks cannot be edited. Students and parents will be notified.',
-                          confirmLabel: 'Publish',
-                        );
-                        if (confirm == true) {
-                          AppDialogs.showLoading(context, message: 'Publishing...');
-                          final success = await widget.controller.togglePublishResult(widget.exam, true);
+                if (AppServices.instance.featureAccessService!.canAccess('result_publish'))
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () async {
+                          AppDialogs.showLoading(context, message: 'Calculating results...');
+                          final success = await widget.controller.generateResults(widget.exam);
                           if (context.mounted) {
                             AppDialogs.hide(context);
                             if (success) {
-                              AppDialogs.showInfo(context, title: 'Success', message: 'Exam published successfully.');
+                              AppDialogs.showInfo(context, title: 'Success', message: 'Results generated. Please review before publishing.');
                             } else {
-                              AppDialogs.showError(context, title: 'Error', message: widget.controller.error ?? 'Failed to publish.');
+                              AppDialogs.showError(context, title: 'Notice', message: widget.controller.error ?? 'Failed to generate.');
                             }
                           }
-                        }
-                      },
-                      label: 'Publish Exam',
-                      icon: Icons.campaign_rounded,
-                    ),
-                  ],
-                ),
+                        },
+                        icon: const Icon(Icons.calculate_rounded),
+                        label: const Text('Generate Results'),
+                      ),
+                      const SizedBox(width: 16),
+                      AppPrimaryButton(
+                        onPressed: () async {
+                          if (results.isEmpty) {
+                             AppDialogs.showError(context, title: 'Missing Results', message: 'Generate results first before publishing.');
+                             return;
+                          }
+                          final confirm = await AppDialogs.showConfirm(
+                            context,
+                            title: 'Publish Results?',
+                            message: 'Once published, marks cannot be edited. Students and parents will be notified.',
+                            confirmLabel: 'Publish',
+                          );
+                          if (confirm == true) {
+                            AppDialogs.showLoading(context, message: 'Publishing...');
+                            final success = await widget.controller.togglePublishResult(widget.exam, true);
+                            if (context.mounted) {
+                              AppDialogs.hide(context);
+                              if (success) {
+                                AppDialogs.showInfo(context, title: 'Success', message: 'Exam published successfully.');
+                              } else {
+                                AppDialogs.showError(context, title: 'Error', message: widget.controller.error ?? 'Failed to publish.');
+                              }
+                            }
+                          }
+                        },
+                        label: 'Publish Exam',
+                        icon: Icons.campaign_rounded,
+                      ),
+                    ],
+                  ),
             ],
           ),
           const SizedBox(height: 24),

@@ -14,6 +14,7 @@ import 'package:educore/src/features/subscriptions/widgets/subscriptions_table.d
 import 'package:educore/src/features/subscriptions/widgets/subscription_details_dialog.dart';
 import 'package:educore/src/features/subscriptions/widgets/edit_subscription_dialog.dart';
 import 'package:educore/src/features/subscriptions/widgets/add_subscription_dialog.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
 class SubscriptionsView extends StatefulWidget {

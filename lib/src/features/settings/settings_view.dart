@@ -1,4 +1,6 @@
 import 'package:educore/src/core/mvc/controller_builder.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
@@ -44,6 +46,10 @@ class _SettingsViewState extends State<SettingsView> {
     return ControllerBuilder<SettingsController>(
       controller: _controller,
       builder: (context, controller, _) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('settings_view')) {
+          return const AccessDeniedView(featureName: 'Institute Settings');
+        }
         return LayoutBuilder(
           builder: (context, constraints) {
             final size = screenSizeForWidth(constraints.maxWidth);
@@ -124,24 +130,25 @@ class _SettingsViewState extends State<SettingsView> {
                             ],
                           ),
                         ),
-                        HoverScale(
-                          child: AppPrimaryButton(
-                            label: 'Save changes',
-                            icon: Icons.save_rounded,
-                            busy: controller.busy,
-                            onPressed: () async {
-                              AppDialogs.showLoading(context, message: 'Syncing settings...');
-                              await controller.save();
-                              if (!context.mounted) return;
-                              AppDialogs.hide(context);
-                              AppDialogs.showSuccess(
-                                context,
-                                title: 'Settings Saved',
-                                message: 'Your configuration preferences have been successfully updated and synced across the platform.',
-                              );
-                            },
+                        if (featureSvc.canAccess('settings_edit'))
+                          HoverScale(
+                            child: AppPrimaryButton(
+                              label: 'Save changes',
+                              icon: Icons.save_rounded,
+                              busy: controller.busy,
+                              onPressed: () async {
+                                AppDialogs.showLoading(context, message: 'Syncing settings...');
+                                await controller.save();
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+                                AppDialogs.showSuccess(
+                                  context,
+                                  title: 'Settings Saved',
+                                  message: 'Your configuration preferences have been successfully updated and synced across the platform.',
+                                );
+                              },
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),

@@ -7,7 +7,6 @@ import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/classes/classes_controller.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
-import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:flutter/material.dart';
 
@@ -36,15 +35,19 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
   String? _selectedFeePlanName;
   String? _errorMessage;
   bool _saving = false;
-  
+
   List<FeePlan> _feePlans = [];
   bool _loadingPlans = true;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.existingClass?.name ?? '');
-    _sectionController = TextEditingController(text: widget.existingClass?.section ?? '');
+    _nameController = TextEditingController(
+      text: widget.existingClass?.name ?? '',
+    );
+    _sectionController = TextEditingController(
+      text: widget.existingClass?.section ?? '',
+    );
     _selectedTeacherId = widget.existingClass?.classTeacherId;
     _selectedTeacherName = widget.existingClass?.classTeacherName;
     _selectedFeePlanId = widget.existingClass?.feePlanId;
@@ -55,8 +58,9 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
 
   Future<void> _loadFeePlans() async {
     try {
-      final plans = await AppServices.instance.feePlanService!
-          .getFeePlans(AppServices.instance.authService?.session?.academyId ?? '');
+      final plans = await AppServices.instance.feePlanService!.getFeePlans(
+        AppServices.instance.authService?.session?.academyId ?? '',
+      );
       if (mounted) {
         setState(() {
           _feePlans = plans.where((p) => p.isActive).toList();
@@ -77,7 +81,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _saving = true;
       _errorMessage = null;
@@ -85,7 +89,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
 
     final name = _nameController.text.trim();
     final section = _sectionController.text.trim();
-    
+
     bool ok;
     try {
       if (widget.existingClass == null) {
@@ -154,17 +158,19 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                 Text(
                   isEdit ? 'Edit Class' : 'Create New Class',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isEdit ? 'Update details for this class.' : 'Define a new class for your institute.',
+                  isEdit
+                      ? 'Update details for this class.'
+                      : 'Define a new class for your institute.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 24),
@@ -176,7 +182,10 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: cs.onErrorContainer, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: cs.onErrorContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -185,7 +194,9 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                   controller: _nameController,
                   label: 'Class Name',
                   hintText: 'e.g. Grade 10',
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Class Name is required' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Class Name is required'
+                      : null,
                 ),
                 const SizedBox(height: 24),
                 AppTextField(
@@ -194,7 +205,7 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                   hintText: 'e.g. A, B, North',
                 ),
                 const SizedBox(height: 24),
-                
+
                 if (_loadingPlans)
                   const Center(child: LinearProgressIndicator())
                 else if (_feePlans.isEmpty)
@@ -209,7 +220,10 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                       children: [
                         Text(
                           'No active Fee Plans found!',
-                          style: TextStyle(color: cs.error, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            color: cs.error,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -225,11 +239,14 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                     label: 'Primary Fee Plan',
                     value: _selectedFeePlanId,
                     items: _feePlans.map((e) => e.id).toList(),
-                    itemLabel: (id) => _feePlans.firstWhere((e) => e.id == id).name,
+                    itemLabel: (id) =>
+                        _feePlans.firstWhere((e) => e.id == id).name,
                     onChanged: (val) {
                       setState(() {
                         _selectedFeePlanId = val;
-                        _selectedFeePlanName = _feePlans.firstWhere((e) => e.id == val).name;
+                        _selectedFeePlanName = _feePlans
+                            .firstWhere((e) => e.id == val)
+                            .name;
                       });
                     },
                     prefixIcon: Icons.payments_rounded,
@@ -239,10 +256,18 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                   SwitchListTile.adaptive(
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
-                    title: const Text('Active Status', style: TextStyle(fontWeight: FontWeight.w800)),
+                    title: const Text(
+                      'Active Status',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     subtitle: Text(
-                      _isActive ? 'Class is currently active' : 'Class is disabled',
-                      style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+                      _isActive
+                          ? 'Class is currently active'
+                          : 'Class is disabled',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     contentPadding: EdgeInsets.zero,
                     activeTrackColor: cs.primary,
@@ -253,13 +278,28 @@ class _AddEditClassDialogState extends State<AddEditClassDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: _saving ? null : () => Navigator.of(context).pop(),
-                      child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     AppPrimaryButton(
-                      onPressed: (_saving || (_feePlans.isEmpty && widget.existingClass == null)) ? () {} : _save,
-                      label: _saving ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Class'),
+                      onPressed:
+                          (_saving ||
+                              (_feePlans.isEmpty &&
+                                  widget.existingClass == null))
+                          ? () {}
+                          : _save,
+                      label: _saving
+                          ? 'Saving...'
+                          : (isEdit ? 'Save Changes' : 'Create Class'),
                       busy: _saving,
                     ),
                   ],

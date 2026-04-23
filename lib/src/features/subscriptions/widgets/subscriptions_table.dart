@@ -377,8 +377,10 @@ class _PlanPill extends StatelessWidget {
   }
 }
 
-class _RowMenu extends StatelessWidget {
-  const _RowMenu({required this.status, required this.onSelected});
+  const _RowMenu({
+    required this.status,
+    required this.onSelected,
+  });
 
   final SubscriptionStatus status;
   final ValueChanged<SubscriptionMenuAction> onSelected;
@@ -403,7 +405,8 @@ class _RowMenu extends StatelessWidget {
         ),
         const PopupMenuItem(
           value: SubscriptionMenuAction.reject,
-          child: _MenuRow(icon: Icons.close_rounded, label: 'Reject', danger: true),
+          child:
+              _MenuRow(icon: Icons.close_rounded, label: 'Reject', danger: true),
         ),
       ],
       const PopupMenuItem(
@@ -412,7 +415,8 @@ class _RowMenu extends StatelessWidget {
       ),
       const PopupMenuItem(
         value: SubscriptionMenuAction.extend,
-        child: _MenuRow(icon: Icons.date_range_rounded, label: 'Extend 30 days'),
+        child:
+            _MenuRow(icon: Icons.date_range_rounded, label: 'Extend 30 days'),
       ),
     ];
 

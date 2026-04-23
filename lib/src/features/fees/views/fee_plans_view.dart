@@ -1,4 +1,6 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
@@ -31,6 +33,10 @@ class _FeePlansViewState extends State<FeePlansView> {
     return ControllerBuilder<FeePlansController>(
       controller: _controller,
       builder: (context, ctrl, _) {
+        final featureSvc = AppServices.instance.featureAccessService;
+        if (featureSvc == null || !featureSvc.canAccess('fee_plan_view')) {
+          return const AccessDeniedView(featureName: 'Fee Plans');
+        }
         return Scaffold(
           backgroundColor: Colors.transparent,
           body: Padding(
