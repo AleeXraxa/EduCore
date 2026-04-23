@@ -7,7 +7,7 @@ class TestMarks {
     required this.studentId,
     required this.studentName,
     required this.studentRollNo,
-    required this.obtainedMarks,
+    required this.subjectMarks, // Map<subjectId, obtainedMarks>
     required this.status, // 'Pass', 'Fail', 'Absent'
     this.remarks = '',
     required this.createdAt,
@@ -19,11 +19,13 @@ class TestMarks {
   final String studentId;
   final String studentName;
   final String studentRollNo;
-  final double obtainedMarks;
+  final Map<String, double> subjectMarks;
   final String status;
   final String remarks;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  double get obtainedMarks => subjectMarks.values.fold(0.0, (sum, val) => sum + val);
 
   TestMarks copyWith({
     String? id,
@@ -31,7 +33,7 @@ class TestMarks {
     String? studentId,
     String? studentName,
     String? studentRollNo,
-    double? obtainedMarks,
+    Map<String, double>? subjectMarks,
     String? status,
     String? remarks,
     DateTime? createdAt,
@@ -43,7 +45,7 @@ class TestMarks {
       studentId: studentId ?? this.studentId,
       studentName: studentName ?? this.studentName,
       studentRollNo: studentRollNo ?? this.studentRollNo,
-      obtainedMarks: obtainedMarks ?? this.obtainedMarks,
+      subjectMarks: subjectMarks ?? this.subjectMarks,
       status: status ?? this.status,
       remarks: remarks ?? this.remarks,
       createdAt: createdAt ?? this.createdAt,
@@ -57,7 +59,8 @@ class TestMarks {
       'studentId': studentId,
       'studentName': studentName,
       'studentRollNo': studentRollNo,
-      'obtainedMarks': obtainedMarks,
+      'subjectMarks': subjectMarks,
+      'obtainedMarks': obtainedMarks, // Aggregate for easy queries
       'status': status,
       'remarks': remarks.trim(),
       'createdAt': Timestamp.fromDate(createdAt),
@@ -72,7 +75,9 @@ class TestMarks {
       studentId: map['studentId'] ?? '',
       studentName: map['studentName'] ?? '',
       studentRollNo: map['studentRollNo'] ?? '',
-      obtainedMarks: (map['obtainedMarks'] as num?)?.toDouble() ?? 0.0,
+      subjectMarks: (map['subjectMarks'] as Map? ?? {}).map(
+        (key, value) => MapEntry(key.toString(), (value as num?)?.toDouble() ?? 0.0),
+      ),
       status: map['status'] ?? 'Absent',
       remarks: map['remarks'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

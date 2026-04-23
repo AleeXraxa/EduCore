@@ -270,6 +270,7 @@ class _TestsTable extends StatelessWidget {
               Expanded(flex: 2, child: Text('SUBJECT', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
               Expanded(flex: 2, child: Text('CLASS', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
               Expanded(flex: 2, child: Text('DATE', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
+              Expanded(flex: 1, child: Text('QS', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
               Expanded(flex: 1, child: Text('MARKS', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
               Expanded(flex: 2, child: Text('STATUS', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
               const SizedBox(width: 48, child: Text('')), // For Action Menu
@@ -317,7 +318,20 @@ class _TestsTable extends StatelessWidget {
                     ),
                   ),
                   Expanded(flex: 2, child: Text(df.format(t.testDate), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13))),
-                  Expanded(flex: 1, child: Text('${t.totalMarks.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${t.questionCount}',
+                      style: TextStyle(color: cs.primary, fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${t.totalMarks.toInt()}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                   Expanded(flex: 2, child: Row(children: [_StatusBadge(status: t.status)])),
                   SizedBox(
                     width: 48,
@@ -336,7 +350,6 @@ class _TestsTable extends StatelessWidget {
                         AppActionItem(
                           label: 'Enter Marks',
                           icon: Icons.edit_note_rounded,
-                          isEnabled: t.status != 'upcoming',
                           onTap: () {
                             showDialog(
                               context: context,
@@ -349,8 +362,7 @@ class _TestsTable extends StatelessWidget {
                         ),
                         AppActionItem(
                           label: 'View Results',
-                          icon: Icons.bar_chart_rounded,
-                          isEnabled: t.status == 'completed' || t.status == 'published',
+                          icon: Icons.analytics_rounded,
                           onTap: () {
                             showDialog(
                               context: context,
@@ -387,8 +399,11 @@ class _TestsTable extends StatelessWidget {
                             if (confirm == true) {
                                if (!context.mounted) return;
                                AppDialogs.showLoading(context, message: 'Deleting...');
-                               await controller.deleteTest(t.id);
-                               if (context.mounted) AppDialogs.hide(context);
+                               try {
+                                 await controller.deleteTest(t.id);
+                               } finally {
+                                 if (context.mounted) AppDialogs.hide(context);
+                               }
                             }
                           },
                         ),
@@ -449,10 +464,47 @@ class _ManageQuestionsDialog extends StatefulWidget {
 }
 
 class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
+  String? _selectedSubjectId;
+  final Set<String> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
     widget.controller.selectTest(widget.test);
+    if (widget.test.subjects.isNotEmpty) {
+      _selectedSubjectId = widget.test.subjects.first.id;
+    }
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedQuestions() async {
+    final count = _selectedIds.length;
+    final confirm = await AppDialogs.showConfirm(
+      context, 
+      title: 'Delete $count Questions?', 
+      message: 'This action cannot be undone.',
+      isDanger: true,
+    );
+
+    if (confirm == true) {
+      final questionsToDelete = widget.controller.currentQuestions
+          .where((q) => _selectedIds.contains(q.id))
+          .toList();
+
+      final success = await widget.controller.deleteQuestions(questionsToDelete);
+      if (success) {
+        setState(() => _selectedIds.clear());
+      }
+    }
   }
 
   @override
@@ -463,8 +515,8 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
       insetPadding: const EdgeInsets.all(48),
       shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
       child: Container(
-        width: 1000,
-        height: 800,
+        width: 1100,
+        height: 850,
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
@@ -476,32 +528,57 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
                   children: [
                     Text('Manage Question Bank', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
-                    Text('${widget.test.title} (${widget.test.subject})', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                    Text('${widget.test.title} • ${widget.test.className}', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const Spacer(),
-                IconButton(
-                  onPressed: () => TestPdfGenerator.printQuestionPaper(widget.test, widget.controller.currentQuestions),
-                  icon: const Icon(Icons.print_rounded),
-                  tooltip: 'Print Question Paper',
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: _importDialog,
-                  icon: const Icon(Icons.upload_file_rounded),
-                  label: const Text('Bulk Import'),
-                ),
-                const SizedBox(width: 16),
-                AppPrimaryButton(
-                  onPressed: () {
-                     showDialog(
-                       context: context,
-                       builder: (_) => AddEditQuestionDialog(controller: widget.controller, testId: widget.test.id),
-                     );
-                  },
-                  icon: Icons.add_rounded,
-                  label: 'Add Question',
-                ),
+                
+                if (_selectedIds.isNotEmpty) ...[
+                  TextButton.icon(
+                    onPressed: () => setState(() => _selectedIds.clear()),
+                    icon: const Icon(Icons.close_rounded),
+                    label: const Text('Clear Selection'),
+                  ),
+                  const SizedBox(width: 16),
+                  AppPrimaryButton(
+                    onPressed: _deleteSelectedQuestions,
+                    icon: Icons.delete_sweep_rounded,
+                    label: 'Delete Selected (${_selectedIds.length})',
+                    color: cs.error,
+                  ),
+                ] else ...[
+                  IconButton(
+                    onPressed: () => TestPdfGenerator.printQuestionPaper(widget.test, widget.controller.currentQuestions),
+                    icon: const Icon(Icons.print_rounded),
+                    tooltip: 'Print Question Paper',
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => McqImportService.downloadTemplate(),
+                    icon: const Icon(Icons.download_rounded),
+                    label: const Text('Template'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: _importDialog,
+                    icon: const Icon(Icons.upload_file_rounded),
+                    label: const Text('Bulk Import'),
+                  ),
+                  const SizedBox(width: 16),
+                  AppPrimaryButton(
+                    onPressed: () {
+                       showDialog(
+                         context: context,
+                         builder: (_) => AddEditQuestionDialog(
+                           controller: widget.controller, 
+                           testId: widget.test.id,
+                         ),
+                       );
+                    },
+                    icon: Icons.add_rounded,
+                    label: 'Add Question',
+                  ),
+                ],
                 const SizedBox(width: 16),
                 IconButton.filledTonal(
                   onPressed: () => Navigator.pop(context),
@@ -510,6 +587,72 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
               ],
             ),
             const SizedBox(height: 32),
+            
+            // Subject Tabs & Select All
+            Row(
+              children: [
+                if (widget.test.subjects.length > 1) 
+                  Expanded(
+                    child: SingleChildScrollView(
+                       scrollDirection: Axis.horizontal,
+                       child: Row(
+                         children: widget.test.subjects.map((sub) {
+                           final isSelected = _selectedSubjectId == sub.id;
+                           return Padding(
+                             padding: const EdgeInsets.only(right: 12),
+                             child: ChoiceChip(
+                               label: Text(sub.name, style: TextStyle(fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold)),
+                               selected: isSelected,
+                               onSelected: (val) {
+                                 if (val) setState(() => _selectedSubjectId = sub.id);
+                               },
+                               selectedColor: cs.primary,
+                               labelStyle: TextStyle(color: isSelected ? Colors.white : cs.onSurfaceVariant),
+                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                               shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                               showCheckmark: false,
+                             ),
+                           );
+                         }).toList(),
+                       ),
+                    ),
+                  )
+                else 
+                  const Spacer(),
+                
+                // Select All toggle
+                ControllerBuilder<MonthlyTestController>(
+                  controller: widget.controller,
+                  builder: (context, controller, _) {
+                    final questions = _selectedSubjectId == null 
+                        ? controller.currentQuestions 
+                        : controller.currentQuestions.where((q) => q.subjectId == _selectedSubjectId).toList();
+                    
+                    if (questions.isEmpty) return const SizedBox();
+
+                    final allSelected = questions.every((q) => _selectedIds.contains(q.id));
+                    return TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          if (allSelected) {
+                            for (var q in questions) {
+                              _selectedIds.remove(q.id);
+                            }
+                          } else {
+                            for (var q in questions) {
+                              _selectedIds.add(q.id);
+                            }
+                          }
+                        });
+                      },
+                      icon: Icon(allSelected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded),
+                      label: Text(allSelected ? 'Deselect All' : 'Select All'),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             const Divider(),
             
             // Content
@@ -517,7 +660,10 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
               child: ControllerBuilder<MonthlyTestController>(
                 controller: widget.controller,
                 builder: (context, controller, _) {
-                  final questions = controller.currentQuestions;
+                  final allQuestions = controller.currentQuestions;
+                  final questions = _selectedSubjectId == null 
+                      ? allQuestions 
+                      : allQuestions.where((q) => q.subjectId == _selectedSubjectId).toList();
 
                   if (questions.isEmpty) {
                     return Center(
@@ -528,7 +674,7 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
                           const SizedBox(height: 24),
                           Text('No Questions Yet', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 8),
-                          Text('Start building your question bank for this assessment.', style: TextStyle(color: cs.onSurfaceVariant)),
+                          Text('Start building your question bank for this subject.', style: TextStyle(color: cs.onSurfaceVariant)),
                         ],
                       ),
                     );
@@ -542,7 +688,13 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
                       final q = questions[index];
                       return AppAnimatedSlide(
                         delayIndex: index,
-                        child: _QuestionCard(question: q, index: index + 1, controller: controller),
+                        child: _QuestionCard(
+                          question: q, 
+                          index: index + 1, 
+                          controller: controller,
+                          isSelected: _selectedIds.contains(q.id),
+                          onSelect: () => _toggleSelection(q.id),
+                        ),
                       );
                     },
                   );
@@ -556,15 +708,24 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
   }
 
   Future<void> _importDialog() async {
+    if (_selectedSubjectId == null && widget.test.subjects.isNotEmpty) {
+      AppDialogs.showError(context, title: 'No Subject Selected', message: 'Please select a subject tab first to import questions into it.');
+      return;
+    }
+
     final confirm = await AppDialogs.showConfirm(
       context, 
       title: 'Import MCQs?', 
-      message: 'Select a CSV file to import multiple MCQs at once.'
+      message: 'Select a CSV file to import multiple MCQs into the current subject.'
     );
 
     if (confirm == true) {
       try {
-        final questions = await McqImportService.pickAndParseCsv(widget.test.id);
+        final questions = await McqImportService.pickAndParseCsv(
+          widget.test.id, 
+          _selectedSubjectId ?? '',
+          availableSubjects: widget.test.subjects,
+        );
         if (questions == null) return;
 
         if (!mounted) return;
@@ -585,75 +746,108 @@ class _ManageQuestionsDialogState extends State<_ManageQuestionsDialog> {
 }
 
 class _QuestionCard extends StatelessWidget {
-  const _QuestionCard({required this.question, required this.index, required this.controller});
+  const _QuestionCard({
+    required this.question, 
+    required this.index, 
+    required this.controller,
+    required this.isSelected,
+    required this.onSelect,
+  });
+  
   final TestQuestion question;
   final int index;
   final MonthlyTestController controller;
+  final bool isSelected;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppRadii.r20,
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
-                child: Center(child: Text('$index', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(question.questionText, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-              ),
-              Text('${question.marks} Marks', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w900, fontSize: 11)),
-              const SizedBox(width: 16),
-              IconButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => AddEditQuestionDialog(
-                      controller: controller,
-                      testId: question.testId,
-                      question: question,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.edit_note_rounded, size: 20),
-                color: cs.primary,
-              ),
-              IconButton(
-                onPressed: () async {
-                   final confirm = await AppDialogs.showConfirm(context, title: 'Delete?', message: 'Remove this question?', isDanger: true);
-                   if (confirm == true) await controller.deleteQuestion(question);
-                },
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                color: cs.error,
-              ),
-            ],
+    return InkWell(
+      onTap: onSelect,
+      borderRadius: AppRadii.r20,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected ? cs.primary.withValues(alpha: 0.05) : cs.surface,
+          borderRadius: AppRadii.r20,
+          border: Border.all(
+            color: isSelected ? cs.primary : cs.outlineVariant.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _OptionBadge(label: 'A', text: question.optionA, isCorrect: question.correctOption == 'A'),
-              _OptionBadge(label: 'B', text: question.optionB, isCorrect: question.correctOption == 'B'),
-              _OptionBadge(label: 'C', text: question.optionC, isCorrect: question.correctOption == 'C'),
-              _OptionBadge(label: 'D', text: question.optionD, isCorrect: question.correctOption == 'D'),
-            ],
-          ),
-        ],
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: cs.primary.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: isSelected, 
+                  onChanged: (_) => onSelect(),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+                  child: Center(child: Text('$index', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(question.questionText, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                ),
+                Text('${question.marks} Marks', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w900, fontSize: 11)),
+                const SizedBox(width: 16),
+                IconButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AddEditQuestionDialog(
+                        controller: controller,
+                        testId: question.testId,
+                        question: question,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit_note_rounded, size: 20),
+                  color: cs.primary,
+                ),
+                IconButton(
+                  onPressed: () async {
+                     final confirm = await AppDialogs.showConfirm(context, title: 'Delete?', message: 'Remove this question?', isDanger: true);
+                     if (confirm == true) await controller.deleteQuestion(question);
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  color: cs.error,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(left: 48),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _OptionBadge(label: 'A', text: question.optionA, isCorrect: question.correctOption == 'A'),
+                  _OptionBadge(label: 'B', text: question.optionB, isCorrect: question.correctOption == 'B'),
+                  _OptionBadge(label: 'C', text: question.optionC, isCorrect: question.correctOption == 'C'),
+                  _OptionBadge(label: 'D', text: question.optionD, isCorrect: question.correctOption == 'D'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

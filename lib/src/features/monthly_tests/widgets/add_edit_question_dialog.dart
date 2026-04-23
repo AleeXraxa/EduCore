@@ -30,6 +30,7 @@ class _AddEditQuestionDialogState extends State<AddEditQuestionDialog> {
   late final TextEditingController _dController;
   late final TextEditingController _marksController;
   
+  String? _selectedSubjectId;
   String _correctOption = 'A';
   final _formKey = GlobalKey<FormState>();
 
@@ -45,6 +46,9 @@ class _AddEditQuestionDialogState extends State<AddEditQuestionDialog> {
     
     if (widget.question != null) {
       _correctOption = widget.question!.correctOption;
+      _selectedSubjectId = widget.question!.subjectId;
+    } else if (widget.controller.selectedTest?.subjects.isNotEmpty ?? false) {
+      _selectedSubjectId = widget.controller.selectedTest!.subjects.first.id;
     }
   }
 
@@ -61,10 +65,15 @@ class _AddEditQuestionDialogState extends State<AddEditQuestionDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedSubjectId == null) {
+      AppDialogs.showError(context, title: 'Subject Required', message: 'Please select a subject for this question.');
+      return;
+    }
 
     final question = TestQuestion(
       id: widget.question?.id ?? '',
       testId: widget.testId,
+      subjectId: _selectedSubjectId!,
       questionText: _qController.text,
       optionA: _aController.text,
       optionB: _bController.text,
@@ -154,6 +163,22 @@ class _AddEditQuestionDialogState extends State<AddEditQuestionDialog> {
                     children: [
                       Text('QUESTION DETAILS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: cs.primary, letterSpacing: 1)),
                       const SizedBox(height: 16),
+                      if (widget.controller.selectedTest != null && widget.controller.selectedTest!.subjects.length > 1) ...[
+                         DropdownButtonFormField<String>(
+                            initialValue: _selectedSubjectId,
+                            decoration: InputDecoration(
+                              labelText: 'Select Subject',
+                              border: OutlineInputBorder(borderRadius: AppRadii.r12),
+                              prefixIcon: const Icon(Icons.book_rounded),
+                            ),
+                            items: widget.controller.selectedTest!.subjects.map((s) {
+                              return DropdownMenuItem(value: s.id, child: Text(s.name));
+                            }).toList(),
+                            onChanged: (v) => setState(() => _selectedSubjectId = v),
+                            validator: (v) => v == null ? 'Required' : null,
+                         ),
+                         const SizedBox(height: 24),
+                      ],
                       AppTextField(
                         key: const ValueKey('question_field'),
                         controller: _qController,

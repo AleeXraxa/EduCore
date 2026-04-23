@@ -5,7 +5,6 @@ import 'package:educore/src/core/models/subscription_record.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/admin_payments_service.dart';
 import 'package:educore/src/core/services/admin_subscriptions_service.dart';
-import 'package:educore/src/core/services/admin_users_service.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
@@ -84,13 +83,14 @@ class DashboardController extends BaseController {
     final monthlyRevenue = _subscriptions
         .where((s) => s.status == SubscriptionRecordStatus.active)
         .fold<int>(0, (sum, s) {
-      final plan = _planById[s.planId];
-      final price = plan?.price ?? 0;
-      return sum + price.round();
-    });
+          final plan = _planById[s.planId];
+          final price = plan?.price ?? 0;
+          return sum + price.round();
+        });
 
-    final pendingPayments =
-        _payments.where((p) => p.status == PaymentReviewStatus.pending).length;
+    final pendingPayments = _payments
+        .where((p) => p.status == PaymentReviewStatus.pending)
+        .length;
 
     return DashboardKpis(
       totalInstitutes: totalInstitutes,
@@ -101,12 +101,16 @@ class DashboardController extends BaseController {
   }
 
   List<double> get revenueHistory {
-    if (_subscriptions.isEmpty && _payments.isEmpty) return const [0, 0, 0, 0, 0, 0];
-    
+    if (_subscriptions.isEmpty && _payments.isEmpty)
+      return const [0, 0, 0, 0, 0, 0];
+
     // Simple 6-month historical view
     final now = DateTime.now();
-    final months = List.generate(6, (i) => DateTime(now.year, now.month - i, 1)).reversed.toList();
-    
+    final months = List.generate(
+      6,
+      (i) => DateTime(now.year, now.month - i, 1),
+    ).reversed.toList();
+
     return months.map((m) {
       final monthlySum = _subscriptions
           .where((s) => s.status == SubscriptionRecordStatus.active)
@@ -124,10 +128,13 @@ class DashboardController extends BaseController {
 
   List<double> get growthHistory {
     if (_academies.isEmpty) return const [0, 0, 0, 0, 0, 0];
-    
+
     final now = DateTime.now();
-    final months = List.generate(6, (i) => DateTime(now.year, now.month - i, 1)).reversed.toList();
-    
+    final months = List.generate(
+      6,
+      (i) => DateTime(now.year, now.month - i, 1),
+    ).reversed.toList();
+
     return months.map((m) {
       final count = _academies.where((a) {
         final created = a.createdAt ?? now;
@@ -142,14 +149,17 @@ class DashboardController extends BaseController {
         .where((p) => p.status == PaymentReviewStatus.pending)
         .take(6)
         .map((p) {
-      final name = _academyById[p.academyId]?.name;
-      return DashboardPendingPaymentItem(
-        instituteName: (name?.trim().isNotEmpty == true) ? name!.trim() : p.academyId,
-        amountPkr: p.amountPkr,
-        status: p.status,
-        createdAt: p.createdAt,
-      );
-    }).toList(growable: false);
+          final name = _academyById[p.academyId]?.name;
+          return DashboardPendingPaymentItem(
+            instituteName: (name?.trim().isNotEmpty == true)
+                ? name!.trim()
+                : p.academyId,
+            amountPkr: p.amountPkr,
+            status: p.status,
+            createdAt: p.createdAt,
+          );
+        })
+        .toList(growable: false);
     return items;
   }
 
@@ -158,7 +168,8 @@ class DashboardController extends BaseController {
 
     for (final a in _academies.take(5)) {
       final time = a.createdAt ?? DateTime.now();
-      final planName = _planById[a.planId]?.name ?? (a.planId.isEmpty ? '—' : a.planId);
+      final planName =
+          _planById[a.planId]?.name ?? (a.planId.isEmpty ? '—' : a.planId);
       items.add(
         DashboardActivityItem(
           kind: 'academy_created',
@@ -172,7 +183,8 @@ class DashboardController extends BaseController {
     for (final s in _subscriptions.take(6)) {
       final time = s.updatedAt ?? s.createdAt ?? DateTime.now();
       final academyName = _academyById[s.academyId]?.name ?? s.academyId;
-      final planName = _planById[s.planId]?.name ?? (s.planId.isEmpty ? '—' : s.planId);
+      final planName =
+          _planById[s.planId]?.name ?? (s.planId.isEmpty ? '—' : s.planId);
       final statusLabel = switch (s.status) {
         SubscriptionRecordStatus.active => 'Active',
         SubscriptionRecordStatus.pending => 'Pending approval',
@@ -189,7 +201,10 @@ class DashboardController extends BaseController {
       );
     }
 
-    for (final p in _payments.where((p) => p.status == PaymentReviewStatus.pending).take(4)) {
+    for (final p
+        in _payments
+            .where((p) => p.status == PaymentReviewStatus.pending)
+            .take(4)) {
       final academyName = _academyById[p.academyId]?.name ?? p.academyId;
       items.add(
         DashboardActivityItem(
@@ -210,7 +225,7 @@ class DashboardController extends BaseController {
     // In a more advanced BaseController we could add silent load support.
     await runBusy<void>(() async {
       await AppServices.instance.init();
-      
+
       _subsService = AppServices.instance.adminSubscriptionsService;
       _paymentsService = AppServices.instance.adminPaymentsService;
       _planService = AppServices.instance.planService;
@@ -237,11 +252,15 @@ class DashboardController extends BaseController {
 
       // Map patterns for O(1) lookups
       final pMap = <String, Plan>{};
-      for (final p in plans) { pMap[p.id] = p; }
+      for (final p in plans) {
+        pMap[p.id] = p;
+      }
       _planById = pMap;
 
       final aMap = <String, Academy>{};
-      for (final a in _academies) { aMap[a.id] = a; }
+      for (final a in _academies) {
+        aMap[a.id] = a;
+      }
       _academyById = aMap;
 
       errorMessage = null;
@@ -269,4 +288,3 @@ String _fmtInt(int v) {
   }
   return buf.toString();
 }
-

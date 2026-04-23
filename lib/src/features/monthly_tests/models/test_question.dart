@@ -4,6 +4,7 @@ class TestQuestion {
   const TestQuestion({
     required this.id,
     required this.testId,
+    required this.subjectId,
     required this.questionText,
     required this.optionA,
     required this.optionB,
@@ -17,6 +18,7 @@ class TestQuestion {
 
   final String id;
   final String testId;
+  final String subjectId;
   final String questionText;
   final String optionA;
   final String optionB;
@@ -30,6 +32,7 @@ class TestQuestion {
   TestQuestion copyWith({
     String? id,
     String? testId,
+    String? subjectId,
     String? questionText,
     String? optionA,
     String? optionB,
@@ -43,6 +46,7 @@ class TestQuestion {
     return TestQuestion(
       id: id ?? this.id,
       testId: testId ?? this.testId,
+      subjectId: subjectId ?? this.subjectId,
       questionText: questionText ?? this.questionText,
       optionA: optionA ?? this.optionA,
       optionB: optionB ?? this.optionB,
@@ -58,6 +62,7 @@ class TestQuestion {
   Map<String, dynamic> toMap() {
     return {
       'testId': testId,
+      'subjectId': subjectId,
       'questionText': questionText.trim(),
       'optionA': optionA.trim(),
       'optionB': optionB.trim(),
@@ -74,6 +79,7 @@ class TestQuestion {
     return TestQuestion(
       id: id,
       testId: map['testId'] ?? '',
+      subjectId: (map['subjectId'] as String?)?.isNotEmpty == true ? map['subjectId'] : 'legacy',
       questionText: map['questionText'] ?? '',
       optionA: map['optionA'] ?? '',
       optionB: map['optionB'] ?? '',

@@ -177,7 +177,7 @@ class _TestResultsViewState extends State<TestResultsView> {
                         ),
                         child: ClipRRect(
                           borderRadius: AppRadii.r16,
-                          child: _ResultsTable(results: results),
+                          child: _ResultsTable(results: results, test: widget.test),
                         ),
                       ),
                     ),
@@ -290,8 +290,9 @@ class _StatItem extends StatelessWidget {
 }
 
 class _ResultsTable extends StatelessWidget {
-  const _ResultsTable({required this.results});
+  const _ResultsTable({required this.results, required this.test});
   final List<TestResult> results;
+  final MonthlyTest test;
 
   @override
   Widget build(BuildContext context) {
@@ -432,9 +433,25 @@ class _ResultsTable extends StatelessWidget {
                     Expanded(flex: 2, child: Text(r.studentRollNo)),
                     Expanded(
                       flex: 2,
-                      child: Text(
-                        '${r.obtainedMarks.toInt()} / ${r.totalMarks.toInt()}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${r.obtainedMarks.toInt()} / ${r.totalMarks.toInt()}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (r.subjectObtained.isNotEmpty)
+                            Text(
+                              r.subjectObtained.entries.map((e) {
+                                final sub = test.subjects.firstWhere((s) => s.id == e.key, orElse: () => test.subjects.first);
+                                return '${sub.name}: ${e.value.toInt()}';
+                              }).join(', '),
+                              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
                       ),
                     ),
                     Expanded(

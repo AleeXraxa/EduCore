@@ -121,6 +121,16 @@ class MonthlyTestController extends BaseController {
     })) ?? false;
   }
 
+  Future<bool> deleteQuestions(List<TestQuestion> questions) async {
+    if (questions.isEmpty) return true;
+    return (await runBusy(() async {
+      for (var q in questions) {
+        await _testService.deleteQuestion(_academyId, q);
+      }
+      return true;
+    })) ?? false;
+  }
+
   Future<bool> importQuestions(List<TestQuestion> questions) async {
     if (selectedTest == null) return false;
     return (await runBusy(() async {
@@ -147,19 +157,31 @@ class MonthlyTestController extends BaseController {
       currentStudentsForMarks = snap.docs.map((doc) => Student.fromMap(doc.id, doc.data())).toList();
 
       // 2. Fetch existing marks
-      currentMarks = await _testService.getMarks(_academyId, test.id);
+      final allMarks = await _testService.getMarks(_academyId, test.id);
+      
+      // De-duplicate by studentId just in case
+      final Map<String, TestMarks> uniqueMarks = {};
+      for(var m in allMarks) {
+        uniqueMarks[m.studentId] = m;
+      }
+      currentMarks = uniqueMarks.values.toList();
       
       // Auto-generate missing
       List<TestMarks> missingMarks = [];
       for(var stu in currentStudentsForMarks) {
         if (!currentMarks.any((m) => m.studentId == stu.id)) {
+           final Map<String, double> subMarks = {};
+           for(var sub in test.subjects) {
+             subMarks[sub.id] = 0.0;
+           }
+
            missingMarks.add(TestMarks(
              id: '',
              testId: test.id,
              studentId: stu.id,
              studentRollNo: stu.rollNo ?? '',
              studentName: stu.name,
-             obtainedMarks: 0,
+             subjectMarks: subMarks,
              status: 'Absent',
              createdAt: DateTime.now(),
              updatedAt: DateTime.now(),

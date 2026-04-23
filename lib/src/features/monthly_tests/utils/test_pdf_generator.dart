@@ -29,8 +29,33 @@ class TestPdfGenerator {
           ),
           pw.SizedBox(height: 20),
           pw.Divider(thickness: 0.5, color: PdfColors.grey400),
-          pw.SizedBox(height: 20),
-          ...questions.asMap().entries.map((entry) => _buildQuestion(entry.key + 1, entry.value)),
+          
+          if (test.subjects.length > 1) ...[
+             ...test.subjects.expand((sub) {
+                final subQs = questions.where((q) => q.subjectId == sub.id).toList();
+                if (subQs.isEmpty) return [];
+                return [
+                  pw.SizedBox(height: 20),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Section: ${sub.name}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                        pw.Text('Marks: ${sub.totalMarks.toInt()}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 16),
+                  ...subQs.asMap().entries.map((entry) => _buildQuestion(entry.key + 1, entry.value)),
+                ];
+             }),
+          ] else ...[
+             pw.SizedBox(height: 20),
+             ...questions.asMap().entries.map((entry) => _buildQuestion(entry.key + 1, entry.value)),
+          ],
+
           pw.SizedBox(height: 40),
           pw.Divider(thickness: 0.5, color: PdfColors.grey400),
           pw.Align(
@@ -49,12 +74,12 @@ class TestPdfGenerator {
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(40),
+        pageFormat: PdfPageFormat.a4.landscape, // Switch to landscape for multiple subjects
+        margin: const pw.EdgeInsets.all(32),
         build: (context) => [
           _buildHeader(test, 'CONSOLIDATED RESULT SHEET'),
           pw.SizedBox(height: 24),
-          _buildResultsTable(results),
+          _buildResultsTable(test, results),
           pw.SizedBox(height: 40),
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -71,6 +96,9 @@ class TestPdfGenerator {
   }
 
   static pw.Widget _buildHeader(MonthlyTest test, String title) {
+    final isMultiSubject = test.subjects.length > 1;
+    final subjectDisplay = isMultiSubject ? 'Multiple (${test.subjects.length})' : test.subject;
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
@@ -94,7 +122,7 @@ class TestPdfGenerator {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 _headerInfo('Test', test.title),
-                _headerInfo('Subject', test.subject),
+                _headerInfo('Subject', subjectDisplay),
                 _headerInfo('Class', test.className ?? 'N/A'),
               ],
             ),
@@ -163,31 +191,52 @@ class TestPdfGenerator {
     );
   }
 
-  static pw.Widget _buildResultsTable(List<TestResult> results) {
+  static pw.Widget _buildResultsTable(MonthlyTest test, List<TestResult> results) {
+    final hasMultipleSubjects = test.subjects.length > 1;
+    
+    final List<String> headers = ['Rank', 'Student Name', 'Roll No'];
+    if (hasMultipleSubjects) {
+      for (var sub in test.subjects) {
+        headers.add(sub.name);
+      }
+    }
+    headers.addAll(['Total', 'Perc (%)', 'Grade', 'Status']);
+
     return pw.TableHelper.fromTextArray(
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
       headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
-      cellHeight: 24,
-      cellStyle: const pw.TextStyle(fontSize: 9),
+      cellHeight: 22,
+      cellStyle: const pw.TextStyle(fontSize: 8),
       cellAlignments: {
         0: pw.Alignment.center,
         1: pw.Alignment.centerLeft,
         2: pw.Alignment.center,
-        3: pw.Alignment.center,
-        4: pw.Alignment.center,
-        5: pw.Alignment.center,
-        6: pw.Alignment.center,
+        for (int i = 3; i < headers.length; i++) i: pw.Alignment.center,
       },
-      headers: ['Rank', 'Student Name', 'Roll No', 'Marks', 'Perc (%)', 'Grade', 'Status'],
-      data: results.map((r) => [
-        '${r.rank}',
-        r.studentName,
-        r.studentRollNo,
-        '${r.obtainedMarks.toInt()}',
-        '${r.percentage.toStringAsFixed(1)}%',
-        r.grade,
-        r.status,
-      ]).toList(),
+      headers: headers,
+      data: results.map((r) {
+        final List<String> row = [
+          '${r.rank}',
+          r.studentName,
+          r.studentRollNo,
+        ];
+        
+        if (hasMultipleSubjects) {
+          for (var sub in test.subjects) {
+            final marks = r.subjectObtained[sub.id] ?? 0;
+            row.add('${marks.toInt()}');
+          }
+        }
+        
+        row.addAll([
+          '${r.obtainedMarks.toInt()}',
+          '${r.percentage.toStringAsFixed(1)}%',
+          r.grade,
+          r.status,
+        ]);
+        
+        return row;
+      }).toList(),
     );
   }
 

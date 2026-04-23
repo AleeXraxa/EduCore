@@ -9,6 +9,7 @@ class TestResult {
     required this.studentRollNo,
     required this.totalMarks,
     required this.obtainedMarks,
+    required this.subjectObtained, // Map<subjectId, obtainedMarks>
     required this.percentage,
     required this.grade,
     required this.status, // 'Pass', 'Fail'
@@ -24,6 +25,7 @@ class TestResult {
   final String studentRollNo;
   final double totalMarks;
   final double obtainedMarks;
+  final Map<String, double> subjectObtained;
   final double percentage;
   final String grade;
   final String status;
@@ -39,6 +41,7 @@ class TestResult {
     String? studentRollNo,
     double? totalMarks,
     double? obtainedMarks,
+    Map<String, double>? subjectObtained,
     double? percentage,
     String? grade,
     String? status,
@@ -54,6 +57,7 @@ class TestResult {
       studentRollNo: studentRollNo ?? this.studentRollNo,
       totalMarks: totalMarks ?? this.totalMarks,
       obtainedMarks: obtainedMarks ?? this.obtainedMarks,
+      subjectObtained: subjectObtained ?? this.subjectObtained,
       percentage: percentage ?? this.percentage,
       grade: grade ?? this.grade,
       status: status ?? this.status,
@@ -71,6 +75,7 @@ class TestResult {
       'studentRollNo': studentRollNo,
       'totalMarks': totalMarks,
       'obtainedMarks': obtainedMarks,
+      'subjectObtained': subjectObtained,
       'percentage': percentage,
       'grade': grade,
       'status': status,
@@ -89,6 +94,9 @@ class TestResult {
       studentRollNo: map['studentRollNo'] ?? '',
       totalMarks: (map['totalMarks'] as num?)?.toDouble() ?? 0.0,
       obtainedMarks: (map['obtainedMarks'] as num?)?.toDouble() ?? 0.0,
+      subjectObtained: (map['subjectObtained'] as Map? ?? {}).map(
+        (key, value) => MapEntry(key.toString(), (value as num?)?.toDouble() ?? 0.0),
+      ),
       percentage: (map['percentage'] as num?)?.toDouble() ?? 0.0,
       grade: map['grade'] ?? 'F',
       status: map['status'] ?? 'Fail',

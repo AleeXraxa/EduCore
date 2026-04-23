@@ -10,7 +10,11 @@ import 'package:educore/src/features/monthly_tests/models/monthly_test.dart';
 import 'package:educore/src/features/monthly_tests/models/test_marks.dart';
 
 class MarksEntryView extends StatefulWidget {
-  const MarksEntryView({super.key, required this.test, required this.controller});
+  const MarksEntryView({
+    super.key,
+    required this.test,
+    required this.controller,
+  });
   final MonthlyTest test;
   final MonthlyTestController controller;
 
@@ -19,58 +23,121 @@ class MarksEntryView extends StatefulWidget {
 }
 
 class _MarksEntryViewState extends State<MarksEntryView> {
-  final Map<String, TextEditingController> _markControllers = {};
+  // subjectId -> studentId -> controller
+  final Map<String, Map<String, TextEditingController>> _markControllers = {};
+  // subjectId -> studentId -> status
+  final Map<String, Map<String, String>> _statuses = {};
+
+  String? _selectedSubjectId;
 
   @override
   void initState() {
     super.initState();
+    if (widget.test.subjects.isNotEmpty) {
+      _selectedSubjectId = widget.test.subjects.first.id;
+    }
     _loadData();
   }
 
   Future<void> _loadData() async {
     await widget.controller.loadMarksEntry(widget.test);
-    for (var m in widget.controller.currentMarks) {
-      _markControllers[m.studentId] = TextEditingController(text: m.obtainedMarks.toString());
+
+    for (var sub in widget.test.subjects) {
+      _markControllers[sub.id] = {};
+      _statuses[sub.id] = {};
+
+      for (var m in widget.controller.currentMarks) {
+        final existingSubMark = m.subjectMarks[sub.id];
+
+        _markControllers[sub.id]![m.studentId] = TextEditingController(
+          text: existingSubMark?.toString() ?? '0',
+        );
+        _statuses[sub.id]![m.studentId] = m.status == 'Absent'
+            ? 'Absent'
+            : 'Present';
+      }
     }
+
     if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    for (var c in _markControllers.values) {
-      c.dispose();
+    for (var subMap in _markControllers.values) {
+      for (var c in subMap.values) {
+        c.dispose();
+      }
     }
     super.dispose();
   }
 
   Future<void> _save() async {
     final List<TestMarks> updatedMarks = [];
-    
-    for (var m in widget.controller.currentMarks) {
-      final text = _markControllers[m.studentId]?.text ?? '0';
-      final val = double.tryParse(text) ?? 0.0;
-      
-      if (val > widget.test.totalMarks) {
-        AppDialogs.showError(context, title: 'Invalid Marks', message: '${m.studentName} has marks greater than total marks (${widget.test.totalMarks}).');
-        return;
+
+    for (var studentMark in widget.controller.currentMarks) {
+      final Map<String, double> updatedSubMarks = Map.from(
+        studentMark.subjectMarks,
+      );
+      double totalObtained = 0.0;
+      bool allAbsent = true;
+
+      for (var sub in widget.test.subjects) {
+        final status = _statuses[sub.id]?[studentMark.studentId] ?? 'Present';
+        final text =
+            _markControllers[sub.id]?[studentMark.studentId]?.text ?? '0';
+        final val = double.tryParse(text) ?? 0.0;
+
+        if (status != 'Absent') {
+          allAbsent = false;
+          totalObtained += val;
+        }
+
+        if (val > sub.totalMarks) {
+          AppDialogs.showError(
+            context,
+            title: 'Invalid Marks',
+            message:
+                '${studentMark.studentName} has ${sub.name} marks greater than max (${sub.totalMarks}).',
+          );
+          return;
+        }
+
+        updatedSubMarks[sub.id] = val;
       }
 
-      updatedMarks.add(m.copyWith(
-        obtainedMarks: val,
-        status: val >= widget.test.passingMarks ? 'Pass' : 'Fail',
-      ));
+      final overallPassMin = widget.test.subjects.fold(
+        0.0,
+        (s, e) => s + e.passingMarks,
+      );
+
+      updatedMarks.add(
+        studentMark.copyWith(
+          subjectMarks: updatedSubMarks,
+          status: allAbsent
+              ? 'Absent'
+              : (totalObtained >= overallPassMin ? 'Pass' : 'Fail'),
+        ),
+      );
     }
 
     AppDialogs.showLoading(context, message: 'Saving Marks...');
     final success = await widget.controller.saveMarks(updatedMarks);
-    
+
     if (!mounted) return;
     AppDialogs.hide(context);
 
     if (success) {
-      AppDialogs.showInfo(context, title: 'Success', message: 'Marks saved successfully.');
+      AppDialogs.showInfo(
+        context,
+        title: 'Success',
+        message: 'Marks saved successfully.',
+      );
     } else {
-      AppDialogs.showError(context, title: 'Error', message: widget.controller.error ?? 'Failed to save marks.');
+      AppDialogs.showError(
+        context,
+        title: 'Error',
+        message: widget.controller.error ?? 'Failed to save marks.',
+      );
     }
   }
 
@@ -90,9 +157,20 @@ class _MarksEntryViewState extends State<MarksEntryView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Enter Marks', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    'Enter Marks',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('${widget.test.title} - ${widget.test.subject}', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                  Text(
+                    '${widget.test.title} - ${widget.test.subject}',
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               const Spacer(),
@@ -109,7 +187,7 @@ class _MarksEntryViewState extends State<MarksEntryView> {
             ],
           ),
           const SizedBox(height: 32),
-          
+
           // Stats Row
           Container(
             padding: const EdgeInsets.all(20),
@@ -120,30 +198,124 @@ class _MarksEntryViewState extends State<MarksEntryView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _InfoItem(label: 'Total Marks', value: '${widget.test.totalMarks.toInt()}'),
-                _InfoItem(label: 'Passing Marks', value: '${widget.test.passingMarks.toInt()}'),
-                _InfoItem(label: 'Total Students', value: '${widget.controller.currentMarks.length}'),
+                _InfoItem(
+                  label: 'Assessment Total',
+                  value:
+                      '${widget.test.subjects.fold(0.0, (s, e) => s + e.totalMarks).toInt()}',
+                ),
+                _InfoItem(
+                  label: 'Min Passing',
+                  value:
+                      '${widget.test.subjects.fold(0.0, (s, e) => s + e.passingMarks).toInt()}',
+                ),
+                _InfoItem(
+                  label: 'Total Students',
+                  value: '${widget.controller.currentMarks.length}',
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
+
+          // Subject Selection
+          if (widget.test.subjects.length > 1) ...[
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: widget.test.subjects.map((sub) {
+                  final isSelected = _selectedSubjectId == sub.id;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: ChoiceChip(
+                      label: Text(
+                        sub.name,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.w900
+                              : FontWeight.bold,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        if (val) setState(() => _selectedSubjectId = sub.id);
+                      },
+                      selectedColor: cs.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : cs.onSurfaceVariant,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                      showCheckmark: false,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Table Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
             ),
             child: Row(
               children: [
-                Expanded(flex: 2, child: Text('ROLL NO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: cs.primary))),
-                Expanded(flex: 5, child: Text('STUDENT NAME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: cs.primary))),
-                Expanded(flex: 3, child: Text('OBTAINED MARKS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: cs.primary))),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'ROLL NO',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    'STUDENT NAME',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'STATUS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'OBTAINED MARKS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          
+
           // Marks List
           Expanded(
             child: ControllerBuilder<MonthlyTestController>(
@@ -154,22 +326,56 @@ class _MarksEntryViewState extends State<MarksEntryView> {
                 }
 
                 final marks = controller.currentMarks;
+                final subId = _selectedSubjectId;
+                if (subId == null || _markControllers.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final currentSub = widget.test.subjects.firstWhere(
+                  (s) => s.id == subId,
+                  orElse: () => widget.test.subjects.first,
+                );
 
                 return Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    border: Border.all(
+                      color: cs.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
                   ),
                   child: ListView.separated(
                     padding: EdgeInsets.zero,
                     itemCount: marks.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, thickness: 0.5),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, thickness: 0.5),
                     itemBuilder: (context, index) {
                       final m = marks[index];
+                      final controllers = _markControllers[subId];
+                      final studentController = controllers?[m.studentId];
+                      final studentStatus = _statuses[subId]?[m.studentId];
+
+                      if (studentController == null || studentStatus == null) {
+                        return const SizedBox(
+                          height: 60,
+                          child: Center(child: LinearProgressIndicator()),
+                        );
+                      }
+
                       return _MarksRow(
                         mark: m,
-                        controller: _markControllers[m.studentId]!,
-                        totalMarks: widget.test.totalMarks,
+                        controller: studentController,
+                        status: studentStatus,
+                        onStatusChanged: (val) {
+                          setState(() {
+                            _statuses[subId]![m.studentId] = val;
+                            if (val == 'Absent') {
+                              _markControllers[subId]?[m.studentId]?.text = '0';
+                            }
+                          });
+                        },
+                        totalMarks: currentSub.totalMarks,
                       );
                     },
                   ),
@@ -194,22 +400,42 @@ class _InfoItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+        ),
       ],
     );
   }
 }
 
 class _MarksRow extends StatelessWidget {
-  const _MarksRow({required this.mark, required this.controller, required this.totalMarks});
+  const _MarksRow({
+    required this.mark,
+    required this.controller,
+    required this.totalMarks,
+    required this.status,
+    required this.onStatusChanged,
+  });
+
   final TestMarks mark;
   final TextEditingController controller;
   final double totalMarks;
+  final String status;
+  final ValueChanged<String> onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isAbsent = status == 'Absent';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -217,11 +443,42 @@ class _MarksRow extends StatelessWidget {
         children: [
           Expanded(
             flex: 2,
-            child: Text(mark.studentRollNo, style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold)),
+            child: Text(
+              mark.studentRollNo,
+              style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(
-            flex: 5,
-            child: Text(mark.studentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            flex: 4,
+            child: Text(
+              mark.studentName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                FilterChip(
+                  label: Text(
+                    isAbsent ? 'Absent' : 'Present',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  selected: isAbsent,
+                  onSelected: (val) =>
+                      onStatusChanged(val ? 'Absent' : 'Present'),
+                  selectedColor: cs.errorContainer,
+                  labelStyle: TextStyle(
+                    color: isAbsent ? cs.error : cs.onSurfaceVariant,
+                  ),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
           ),
           Expanded(
             flex: 3,
@@ -231,20 +488,40 @@ class _MarksRow extends StatelessWidget {
                   width: 100,
                   child: TextField(
                     controller: controller,
+                    enabled: !isAbsent,
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: isAbsent ? cs.outline : cs.onSurface,
+                    ),
                     decoration: InputDecoration(
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       filled: true,
-                      fillColor: cs.surfaceContainerLow,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.primary)),
+                      fillColor: isAbsent
+                          ? cs.surfaceContainerHighest
+                          : cs.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: cs.primary),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('/ ${totalMarks.toInt()}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(
+                  '/ ${totalMarks.toInt()}',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),

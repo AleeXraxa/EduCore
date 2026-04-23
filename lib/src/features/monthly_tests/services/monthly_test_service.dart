@@ -185,12 +185,11 @@ class MonthlyTestService {
     
     final batch = _firestore.batch();
     for (var mark in marks) {
-      if (mark.id.isEmpty) {
-        final docRef = _marksCol(academyId).doc();
-        batch.set(docRef, mark.copyWith(id: docRef.id).toMap());
-      } else {
-        batch.update(_marksCol(academyId).doc(mark.id), mark.toMap());
-      }
+      // Use deterministic ID to prevent duplicates (testId_studentId)
+      final docId = '${testId}_${mark.studentId}';
+      final docRef = _marksCol(academyId).doc(docId);
+      
+      batch.set(docRef, mark.copyWith(id: docId).toMap());
     }
     
     await batch.commit();
@@ -221,7 +220,14 @@ class MonthlyTestService {
 
     // 2. Fetch Marks
     final marksSnap = await _marksCol(academyId).where('testId', isEqualTo: testId).get();
-    final allMarks = marksSnap.docs.map((doc) => TestMarks.fromMap(doc.id, doc.data())).toList();
+    final rawMarks = marksSnap.docs.map((doc) => TestMarks.fromMap(doc.id, doc.data())).toList();
+
+    // De-duplicate by studentId
+    final Map<String, TestMarks> uniqueMarks = {};
+    for (var m in rawMarks) {
+      uniqueMarks[m.studentId] = m;
+    }
+    final allMarks = uniqueMarks.values.toList();
 
     if (allMarks.isEmpty) throw Exception('No marks entered for this test.');
 
@@ -241,6 +247,7 @@ class MonthlyTestService {
         studentName: mark.studentName,
         totalMarks: test.totalMarks,
         obtainedMarks: mark.obtainedMarks,
+        subjectObtained: mark.subjectMarks, // NEW: Copy subject-wise marks
         percentage: percentage,
         grade: grade,
         status: status,
