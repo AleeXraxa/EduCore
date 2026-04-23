@@ -28,6 +28,7 @@ import 'package:educore/src/core/services/fee_generation_lock_service.dart';
 import 'package:educore/src/core/services/fee_document_service.dart';
 
 import 'package:educore/src/features/students/services/student_service.dart';
+import 'package:educore/src/features/exams/services/exam_service.dart';
 
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
@@ -71,6 +72,7 @@ class AppServices {
   FeeGenerationLockService? feeGenerationLockService;
   FeeDocumentService? feeDocumentService;
   AuditLogService? auditLogService;
+  ExamService? examService;
   
   // Repositories
   UserRepository? userRepository;
@@ -215,6 +217,11 @@ class AppServices {
         subscriptionService: subscriptionService!,
         feeService: feeService!,
         feePlanService: feePlanService!,
+      );
+
+      examService = ExamService(
+        firestore: firestore!,
+        auditLogService: auditLogService!,
       );
 
       // Initialize Repositories

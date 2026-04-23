@@ -114,8 +114,8 @@ class BankChallanPdfGenerator {
 
   static Future<Uint8List> generateBytes(BankChallanData data) async {
     final doc = pw.Document();
-    final font = await PdfGoogleFonts.interRegular();
-    final fontBold = await PdfGoogleFonts.interBold();
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
 
     doc.addPage(
       pw.Page(
@@ -163,7 +163,9 @@ class BankChallanPdfGenerator {
             ),
             child: pw.Center(
               child: pw.Text(
-                data.academyName.substring(0, 1).toUpperCase(),
+                data.academyName.isNotEmpty
+                    ? data.academyName[0].toUpperCase()
+                    : '?',
                 style: pw.TextStyle(font: fontBold, fontSize: 18),
               ),
             ),

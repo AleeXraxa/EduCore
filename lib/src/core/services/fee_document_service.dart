@@ -45,25 +45,43 @@ class FeeDocumentService {
   Future<String> _generateNumber(
     String academyId, {
     required String type, // 'challan' | 'receipt'
+    Transaction? existingTransaction,
   }) async {
     final prefix = type == 'challan' ? 'CH' : 'RC';
     final year = DateTime.now().year.toString();
     final counterField = '${type}_${year}_count';
-
-    // Atomic increment using batch (Windows-stable)
     final ref = _counters(academyId);
-    final snap = await ref.get();
 
-    int current = 0;
-    if (snap.exists) {
-      current = (snap.data()?[counterField] ?? 0) as int;
+    if (existingTransaction != null) {
+      final snap = await existingTransaction.get(ref);
+      int current = 0;
+      if (snap.exists) {
+        current = (snap.data()?[counterField] ?? 0) as int;
+      }
+      final next = current + 1;
+      existingTransaction.set(
+        ref,
+        {counterField: next},
+        SetOptions(merge: true),
+      );
+      final padded = next.toString().padLeft(4, '0');
+      return '$prefix-$year-$padded';
+    } else {
+      // Fallback for Windows or non-transactional generation
+      // We use a simple get-and-set approach which is safer on the Windows C++ SDK
+      final snap = await ref.get();
+      int current = 0;
+      if (snap.exists) {
+        current = (snap.data()?[counterField] ?? 0) as int;
+      }
+      final next = current + 1;
+      await ref.set(
+        {counterField: next},
+        SetOptions(merge: true),
+      );
+      final padded = next.toString().padLeft(4, '0');
+      return '$prefix-$year-$padded';
     }
-    final next = current + 1;
-
-    await ref.set({counterField: next}, SetOptions(merge: true));
-
-    final padded = next.toString().padLeft(4, '0');
-    return '$prefix-$year-$padded';
   }
 
   // ── Academy Settings ───────────────────────────────────────────────────────
@@ -104,19 +122,25 @@ class FeeDocumentService {
     String feeId, {
     required String actorId,
   }) async {
-    // Prefer existing number if already assigned (idempotent)
-    final feeSnap = await _fees(academyId).doc(feeId).get();
+    final feeRef = _fees(academyId).doc(feeId);
+
+    // Sequential flow instead of Transaction for Windows stability
+    final feeSnap = await feeRef.get();
     if (!feeSnap.exists) throw Exception('Fee not found: $feeId');
 
     final feeData = feeSnap.data()!;
     final existing = feeData['challanNumber'] as String?;
 
-    final challanNumber =
-        existing ?? await _generateNumber(academyId, type: 'challan');
+    if (existing != null) return existing;
 
-    await _fees(academyId).doc(feeId).update({
+    final challanNumber = await _generateNumber(
+      academyId,
+      type: 'challan',
+    );
+
+    await feeRef.update({
       'challanNumber': challanNumber,
-      'lastGeneratedAt': FieldValue.serverTimestamp(),
+      'lastGeneratedAt': DateTime.now(),
       'documentModeUsed': 'challan',
     });
 
@@ -146,13 +170,13 @@ class FeeDocumentService {
     required String transactionId,
     required String actorId,
   }) async {
-    final feeSnap = await _fees(academyId).doc(feeId).get();
-    if (!feeSnap.exists) throw Exception('Fee not found: $feeId');
+    debugPrint('FeeDocumentService: generateReceipt starting for fee $feeId, txn $transactionId');
+    final feeRef = _fees(academyId).doc(feeId);
+    final txnRef = feeRef.collection('transactions').doc(transactionId);
 
-    final txnRef = _fees(academyId)
-        .doc(feeId)
-        .collection('transactions')
-        .doc(transactionId);
+    // Sequential flow instead of Transaction for Windows stability
+    final feeSnap = await feeRef.get();
+    if (!feeSnap.exists) throw Exception('Fee not found: $feeId');
 
     final txnSnap = await txnRef.get();
     if (!txnSnap.exists) throw Exception('Transaction not found: $transactionId');
@@ -162,24 +186,23 @@ class FeeDocumentService {
       throw Exception('Cannot generate receipt: No payment amount recorded.');
     }
 
-    // Use existing receipt number if already assigned to this transaction
     final existingTxnReceipt = txnData['receiptNumber'] as String?;
-    final receiptNumber =
-        existingTxnReceipt ?? await _generateNumber(academyId, type: 'receipt');
+    if (existingTxnReceipt != null) {
+      return existingTxnReceipt;
+    }
 
-    final batch = _firestore.batch();
+    final receiptNumber = await _generateNumber(
+      academyId,
+      type: 'receipt',
+    );
 
-    // Update transaction with receipt number
-    batch.update(txnRef, {'receiptNumber': receiptNumber});
-
-    // Update fee with latest receipt metadata
-    batch.update(_fees(academyId).doc(feeId), {
+    // Update records sequentially
+    await txnRef.update({'receiptNumber': receiptNumber});
+    await feeRef.update({
       'receiptNumber': receiptNumber,
-      'lastGeneratedAt': FieldValue.serverTimestamp(),
+      'lastGeneratedAt': DateTime.now(),
       'documentModeUsed': 'receipt',
     });
-
-    await batch.commit();
 
     await _audit.logAction(
       action: 'receipt_generated',
@@ -271,7 +294,6 @@ class FeeDocumentService {
         .doc(fee.studentId)
         .get();
     if (!studentSnap.exists) throw Exception('Student not found');
-    final student = Student.fromMap(studentSnap.id, studentSnap.data()!);
 
     // 3. Fetch Academy & Bank Info
     final academyInfo = await getAcademyInfo(academyId);
@@ -281,35 +303,32 @@ class FeeDocumentService {
         .collection('settings')
         .doc('bank_info')
         .get();
+
+    // 4. Student
+    final studentData = studentSnap.data() as Map<String, dynamic>;
+    final student = Student.fromMap(studentSnap.id, studentData);
+
+    // 5. Bank Info
     final bankData = bankSnap.data() ?? {};
 
-    // 4. Calculate Fine logic
-    final dueDate = fee.dueDate ?? DateTime.now().add(const Duration(days: 7));
+    // 6. Fine & Date Logic
     final finePerDay = (bankData['finePerDay'] ?? 50.0).toDouble();
-    double totalFine = 0.0;
-    
-    if (DateTime.now().isAfter(dueDate)) {
-      final daysLate = DateTime.now().difference(dueDate).inDays;
-      if (daysLate > 0) {
-        totalFine = (daysLate * finePerDay).toDouble();
-      }
-    }
+    final dueDate = fee.dueDate ?? DateTime.now().add(const Duration(days: 10));
+    const totalFine = 0.0; // Typically 0 for a new challan
 
-    // 5. Construct Breakdown
-    // In a real system, we'd split the fee into components. 
-    // Here we use the title and balance.
+    // 7. Fee Breakdown (Simple for now: one line for the fee title)
     final breakdown = {
-      fee.title: fee.finalAmount,
+      fee.title.isNotEmpty ? fee.title : 'Monthly Fee': fee.finalAmount,
     };
 
     return BankChallanData(
-      challanNumber: fee.challanNumber ?? 'PENDING',
+      challanNumber: fee.challanNumber ?? '---',
       studentName: student.name,
       fatherName: student.fatherName,
-      rollNo: (student.customFields['rollNo'] ?? 'N/A').toString(),
+      rollNo: (student.rollNo ?? student.customFields['rollNo'] ?? 'N/A').toString(),
       grNo: (student.customFields['grNo'] ?? 'N/A').toString(),
-      className: fee.className ?? 'N/A',
-      section: (student.customFields['section'] ?? 'A').toString(),
+      className: student.className.isNotEmpty ? student.className : (fee.className ?? 'N/A'),
+      section: (student.customFields['section'] ?? 'N/A').toString(),
       academyName: academyInfo['name']!,
       academyAddress: academyInfo['address']!,
       academyPhone: academyInfo['phone']!,

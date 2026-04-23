@@ -9,6 +9,7 @@ import 'package:educore/src/features/fees/services/bank_challan_generator.dart';
 import 'package:educore/src/features/fees/models/document_settings.dart';
 import 'package:educore/src/features/fees/views/fee_document_preview_page.dart';
 import 'package:educore/src/core/ui/widgets/app_toasts.dart';
+import 'package:pdf/pdf.dart' as pdf;
 import 'package:educore/src/app/theme/app_tokens.dart';
 
 /// Dialog that handles the full challan/receipt generation + print/share flow.
@@ -44,8 +45,8 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
     if (widget.mode == 'challan') {
       _documentNumber = widget.fee.challanNumber;
     } else {
-      _documentNumber = widget.selectedTransaction?.receiptNumber ??
-          widget.fee.receiptNumber;
+      _documentNumber =
+          widget.selectedTransaction?.receiptNumber ?? widget.fee.receiptNumber;
     }
     // Auto-generate if not yet assigned
     if (_documentNumber == null) {
@@ -58,6 +59,7 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
   }
 
   Future<void> _generate() async {
+    debugPrint('FeeDocumentDialog: _generate() started');
     setState(() {
       _isGenerating = true;
       _error = null;
@@ -65,23 +67,35 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
     try {
       final academyId = FeeDocumentService.currentAcademyId;
       final actorId = FeeDocumentService.currentUserId;
+      debugPrint('FeeDocumentDialog: academyId: $academyId, actorId: $actorId');
 
       if (widget.mode == 'challan') {
+        debugPrint('FeeDocumentDialog: Generating challan...');
         _documentNumber = await _docService.generateChallan(
           academyId,
           widget.fee.id,
           actorId: actorId,
         );
       } else {
-        final txn = widget.selectedTransaction ??
+        debugPrint(
+          'FeeDocumentDialog: Generating receipt. Finding transaction...',
+        );
+        final txn =
+            widget.selectedTransaction ??
             await _docService.getLatestTransaction(academyId, widget.fee.id);
+
         if (txn == null) {
+          debugPrint('FeeDocumentDialog: No transaction found');
           setState(() {
             _error = 'No payment found. Collect a payment first.';
             _isGenerating = false;
           });
           return;
         }
+
+        debugPrint(
+          'FeeDocumentDialog: Found transaction ${txn.id}. Generating receipt number...',
+        );
         _documentNumber = await _docService.generateReceipt(
           academyId,
           widget.fee.id,
@@ -89,30 +103,53 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
           actorId: actorId,
         );
       }
-    } catch (e) {
+      debugPrint(
+        'FeeDocumentDialog: Generation successful. Number: $_documentNumber',
+      );
+    } catch (e, stack) {
+      debugPrint('FeeDocumentDialog: ERROR during generation: $e');
+      debugPrint(stack.toString());
       setState(() => _error = e.toString());
     } finally {
-      if (mounted) setState(() => _isGenerating = false);
+      if (mounted) {
+        debugPrint('FeeDocumentDialog: _generate() finished');
+        setState(() => _isGenerating = false);
+      }
     }
   }
 
   Future<FeeDocumentData?> _buildDocData([DocumentSettings? settings]) async {
     try {
       final academyId = FeeDocumentService.currentAcademyId;
-      final docSettings = settings ?? await _docService.getDocumentSettings(academyId);
-      final [info, txns, studentSnap] = await Future.wait([
-        _docService.getAcademyInfo(academyId),
-        _docService.getAllTransactions(academyId, widget.fee.id),
-        _firestore.collection('students').doc(widget.fee.studentId).get(),
-      ]);
-      
-      final studentData = (studentSnap as DocumentSnapshot).data() as Map<String, dynamic>?;
+      final docSettings =
+          settings ?? await _docService.getDocumentSettings(academyId);
+      // Sequential fetch to avoid threading issues on Windows C++ SDK
+      final info = await _docService.getAcademyInfo(academyId);
+      final txns = await _docService.getAllTransactions(
+        academyId,
+        widget.fee.id,
+      );
+      final studentSnap = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('students')
+          .doc(widget.fee.studentId)
+          .get();
+
+      final studentData = studentSnap.data() as Map<String, dynamic>?;
+      final studentName =
+          studentData?['name'] as String? ?? widget.fee.studentName ?? '';
       final fatherName = studentData?['fatherName'] as String? ?? '';
+      final className =
+          studentData?['className'] as String? ?? widget.fee.className ?? '';
 
       return FeeDocumentData(
-        fee: widget.fee,
-        transactions: txns as List<FeeTransaction>,
-        academyName: (info as Map<String, String>)['name']!,
+        fee: widget.fee.copyWith(
+          studentName: studentName,
+          className: className,
+        ),
+        transactions: txns,
+        academyName: info['name']!,
         academyAddress: info['address']!,
         academyPhone: info['phone']!,
         academyEmail: info['email']!,
@@ -124,7 +161,8 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
         settings: docSettings,
       );
     } catch (e) {
-      return null;
+      debugPrint('FeeDocumentDialog: Error building doc data: $e');
+      rethrow;
     }
   }
 
@@ -135,14 +173,19 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
       final settings = await _docService.getDocumentSettings(academyId);
 
       if (widget.mode == 'challan') {
-        final data = await _docService.getBankChallanData(academyId, widget.fee.id);
+        final data = await _docService.getBankChallanData(
+          academyId,
+          widget.fee.id,
+        );
         final dataWithSettings = data.copyWith(settings: settings);
         if (mounted) {
           await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (_) => FeeDocumentPreviewPage(
                 title: 'Bank Challan - ${data.challanNumber}',
-                buildPdf: (format) => BankChallanPdfGenerator.generateBytes(dataWithSettings),
+                initialFormat: pdf.PdfPageFormat.a4.landscape,
+                buildPdf: (format) =>
+                    BankChallanPdfGenerator.generateBytes(dataWithSettings),
               ),
             ),
           );
@@ -174,7 +217,10 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
       final settings = await _docService.getDocumentSettings(academyId);
 
       if (widget.mode == 'challan') {
-        final data = await _docService.getBankChallanData(academyId, widget.fee.id);
+        final data = await _docService.getBankChallanData(
+          academyId,
+          widget.fee.id,
+        );
         final dataWithSettings = data.copyWith(settings: settings);
         await BankChallanPdfGenerator.shareDocument(dataWithSettings);
       } else {
@@ -196,7 +242,7 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
       final academyId = FeeDocumentService.currentAcademyId;
       final settings = await _docService.getDocumentSettings(academyId);
       final data = await _buildDocData(settings);
-      
+
       if (data != null && mounted) {
         await Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
@@ -219,7 +265,9 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
     final cs = Theme.of(context).colorScheme;
     final isChallan = widget.mode == 'challan';
     final accentColor = isChallan ? Colors.orange : Colors.green;
-    final icon = isChallan ? Icons.receipt_long_rounded : Icons.task_alt_rounded;
+    final icon = isChallan
+        ? Icons.receipt_long_rounded
+        : Icons.task_alt_rounded;
     final title = isChallan ? 'Fee Challan' : 'Payment Receipt';
     final label = isChallan ? 'Challan No.' : 'Receipt No.';
 
@@ -254,13 +302,15 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
                           widget.fee.title,
-                          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -286,7 +336,11 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                       style: TextStyle(color: cs.onSurfaceVariant),
                     ),
                   ] else if (_error != null) ...[
-                    Icon(Icons.error_outline_rounded, color: cs.error, size: 48),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: cs.error,
+                      size: 48,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       _error!,
@@ -307,7 +361,9 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                       decoration: BoxDecoration(
                         color: accentColor.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -323,7 +379,8 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                           const SizedBox(height: 6),
                           Text(
                             _documentNumber ?? '---',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   color: accentColor,
                                   letterSpacing: 2,
@@ -331,7 +388,9 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now()),
+                            DateFormat(
+                              'dd MMM yyyy, hh:mm a',
+                            ).format(DateTime.now()),
                             style: TextStyle(
                               fontSize: 11,
                               color: cs.onSurfaceVariant,
@@ -343,8 +402,14 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                     const SizedBox(height: 20),
 
                     // Fee Summary
-                    _SummaryTile(label: 'Student', value: widget.fee.studentName ?? widget.fee.studentId),
-                    _SummaryTile(label: 'Class', value: widget.fee.className ?? widget.fee.classId),
+                    _SummaryTile(
+                      label: 'Student',
+                      value: widget.fee.studentName ?? widget.fee.studentId,
+                    ),
+                    _SummaryTile(
+                      label: 'Class',
+                      value: widget.fee.className ?? widget.fee.classId,
+                    ),
                     _SummaryTile(
                       label: 'Total Amount',
                       value: 'Rs. ${widget.fee.finalAmount.toStringAsFixed(0)}',
@@ -356,8 +421,11 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                     ),
                     _SummaryTile(
                       label: 'Balance Due',
-                      value: 'Rs. ${widget.fee.remainingAmount.toStringAsFixed(0)}',
-                      valueColor: widget.fee.remainingAmount > 0 ? cs.error : Colors.green,
+                      value:
+                          'Rs. ${widget.fee.remainingAmount.toStringAsFixed(0)}',
+                      valueColor: widget.fee.remainingAmount > 0
+                          ? cs.error
+                          : Colors.green,
                     ),
                     const SizedBox(height: 20),
 
@@ -422,7 +490,11 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
 }
 
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({required this.label, required this.value, this.valueColor});
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
   final String label;
   final String value;
   final Color? valueColor;

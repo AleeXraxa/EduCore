@@ -8,10 +8,12 @@ class FeeDocumentPreviewPage extends StatelessWidget {
     super.key,
     required this.title,
     required this.buildPdf,
+    this.initialFormat = PdfPageFormat.a4,
   });
 
   final String title;
   final Future<Uint8List> Function(PdfPageFormat format) buildPdf;
+  final PdfPageFormat initialFormat;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +23,7 @@ class FeeDocumentPreviewPage extends StatelessWidget {
       ),
       body: PdfPreview(
         build: buildPdf,
+        initialPageFormat: initialFormat,
         allowPrinting: true,
         allowSharing: true,
         canChangeOrientation: false,

@@ -84,42 +84,39 @@ class FeePdfGenerator {
       author: data.academyName,
     );
 
-    final font = await PdfGoogleFonts.nunitoRegular();
-    final fontBold = await PdfGoogleFonts.nunitoBold();
-    final fontBlack = await PdfGoogleFonts.nunitoExtraBold();
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+    final fontBlack = pw.Font.helveticaBold(); // fallback
 
     final theme = pw.ThemeData.withFont(base: font, bold: fontBold);
 
     doc.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(36),
         theme: theme,
-        build: (ctx) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(data, fontBlack, fontBold, font),
-            pw.SizedBox(height: 24),
-            _buildDocumentBanner(data, fontBlack, fontBold),
-            pw.SizedBox(height: 20),
-            _buildStudentInfoSection(data, fontBold, font),
-            pw.SizedBox(height: 14),
-            _buildFeeDetailsTable(data, fontBold, font),
-            if (data.documentMode == 'receipt' && data.transactions.isNotEmpty)
-              pw.Column(
-                children: [
-                  pw.SizedBox(height: 14),
-                  _buildTransactionSection(data, fontBold, font),
-                ],
-              ),
-            pw.SizedBox(height: 14),
-            _buildAmountSummary(data, fontBlack, fontBold, font),
-            pw.SizedBox(height: 14),
-            _buildNoteSection(data, font),
-            pw.Spacer(),
-            _buildFooterBranding(data, font, fontBold),
-          ],
-        ),
+        build: (ctx) => [
+          _buildHeader(data, fontBlack, fontBold, font),
+          pw.SizedBox(height: 24),
+          _buildDocumentBanner(data, fontBlack, fontBold),
+          pw.SizedBox(height: 20),
+          _buildStudentInfoSection(data, fontBold, font),
+          pw.SizedBox(height: 14),
+          _buildFeeDetailsTable(data, fontBold, font),
+          if (data.documentMode == 'receipt' && data.transactions.isNotEmpty)
+            pw.Column(
+              children: [
+                pw.SizedBox(height: 14),
+                _buildTransactionSection(data, fontBold, font),
+              ],
+            ),
+          pw.SizedBox(height: 14),
+          _buildAmountSummary(data, fontBlack, fontBold, font),
+          pw.SizedBox(height: 14),
+          _buildNoteSection(data, font),
+          pw.SizedBox(height: 20),
+          _buildFooterBranding(data, font, fontBold),
+        ],
       ),
     );
 
@@ -159,7 +156,9 @@ class FeePdfGenerator {
               ),
               child: pw.Center(
                 child: pw.Text(
-                  data.academyName.substring(0, 1).toUpperCase(),
+                  data.academyName.isNotEmpty
+                      ? data.academyName[0].toUpperCase()
+                      : '?',
                   style: pw.TextStyle(
                     fontSize: 32,
                     font: fontBlack,
@@ -751,13 +750,14 @@ class FeePdfGenerator {
     pw.Font font,
     pw.Font fontBold,
   ) {
-    final dynamic s = data.documentMode == 'challan'
-        ? data.settings.challanSettings
-        : data.settings.receiptSettings;
+    final isChallan = data.documentMode == 'challan';
+    final bool showSig = isChallan
+        ? data.settings.challanSettings.showSignatureBox
+        : data.settings.receiptSettings.showSignature;
 
     return pw.Column(
       children: [
-        if (s.showSignature) ...[
+        if (showSig) ...[
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.end,
             children: [

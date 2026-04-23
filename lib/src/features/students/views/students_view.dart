@@ -99,6 +99,12 @@ class _StudentsViewState extends State<StudentsView> {
       builder: (_) => _StudentProfileDialog(
         student: student,
         customFields: _controller.customFieldDefinitions,
+        onEdit: () {
+          final featureSvc = AppServices.instance.featureAccessService;
+          if (featureSvc != null && featureSvc.canAccess('student_create')) {
+            _showStudentForm(student);
+          }
+        },
       ),
     );
   }
@@ -106,7 +112,8 @@ class _StudentsViewState extends State<StudentsView> {
   Future<void> _handleDelete(Student student) async {
     final confirmed = await AppDialogs.showDeleteConfirmation(
       context,
-      message: 'Are you sure you want to delete ${student.name}? This action cannot be undone.',
+      message:
+          'Are you sure you want to delete ${student.name}? This action cannot be undone.',
     );
 
     if (confirmed == true) {
@@ -126,7 +133,8 @@ class _StudentsViewState extends State<StudentsView> {
           AppDialogs.showError(
             context,
             title: 'Delete Failed',
-            message: 'An error occurred while trying to delete the student record.',
+            message:
+                'An error occurred while trying to delete the student record.',
           );
         }
       }
@@ -161,11 +169,11 @@ class _StudentsViewState extends State<StudentsView> {
                   errorMessage: controller.errorMessage,
                 ),
                 const SizedBox(height: 24),
-                
+
                 // KPI Stats Grid
                 _StudentStatsGrid(controller: controller),
                 const SizedBox(height: 24),
-                
+
                 // Table Container Card
                 Expanded(
                   child: Container(
@@ -190,29 +198,33 @@ class _StudentsViewState extends State<StudentsView> {
                         // Stats Bar inside the card
                         _TableStatsBar(controller: controller),
                         const Divider(height: 1),
-                        
+
                         // Table Body
                         Expanded(
                           child: RefreshIndicator(
                             onRefresh: () => controller.loadInitialData(),
-                            child: controller.busy && controller.students.isEmpty
+                            child:
+                                controller.busy && controller.students.isEmpty
                                 ? const _LoadingSkeleton()
                                 : controller.students.isEmpty
-                                    ? _EmptyStudents(
-                                        onAdd: canCreate ? () => _showStudentForm() : null,
-                                      )
-                                    : _StudentTable(
-                                        controller: controller,
-                                        scrollController: _scrollController,
-                                        onView: _showStudentProfile,
-                                        onEdit: canCreate ? _showStudentForm : null,
-                                        onDelete: featureSvc.canAccess('student_delete')
-                                            ? _handleDelete
-                                            : null,
-                                      ),
+                                ? _EmptyStudents(
+                                    onAdd: canCreate
+                                        ? () => _showStudentForm()
+                                        : null,
+                                  )
+                                : _StudentTable(
+                                    controller: controller,
+                                    scrollController: _scrollController,
+                                    onView: _showStudentProfile,
+                                    onEdit: canCreate ? _showStudentForm : null,
+                                    onDelete:
+                                        featureSvc.canAccess('student_delete')
+                                        ? _handleDelete
+                                        : null,
+                                  ),
                           ),
                         ),
-                        
+
                         // Footer / Pagination
                         const Divider(height: 1),
                         _TableFooter(controller: controller),
@@ -240,16 +252,17 @@ class _StudentStatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = screenSizeForWidth(constraints.maxWidth);
-        final columns = size == ScreenSize.compact 
-            ? 2 
+        final columns = size == ScreenSize.compact
+            ? 2
             : (size == ScreenSize.medium ? 2 : 4);
-            
+
         const gap = 16.0;
-        final cardWidth = (constraints.maxWidth - (gap * (columns - 1))) / columns;
+        final cardWidth =
+            (constraints.maxWidth - (gap * (columns - 1))) / columns;
 
         final stats = [
           (
@@ -302,15 +315,18 @@ class _StudentStatsGrid extends StatelessWidget {
           spacing: gap,
           runSpacing: gap,
           children: stats.map((stat) {
-            final isSelected = controller.statusFilter == stat.$1 || 
-                             (stat.$1 == 'all' && controller.statusFilter == null);
-                             
+            final isSelected =
+                controller.statusFilter == stat.$1 ||
+                (stat.$1 == 'all' && controller.statusFilter == null);
+
             return SizedBox(
               width: cardWidth,
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
-                  onTap: () => controller.onStatusFilterChanged(stat.$1 == 'all' ? null : stat.$1),
+                  onTap: () => controller.onStatusFilterChanged(
+                    stat.$1 == 'all' ? null : stat.$1,
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
@@ -374,10 +390,7 @@ class _StudentsPageHeader extends StatelessWidget {
                 ),
                 Text(
                   'Manage and monitor enrolled students',
-                  style: TextStyle(
-                    color: cs.onSurfaceVariant,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
                 ),
               ],
             ),
@@ -399,8 +412,13 @@ class _StudentsPageHeader extends StatelessWidget {
                   icon: const Icon(Icons.upload_file_rounded, size: 20),
                   label: const Text('Bulk Add'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               if (onAddStudent != null) ...[
@@ -410,8 +428,13 @@ class _StudentsPageHeader extends StatelessWidget {
                   icon: const Icon(Icons.person_add_rounded, size: 20),
                   label: const Text('Add Student'),
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -439,7 +462,10 @@ class _StudentsPageHeader extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     errorMessage!,
-                    style: TextStyle(color: cs.error, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: cs.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -470,7 +496,9 @@ class _HeaderClassFilterState extends State<_HeaderClassFilter> {
 
   Future<void> _fetch() async {
     final academyId = AppServices.instance.authService!.session!.academyId;
-    final classes = await AppServices.instance.classService!.getClasses(academyId);
+    final classes = await AppServices.instance.classService!.getClasses(
+      academyId,
+    );
     if (mounted) {
       setState(() {
         _classes = classes;
@@ -512,7 +540,7 @@ class _TableStatsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
@@ -520,11 +548,26 @@ class _TableStatsBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _miniStat(context, 'Total Enrollments', controller.totalCount.toString(), cs.primary),
+          _miniStat(
+            context,
+            'Total Enrollments',
+            controller.totalCount.toString(),
+            cs.primary,
+          ),
           _vDivider(context),
-          _miniStat(context, 'Active', controller.activeCount.toString(), const Color(0xFF10B981)),
+          _miniStat(
+            context,
+            'Active',
+            controller.activeCount.toString(),
+            const Color(0xFF10B981),
+          ),
           _vDivider(context),
-          _miniStat(context, 'New this month', controller.newAdmissionsCount.toString(), const Color(0xFFF59E0B)),
+          _miniStat(
+            context,
+            'New this month',
+            controller.newAdmissionsCount.toString(),
+            const Color(0xFFF59E0B),
+          ),
           const Spacer(),
           TextButton.icon(
             onPressed: () => controller.loadInitialData(),
@@ -532,7 +575,10 @@ class _TableStatsBar extends StatelessWidget {
             label: const Text('Refresh List'),
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -540,7 +586,12 @@ class _TableStatsBar extends StatelessWidget {
     );
   }
 
-  Widget _miniStat(BuildContext context, String label, String value, Color color) {
+  Widget _miniStat(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
@@ -551,7 +602,10 @@ class _TableStatsBar extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
         Text(
           value,
@@ -599,13 +653,13 @@ class _StudentTable extends StatelessWidget {
           children: [
             Table(
               columnWidths: const {
-                0: FixedColumnWidth(100),  // Roll No
-                1: FlexColumnWidth(3),     // Student Profile
-                2: FlexColumnWidth(1.5),   // Class
-                3: FlexColumnWidth(1.5),   // Fee Plan
-                4: FixedColumnWidth(120),  // Status
-                5: FixedColumnWidth(150),  // Last Updated
-                6: FixedColumnWidth(60),   // Actions
+                0: FixedColumnWidth(100), // Roll No
+                1: FlexColumnWidth(3), // Student Profile
+                2: FlexColumnWidth(1.5), // Class
+                3: FlexColumnWidth(1.5), // Fee Plan
+                4: FixedColumnWidth(120), // Status
+                5: FixedColumnWidth(150), // Last Updated
+                6: FixedColumnWidth(60), // Actions
               },
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
               children: [
@@ -613,7 +667,9 @@ class _StudentTable extends StatelessWidget {
                 TableRow(
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerHighest.withValues(alpha: 0.15),
-                    border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+                    border: Border(
+                      bottom: BorderSide(color: cs.outlineVariant),
+                    ),
                   ),
                   children: [
                     _headerCell('Roll No'),
@@ -655,10 +711,16 @@ class _StudentTable extends StatelessWidget {
                     ? const CircularProgressIndicator()
                     : TextButton.icon(
                         onPressed: () => controller.fetchMore(),
-                        icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                        icon: const Icon(
+                          Icons.arrow_downward_rounded,
+                          size: 18,
+                        ),
                         label: const Text('Load More Data'),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
                         ),
                       ),
               ),
@@ -709,7 +771,11 @@ class _StudentTable extends StatelessWidget {
             backgroundColor: cs.primary.withValues(alpha: 0.1),
             child: Text(
               student.name[0].toUpperCase(),
-              style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: cs.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -719,7 +785,10 @@ class _StudentTable extends StatelessWidget {
               children: [
                 Text(
                   student.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 Text(
                   student.fatherName,
@@ -739,7 +808,9 @@ class _StudentTable extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.secondaryContainer.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -785,7 +856,11 @@ class _StudentTable extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               isActive ? 'Active' : 'Inactive',
-              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),
@@ -799,7 +874,10 @@ class _StudentTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Text(
         DateFormat('MMM dd, yyyy').format(date),
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -851,21 +929,27 @@ class _TableFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final count = controller.students.length;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         children: [
           Text(
             'Showing 1–$count of ${controller.totalCount} students',
-            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const Spacer(),
           OutlinedButton(
             onPressed: null, // Placeholder for pagination
             style: OutlinedButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Previous'),
           ),
@@ -874,7 +958,9 @@ class _TableFooter extends StatelessWidget {
             onPressed: controller.hasMore ? () => controller.fetchMore() : null,
             style: OutlinedButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Next'),
           ),
@@ -888,7 +974,6 @@ class _TableFooter extends StatelessWidget {
 // Sub-Widgets
 // ==========================================
 
-
 class _EmptyStudents extends StatelessWidget {
   const _EmptyStudents({required this.onAdd});
   final VoidCallback? onAdd;
@@ -896,62 +981,65 @@ class _EmptyStudents extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: cs.primaryContainer.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.people_alt_rounded,
-                size: 80,
-                color: cs.primary.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'No Students Found',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: cs.onSurface,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: 400,
-              child: Text(
-                'Add your first student to the institute to start tracking attendance, performance, and fees efficiently.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontSize: 15,
-                  height: 1.5,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.people_alt_rounded,
+                  size: 80,
+                  color: cs.primary.withValues(alpha: 0.5),
                 ),
               ),
-            ),
-            if (onAdd != null) ...[
-              const SizedBox(height: 40),
-              FilledButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.person_add_rounded),
-                label: const Text('Add Your First Student'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 20,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 32),
+              Text(
+                'No Students Found',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 400,
+                child: Text(
+                  'Add your first student to the institute to start tracking attendance, performance, and fees efficiently.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 15,
+                    height: 1.5,
                   ),
                 ),
               ),
+              if (onAdd != null) ...[
+                const SizedBox(height: 40),
+                FilledButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.person_add_rounded),
+                  label: const Text('Add Your First Student'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -962,9 +1050,11 @@ class _StudentProfileDialog extends StatelessWidget {
   const _StudentProfileDialog({
     required this.student,
     required this.customFields,
+    required this.onEdit,
   });
   final Student student;
   final List<StudentCustomField> customFields;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -995,10 +1085,7 @@ class _StudentProfileDialog extends StatelessWidget {
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      cs.primary,
-                      cs.primary.withValues(alpha: 0.8),
-                    ],
+                    colors: [cs.primary, cs.primary.withValues(alpha: 0.8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1078,7 +1165,7 @@ class _StudentProfileDialog extends StatelessWidget {
                       _sectionTitle(context, 'Personal & Academic Details'),
                       const SizedBox(height: 24),
                       _ProfileInfoGrid(student: student),
-                      
+
                       if (student.customFields.isNotEmpty) ...[
                         const SizedBox(height: 40),
                         _sectionTitle(context, 'Custom Information'),
@@ -1123,8 +1210,8 @@ class _StudentProfileDialog extends StatelessWidget {
                     const SizedBox(width: 12),
                     FilledButton.icon(
                       onPressed: () {
-                        // TODO: Implement Edit
                         Navigator.pop(context);
+                        onEdit();
                       },
                       icon: const Icon(Icons.edit_rounded, size: 18),
                       label: const Text('Edit Student'),
@@ -1307,7 +1394,6 @@ class _ProfileCustomFields extends StatelessWidget {
     }
   }
 }
-
 
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.active, this.isWhite = false});
