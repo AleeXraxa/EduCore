@@ -52,24 +52,26 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final isSuperAdmin = widget.controller.isSuperAdmin;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(
+        _SectionHeader(
           title: 'Identity & Branding',
           subtitle:
-              'Configure the public-facing attributes of your institute.',
+              'Configure the public-facing attributes of your ${isSuperAdmin ? 'platform' : 'institute'}.',
         ),
         const SizedBox(height: 20),
         _GroupCard(
-          title: 'INSTITUTE IDENTITY',
+          title: isSuperAdmin ? 'PLATFORM IDENTITY' : 'INSTITUTE IDENTITY',
           child: Column(
             children: [
               AppTextField(
                 controller: _appName,
-                label: 'Institute Name',
-                hintText: 'Your Institute Name',
-                prefixIcon: Icons.business_rounded,
+                label: isSuperAdmin ? 'Platform Name' : 'Institute Name',
+                hintText: isSuperAdmin ? 'Your Platform Name' : 'Your Institute Name',
+                prefixIcon: isSuperAdmin ? Icons.hub_rounded : Icons.business_rounded,
               ),
               const SizedBox(height: 16),
               Container(
@@ -95,7 +97,9 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'This name is displayed across portals, certificates, and student communications.',
+                        isSuperAdmin
+                            ? 'This name represents the overall platform identity across all institutes.'
+                            : 'This name is displayed across portals, certificates, and student communications.',
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -116,8 +120,8 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportEmail,
-                      label: 'Official Email',
-                      hintText: 'email@institute.com',
+                      label: isSuperAdmin ? 'Platform Support Email' : 'Official Email',
+                      hintText: isSuperAdmin ? 'support@platform.com' : 'email@institute.com',
                       prefixIcon: Icons.email_rounded,
                     ),
                   ),
@@ -125,7 +129,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportPhone,
-                      label: 'Contact Number',
+                      label: isSuperAdmin ? 'Support Hotline' : 'Contact Number',
                       hintText: '+92 000 0000000',
                       prefixIcon: Icons.phone_rounded,
                     ),
@@ -136,7 +140,9 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'These details will be used for official communications and displayed on reports.',
+                  isSuperAdmin
+                      ? 'These details will be used for platform-wide support and administrative communications.'
+                      : 'These details will be used for official communications and displayed on reports.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,

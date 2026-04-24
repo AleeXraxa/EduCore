@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/features/notifications/models/app_notification.dart';
@@ -21,22 +21,23 @@ class NotificationsController extends BaseController {
   bool _isSending = false;
   bool get isSending => _isSending;
 
-  StreamSubscription? _notificationsSub;
-  StreamSubscription? _academiesSub;
+  Future<void> load() async {
+    await runBusy(() async {
+      try {
+        final results = await Future.wait([
+          _service?.getNotificationsBatch() ?? Future.value(<AppNotification>[]),
+          _instituteService?.getAcademies() ?? Future.value(<Academy>[]),
+        ]);
 
-  void _init() {
-    setBusy(true);
-    _notificationsSub = _service?.watchNotifications().listen((data) {
-      _notifications = data;
-      setBusy(false);
-      notifyListeners();
-    });
-
-    _academiesSub = _instituteService?.watchAcademies().listen((data) {
-      _academies = data;
-      notifyListeners();
+        _notifications = results[0] as List<AppNotification>;
+        _academies = results[1] as List<Academy>;
+      } catch (e) {
+        debugPrint('Error loading notifications: $e');
+      }
     });
   }
+
+  void _init() => load();
 
   Future<void> sendBroadcast({
     required String title,
@@ -86,8 +87,6 @@ class NotificationsController extends BaseController {
 
   @override
   void dispose() {
-    _notificationsSub?.cancel();
-    _academiesSub?.cancel();
     super.dispose();
   }
 }

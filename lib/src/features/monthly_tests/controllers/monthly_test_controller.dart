@@ -26,15 +26,18 @@ class MonthlyTestController extends BaseController {
         _classService = classService ?? AppServices.instance.classService!,
         _studentService = studentService ?? AppServices.instance.studentService!,
         _academyId = AppServices.instance.authService!.session!.academyId {
-    _init();
+    load();
   }
 
-  StreamSubscription? _testsSub;
-  List<MonthlyTest> _tests = [];
-  List<MonthlyTest> get tests => _tests;
+  List<MonthlyTest> _allTests = [];
+  List<MonthlyTest> _filteredTests = [];
+  List<MonthlyTest> get tests => _filteredTests;
 
   List<InstituteClass> _classes = [];
   List<InstituteClass> get classes => _classes;
+
+  String _searchQuery = '';
+  Timer? _searchDebounce;
 
   // Selected state
   MonthlyTest? selectedTest;
@@ -43,17 +46,50 @@ class MonthlyTestController extends BaseController {
   List<TestResult> currentResults = [];
   List<Student> currentStudentsForMarks = [];
 
-  void _init() {
-    _testsSub = _testService.watchTests(_academyId).listen((data) {
-      _tests = data;
-      notifyListeners();
-    });
-    
-    _classService.getClasses(_academyId).then((data) {
-      _classes = data;
-      notifyListeners();
+  Future<void> load() async {
+    await runBusy(() async {
+      try {
+        final results = await Future.wait([
+          _testService.getTests(_academyId),
+          _classService.getClasses(_academyId),
+        ]);
+
+        _allTests = results[0] as List<MonthlyTest>;
+        _classes = results[1] as List<InstituteClass>;
+
+        _applyFilters();
+      } catch (e) {
+        debugPrint('Error loading tests: $e');
+      }
     });
   }
+
+  void _applyFilters() {
+    _filteredTests = _allTests.where((t) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          t.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (t.className?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+              false);
+      return matchesSearch;
+    }).toList();
+
+    // Local Sorting - by Date descending
+    _filteredTests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    notifyListeners();
+  }
+
+  void onSearchChanged(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters();
+    });
+  }
+
+  void init() => load();
 
   // ==========================================
   // TEST CRUD
@@ -145,16 +181,9 @@ class MonthlyTestController extends BaseController {
 
   Future<bool> loadMarksEntry(MonthlyTest test) async {
     return (await runBusy(() async {
-      // 1. Fetch students
-      final snap = await AppServices.instance.firestore!
-          .collection('academies')
-          .doc(_academyId)
-          .collection('students')
-          .where('classId', isEqualTo: test.classId)
-          .where('status', isEqualTo: 'active')
-          .get();
-      
-      currentStudentsForMarks = snap.docs.map((doc) => Student.fromMap(doc.id, doc.data())).toList();
+      // 1. Fetch active students for the class
+      currentStudentsForMarks =
+          await _studentService.getClassStudents(_academyId, test.classId);
 
       // 2. Fetch existing marks
       final allMarks = await _testService.getMarks(_academyId, test.id);
@@ -232,7 +261,7 @@ class MonthlyTestController extends BaseController {
 
   @override
   void dispose() {
-    _testsSub?.cancel();
+    _searchDebounce?.cancel();
     _questionSub?.cancel();
     super.dispose();
   }

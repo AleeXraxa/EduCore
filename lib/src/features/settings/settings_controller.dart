@@ -23,38 +23,45 @@ class SettingsController extends BaseController {
   }
 
   void _init() {
-    final academyId = _auth?.session?.academyId;
-    if (academyId == null) return;
+    final session = _auth?.session;
+    if (session == null) return;
 
-    _subscription = _service?.watchAcademySettings(academyId).listen((data) {
-      _settings =
-          data ??
-          GlobalSettings(
-            appName: 'Institute Name',
-            appLogoUrl: '',
-            supportEmail: '',
-            supportPhone: '',
-            paymentMethods: {
-              'jazzcash': PaymentMethodConfig(
-                isActive: false,
-                number: '',
-                accountTitle: '',
-              ),
-              'easypaisa': PaymentMethodConfig(
-                isActive: false,
-                number: '',
-                accountTitle: '',
-              ),
-              'bank': PaymentMethodConfig(
-                isActive: false,
-                accountNumber: '',
-                accountTitle: '',
-                bankName: '',
-              ),
-            },
-          );
-      notifyListeners();
-    });
+    if (session.isSuperAdmin) {
+      _subscription = _service?.watchGlobalSettings().listen(_handleData);
+    } else {
+      _subscription =
+          _service?.watchAcademySettings(session.academyId).listen(_handleData);
+    }
+  }
+
+  void _handleData(GlobalSettings? data) {
+    _settings =
+        data ??
+        GlobalSettings(
+          appName: _auth?.session?.isSuperAdmin ?? false ? 'EduCore Platform' : 'Institute Name',
+          appLogoUrl: '',
+          supportEmail: '',
+          supportPhone: '',
+          paymentMethods: {
+            'jazzcash': PaymentMethodConfig(
+              isActive: false,
+              number: '',
+              accountTitle: '',
+            ),
+            'easypaisa': PaymentMethodConfig(
+              isActive: false,
+              number: '',
+              accountTitle: '',
+            ),
+            'bank': PaymentMethodConfig(
+              isActive: false,
+              accountNumber: '',
+              accountTitle: '',
+              bankName: '',
+            ),
+          },
+        );
+    notifyListeners();
   }
 
   @override
@@ -76,17 +83,26 @@ class SettingsController extends BaseController {
   }
 
   Future<void> save() async {
-    final academyId = _auth?.session?.academyId;
-    if (_settings == null || academyId == null) return;
-    
+    final session = _auth?.session;
+    if (_settings == null || session == null) return;
+
     await runBusy<void>(() async {
-      await _service?.updateAcademySettings(
-        academyId,
-        _settings!,
-        userId: _auth?.currentUser?.uid,
-      );
+      if (session.isSuperAdmin) {
+        await _service?.updateGlobalSettings(
+          _settings!,
+          userId: _auth?.currentUser?.uid,
+        );
+      } else {
+        await _service?.updateAcademySettings(
+          session.academyId,
+          _settings!,
+          userId: _auth?.currentUser?.uid,
+        );
+      }
     });
   }
+
+  bool get isSuperAdmin => _auth?.session?.isSuperAdmin ?? false;
 
   // Backward compatibility / Helper getters
   String get platformName => _settings?.appName ?? 'EduCore';

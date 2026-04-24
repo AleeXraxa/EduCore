@@ -4,7 +4,7 @@ class AccessDeniedView extends StatelessWidget {
   const AccessDeniedView({
     super.key,
     this.featureName,
-    this.message = 'You do not have permission to access this module. Please contact your administrator if you believe this is an error.',
+    this.message = 'Contact TryUnity Solutions to gain access or upgrade your plan to unlock this feature.',
   });
 
   final String? featureName;
@@ -60,16 +60,6 @@ class AccessDeniedView extends StatelessWidget {
                     color: cs.onSurfaceVariant,
                     height: 1.5,
                   ),
-            ),
-            const SizedBox(height: 40),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Go Back'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
             ),
           ],
         ),

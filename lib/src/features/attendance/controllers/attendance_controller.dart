@@ -22,23 +22,41 @@ class AttendanceController extends BaseController {
   List<Map<String, dynamic>> get attentionNeeded => _attentionNeeded;
 
   List<AttendanceRecord> _allRecords = [];
-  List<AttendanceRecord> get records => _allRecords.where((r) {
-    final matchesSearch = _searchQuery.isEmpty || 
-        r.studentName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        r.phone.contains(_searchQuery);
-    return matchesSearch;
-  }).toList();
+  List<AttendanceRecord> _filteredRecords = [];
+  List<AttendanceRecord> get records => _filteredRecords;
 
   // Metrics
-  int get totalStudents => records.length;
-  int get presentCount => records.where((r) => r.status == AttendanceStatus.present).length;
-  int get absentCount => records.where((r) => r.status == AttendanceStatus.absent).length;
-  int get leaveCount => records.where((r) => r.status == AttendanceStatus.leave).length;
-  
-  int get attendancePercentage {
+  int totalStudents = 0;
+  int presentCount = 0;
+  int absentCount = 0;
+  int leaveCount = 0;
+  int attendancePercentage = 0;
+
+  void _applyFilters() {
+    _filteredRecords = _allRecords.where((r) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          r.studentName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          r.phone.contains(_searchQuery);
+      return matchesSearch;
+    }).toList();
+
+    // Recalculate Metrics
+    totalStudents = _filteredRecords.length;
+    presentCount =
+        _filteredRecords.where((r) => r.status == AttendanceStatus.present).length;
+    absentCount =
+        _filteredRecords.where((r) => r.status == AttendanceStatus.absent).length;
+    leaveCount =
+        _filteredRecords.where((r) => r.status == AttendanceStatus.leave).length;
+
     final activeStudents = totalStudents - leaveCount;
-    if (activeStudents <= 0) return 0;
-    return (presentCount / activeStudents * 100).round();
+    if (activeStudents <= 0) {
+      attendancePercentage = 0;
+    } else {
+      attendancePercentage = (presentCount / activeStudents * 100).round();
+    }
+
+    notifyListeners();
   }
 
   Future<void> loadInitialData() async {
@@ -87,6 +105,8 @@ class AttendanceController extends BaseController {
         status: rec?.status ?? AttendanceStatus.none,
       );
     }).toList();
+
+    _applyFilters();
   }
 
   void setDate(DateTime date) {
@@ -100,8 +120,9 @@ class AttendanceController extends BaseController {
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
-    notifyListeners();
+    _applyFilters();
   }
 
   void updateStatus(String studentId, AttendanceStatus status) {

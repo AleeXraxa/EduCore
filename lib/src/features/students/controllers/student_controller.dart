@@ -15,8 +15,9 @@ class StudentController extends BaseController {
       : _studentService = studentService ?? AppServices.instance.studentService!,
         _academyId = AppServices.instance.authService!.session!.academyId;
 
-  final List<Student> _students = [];
-  List<Student> get students => _students;
+  final List<Student> _allStudents = [];
+  List<Student> _filteredStudents = [];
+  List<Student> get students => _filteredStudents;
 
   DocumentSnapshot? _lastDoc;
   bool _hasMore = true;
@@ -39,59 +40,14 @@ class StudentController extends BaseController {
 
   // Custom Fields
   List<StudentCustomField> _customFieldDefinitions = [];
-  List<StudentCustomField> get customFieldDefinitions => _customFieldDefinitions;
-  
+  List<StudentCustomField> get customFieldDefinitions =>
+      _customFieldDefinitions;
+
   Map<String, dynamic> dynamicFormState = {};
 
-  Future<void> loadInitialData() async {
-    _students.clear();
-    _lastDoc = null;
-    _hasMore = true;
-    // Temporarily reset before loading
-    totalCount = 0;
-    activeCount = 0;
-    inactiveCount = 0;
-    newAdmissionsCount = 0;
-    
-    await Future.wait([
-      _fetchBatch(),
-      loadCustomFieldDefinitions(),
-      _fetchStats(),
-    ]);
-  }
-
-  Future<void> _fetchStats() async {
-    try {
-      final stats = await _studentService.getStudentStats(_academyId);
-      totalCount = stats['total'] ?? 0;
-      activeCount = stats['active'] ?? 0;
-      inactiveCount = stats['inactive'] ?? 0;
-      newAdmissionsCount = stats['newAdmissions'] ?? 0;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error fetching stats: $e');
-    }
-  }
-
-  Future<void> loadCustomFieldDefinitions() async {
-    try {
-      _customFieldDefinitions = await _studentService.getCustomFieldDefinitions(_academyId);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading custom fields: $e');
-    }
-  }
-
-  Future<void> addCustomFieldDefinition(StudentCustomField field) async {
-    await runBusy(() async {
-      try {
-        final newField = await _studentService.createCustomFieldDefinition(_academyId, field);
-        _customFieldDefinitions.add(newField);
-        notifyListeners();
-      } catch (e) {
-        debugPrint('Error adding custom field: $e');
-      }
-    });
+  void resetDynamicForm([Map<String, dynamic>? initialValues]) {
+    dynamicFormState = initialValues != null ? Map.from(initialValues) : {};
+    notifyListeners();
   }
 
   void updateDynamicField(String key, dynamic value) {
@@ -99,8 +55,36 @@ class StudentController extends BaseController {
     notifyListeners();
   }
 
-  void resetDynamicForm(Map<String, dynamic>? initialValues) {
-    dynamicFormState = Map<String, dynamic>.from(initialValues ?? {});
+  Future<void> loadInitialData() async {
+    _allStudents.clear();
+    _filteredStudents.clear();
+    _lastDoc = null;
+    _hasMore = true;
+    // Temporarily reset before loading
+    totalCount = 0;
+    activeCount = 0;
+    inactiveCount = 0;
+    newAdmissionsCount = 0;
+
+    await Future.wait([
+      _fetchBatch(),
+      loadCustomFieldDefinitions(),
+      _fetchStats(),
+    ]);
+  }
+
+  Future<void> loadCustomFieldDefinitions() async {
+    _customFieldDefinitions =
+        await _studentService.getCustomFieldDefinitions(_academyId);
+    notifyListeners();
+  }
+
+  Future<void> _fetchStats() async {
+    final stats = await _studentService.getStudentStats(_academyId);
+    totalCount = stats['total'] ?? 0;
+    activeCount = stats['active'] ?? 0;
+    inactiveCount = stats['inactive'] ?? 0;
+    newAdmissionsCount = stats['newAdmissions'] ?? 0;
     notifyListeners();
   }
 
@@ -110,16 +94,20 @@ class StudentController extends BaseController {
       try {
         QuerySnapshot<Map<String, dynamic>> snapshot;
         try {
+          // Note: We remove the server-side filtering here to fetch a broader batch
+          // that we can then filter locally.
           snapshot = await _studentService.getStudentsBatch(
             academyId: _academyId,
             startAfter: _lastDoc,
-            classIdFilter: _classIdFilter,
-            statusFilter: _statusFilter,
+            // We pass null to get all students in this batch regardless of status/class
+            // so we can filter them locally without re-fetching.
+            classIdFilter: null,
+            statusFilter: null,
           );
         } on FirebaseException catch (e) {
-          // If the complex query fails (missing index), fall back to simple name ordering
-          if (e.code == 'failed-precondition' || e.message?.contains('index') == true) {
-            debugPrint('Firestore Error: $e'); // This will print the clickable link
+          if (e.code == 'failed-precondition' ||
+              e.message?.contains('index') == true) {
+            debugPrint('Firestore Error: $e');
             _errorMessage = 'Using simple view (Index missing)';
             final query = FirebaseFirestore.instance
                 .collection('academies')
@@ -127,8 +115,9 @@ class StudentController extends BaseController {
                 .collection('students')
                 .orderBy('name')
                 .limit(20);
-            
-            final fallbackQuery = _lastDoc != null ? query.startAfterDocument(_lastDoc!) : query;
+
+            final fallbackQuery =
+                _lastDoc != null ? query.startAfterDocument(_lastDoc!) : query;
             snapshot = await fallbackQuery.get();
           } else {
             rethrow;
@@ -141,15 +130,13 @@ class StudentController extends BaseController {
 
         if (snapshot.docs.isNotEmpty) {
           _lastDoc = snapshot.docs.last;
-          
+
           final fetchedStudents = snapshot.docs
               .map((doc) => Student.fromMap(doc.id, doc.data()))
               .toList();
 
-          // Filter out deleted locally if the query didn't do it
-          final visibleStudents = fetchedStudents.where((s) => s.status != 'deleted').toList();
-
-          _students.addAll(visibleStudents);
+          _allStudents.addAll(fetchedStudents);
+          _applyFilters();
         }
       } catch (e, st) {
         debugPrint('Error fetching students: $e $st');
@@ -158,29 +145,55 @@ class StudentController extends BaseController {
     });
   }
 
+  void _applyFilters() {
+    _filteredStudents = _allStudents.where((s) {
+      if (s.status == 'deleted') return false;
+
+      // Search Filter
+      final matchesSearch = _searchQuery.isEmpty ||
+          s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (s.rollNo?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+              false);
+
+      // Class Filter
+      final matchesClass =
+          _classIdFilter == null || s.classId == _classIdFilter;
+
+      // Status Filter
+      final matchesStatus = _statusFilter == null || s.status == _statusFilter;
+
+      return matchesSearch && matchesClass && matchesStatus;
+    }).toList();
+
+    // Local Sorting - Always keep them sorted by name
+    _filteredStudents.sort((a, b) => (a.name).compareTo(b.name));
+
+    notifyListeners();
+  }
+
   Timer? _searchDebounce;
 
   void onSearchChanged(String query) {
     if (_searchQuery == query) return;
     _searchQuery = query;
-    debugPrint('Search query changed: $query');
-    
+
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      loadInitialData();
+      _applyFilters();
     });
   }
 
   void onClassFilterChanged(String? classId) {
-    if (_classIdFilter == classId) return;
-    _classIdFilter = (classId == 'all' || classId == null) ? null : classId;
-    loadInitialData();
+    final normalized = (classId == 'all' || classId == null) ? null : classId;
+    if (_classIdFilter == normalized) return;
+    _classIdFilter = normalized;
+    _applyFilters();
   }
 
   void onStatusFilterChanged(String? status) {
     if (_statusFilter == status) return;
     _statusFilter = status;
-    loadInitialData();
+    _applyFilters();
   }
 
   Future<void> fetchMore() async {
@@ -196,8 +209,8 @@ class StudentController extends BaseController {
     await runBusy(() async {
       try {
         final newStudent = await _studentService.createStudent(_academyId, student);
-        _students.insert(0, newStudent);
-        success = true;
+        _allStudents.insert(0, newStudent);
+        _applyFilters();
       } catch (e, st) {
         debugPrint('Error adding student in controller: $e $st');
         rethrow;
@@ -211,9 +224,10 @@ class StudentController extends BaseController {
     await runBusy(() async {
       try {
         await _studentService.updateStudent(_academyId, student);
-        final index = _students.indexWhere((s) => s.id == student.id);
+        final index = _allStudents.indexWhere((s) => s.id == student.id);
         if (index != -1) {
-          _students[index] = student.copyWith(updatedAt: DateTime.now());
+          _allStudents[index] = student.copyWith(updatedAt: DateTime.now());
+          _applyFilters();
         }
         success = true;
       } catch (e, st) {
@@ -228,8 +242,8 @@ class StudentController extends BaseController {
     await runBusy(() async {
       try {
         await _studentService.softDeleteStudent(_academyId, studentId);
-        _students.removeWhere((s) => s.id == studentId);
-        success = true;
+        _allStudents.removeWhere((s) => s.id == studentId);
+        _applyFilters();
       } catch (e, st) {
         debugPrint('Error deleting student: $e $st');
       }
@@ -239,6 +253,13 @@ class StudentController extends BaseController {
 
   Future<String> getNextRollNumber() async {
     return await _studentService.getNextRollNumber(_academyId);
+  }
+
+  Future<void> addCustomFieldDefinition(StudentCustomField field) async {
+    await runBusy(() async {
+      await _studentService.createCustomFieldDefinition(_academyId, field);
+      await loadCustomFieldDefinitions();
+    });
   }
 
   @override

@@ -27,6 +27,8 @@ class Exam {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  String get title => name;
+
   Exam copyWith({
     String? id,
     String? name,

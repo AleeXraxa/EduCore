@@ -45,7 +45,15 @@ class InstitutesController extends BaseController {
   InstitutesFilter get filter => _filter;
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
-  List<Institute> get list => _all;
+  List<Institute> get list {
+    if (_query.isEmpty) return _all;
+    final q = _query.toLowerCase();
+    return _all.where((inst) {
+      return inst.name.toLowerCase().contains(q) ||
+          inst.ownerName.toLowerCase().contains(q) ||
+          inst.email.toLowerCase().contains(q);
+    }).toList();
+  }
 
   Future<void> _init() async {
     if (_repository == null) {

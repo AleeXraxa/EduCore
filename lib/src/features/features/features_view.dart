@@ -164,24 +164,34 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 context,
                                 message: 'Importing features...',
                               );
-                              await controller.createFeaturesBulk(created);
-                              if (!context.mounted) return;
-                              AppDialogs.hide(context);
-                              AppDialogs.showSuccess(
-                                context,
-                                title: 'Import Successful',
-                                message:
-                                    'Synchronized ${created.length} new operational features to the platform catalog.',
-                              );
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              AppDialogs.hide(context);
-                              AppDialogs.showError(
-                                context,
-                                title: 'Import Failed',
-                                message: e.toString(),
-                              );
-                            }
+                                await controller.createFeaturesBulk(created);
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+
+                                if (controller.hasError) {
+                                  AppDialogs.showError(
+                                    context,
+                                    title: 'Import Failed',
+                                    message: controller.error!,
+                                  );
+                                  return;
+                                }
+
+                                AppDialogs.showSuccess(
+                                  context,
+                                  title: 'Import Successful',
+                                  message:
+                                      'Synchronized ${created.length} new operational features to the platform catalog.',
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+                                AppDialogs.showError(
+                                  context,
+                                  title: 'Import Failed',
+                                  message: e.toString(),
+                                );
+                              }
                           },
                     icon: Icons.upload_file_rounded,
                     label: 'Bulk import',
@@ -202,24 +212,34 @@ class _FeaturesViewState extends State<FeaturesView> {
                                 context,
                                 message: 'Adding feature...',
                               );
-                              await controller.createFeature(created);
-                              if (!context.mounted) return;
-                              AppDialogs.hide(context);
-                              AppDialogs.showSuccess(
-                                context,
-                                title: 'Feature Deployed',
-                                message:
-                                    'The feature "${created.label}" is now active in the system catalog.',
-                              );
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              AppDialogs.hide(context);
-                              AppDialogs.showError(
-                                context,
-                                title: 'Deployment Failed',
-                                message: e.toString(),
-                              );
-                            }
+                                await controller.createFeature(created);
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+
+                                if (controller.hasError) {
+                                  AppDialogs.showError(
+                                    context,
+                                    title: 'Deployment Failed',
+                                    message: controller.error!,
+                                  );
+                                  return;
+                                }
+
+                                AppDialogs.showSuccess(
+                                  context,
+                                  title: 'Feature Deployed',
+                                  message:
+                                      'The feature "${created.label}" is now active in the system catalog.',
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                AppDialogs.hide(context);
+                                AppDialogs.showError(
+                                  context,
+                                  title: 'Deployment Failed',
+                                  message: e.toString(),
+                                );
+                              }
                           },
                     busy: controller.busy,
                     icon: Icons.add_rounded,
@@ -340,6 +360,16 @@ class _FeaturesViewState extends State<FeaturesView> {
           await controller.updateFeature(updated);
           if (!context.mounted) return;
           AppDialogs.hide(context);
+
+          if (controller.hasError) {
+            AppDialogs.showError(
+              context,
+              title: 'Update Failed',
+              message: controller.error!,
+            );
+            return;
+          }
+
           AppDialogs.showSuccess(
             context,
             title: 'Update Successful',
@@ -386,6 +416,16 @@ class _FeaturesViewState extends State<FeaturesView> {
             await controller.deleteFeature(feature.id);
             if (!context.mounted) return;
             AppDialogs.hide(context);
+
+            if (controller.hasError) {
+              AppDialogs.showError(
+                context,
+                title: 'Deletion Failed',
+                message: controller.error!,
+              );
+              return;
+            }
+
             AppDialogs.showSuccess(
               context,
               title: 'Feature Removed',

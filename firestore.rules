@@ -359,7 +359,14 @@ service cloud.firestore {
     }
 
     // ======================================================
-    // §14  GLOBAL DEFAULT — DENY EVERYTHING
+    // §14  COLLECTION: system/{allPaths=**}
+    // ======================================================
+    match /system/{allPaths=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // ======================================================
+    // §15  GLOBAL DEFAULT — DENY EVERYTHING
     // ======================================================
     match /{document=**} {
       allow read, write: if false;

@@ -109,10 +109,16 @@ class ClassesController extends BaseController {
   /// Legacy helper for views expecting 'load'
   void load() => fetch();
 
+  Timer? _searchDebounce;
+
   void setSearchQuery(String query) {
     if (_searchQuery == query) return;
     _searchQuery = query;
-    notifyListeners();
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      notifyListeners();
+    });
   }
 
   Future<bool> createClass({

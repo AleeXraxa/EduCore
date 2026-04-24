@@ -138,15 +138,17 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     final isEditing = widget.student != null;
 
     // STEP 1: Confirmation
+    if (!mounted) return;
     final confirmed = isEditing
         ? await AppDialogs.showEditConfirmation(context)
         : await AppDialogs.showAddConfirmation(context);
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     debugPrint('StudentFormDialog: Validation passed, starting save...');
 
     // STEP 2: Loading State
+    setState(() => _isLoading = true);
     if (mounted) {
       AppDialogs.showLoading(
         context,
@@ -210,6 +212,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         AppDialogs.hideLoading(context);
 
         if (e is PlanLimitExceededException) {
@@ -227,6 +230,10 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
             message: e.toString(),
           );
         }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

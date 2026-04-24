@@ -48,7 +48,10 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (context, controller, _) {
         final featureSvc = AppServices.instance.featureAccessService;
         if (featureSvc == null || !featureSvc.canAccess('settings_view')) {
-          return const AccessDeniedView(featureName: 'Institute Settings');
+          return AccessDeniedView(
+            featureName:
+                controller.isSuperAdmin ? 'Platform Settings' : 'Institute Settings',
+          );
         }
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -107,7 +110,9 @@ class _SettingsViewState extends State<SettingsView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Settings',
+                                controller.isSuperAdmin
+                                    ? 'Platform Settings'
+                                    : 'Institute Settings',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleLarge

@@ -202,6 +202,17 @@ class AppDialogs {
     );
   }
 
+  /// Unified "Access Denied" feedback for restricted features.
+  static void showAccessDenied(BuildContext context) {
+    showError(
+      context,
+      title: 'Access Restricted',
+      message:
+          'Contact TryUnity Solutions to gain access or upgrade your plan to unlock this feature.',
+      buttonLabel: 'Got It',
+    );
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // PRIVATE HELPERS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

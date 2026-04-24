@@ -34,9 +34,23 @@ class MonthlyTestService {
   // ==========================================
 
   Stream<List<MonthlyTest>> watchTests(String academyId) {
-    return _testsCol(academyId).orderBy('createdAt', descending: true).snapshots().map((snap) {
-      return snap.docs.map((doc) => MonthlyTest.fromMap(doc.id, doc.data())).toList();
+    return _testsCol(academyId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) {
+      return snap.docs
+          .map((doc) => MonthlyTest.fromMap(doc.id, doc.data()))
+          .toList();
     });
+  }
+
+  Future<List<MonthlyTest>> getTests(String academyId) async {
+    final snap = await _testsCol(academyId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs
+        .map((doc) => MonthlyTest.fromMap(doc.id, doc.data()))
+        .toList();
   }
 
   Future<MonthlyTest> createTest(String academyId, MonthlyTest test) async {

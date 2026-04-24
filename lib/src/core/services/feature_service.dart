@@ -39,10 +39,9 @@ class FeatureService {
     return _cachedGroups!;
   }
 
-  /// Only for small sets where real-time is strictly required. 
-  /// Limited to 100 docs for safety.
+  /// Limited to 500 docs for platform-scale features.
   Stream<List<FeatureFlag>> watchFeatures() {
-    return _col.limit(100).snapshots().map((snap) {
+    return _col.limit(500).snapshots().map((snap) {
       final list = snap.docs
           .map(FeatureFlag.fromDoc)
           .where((f) => !f.isDeleted)
@@ -61,7 +60,7 @@ class FeatureService {
   }
 
   Stream<List<FeatureGroup>> watchGroups() {
-    return _groupsCol.limit(50).snapshots().map((snap) {
+    return _groupsCol.limit(200).snapshots().map((snap) {
       final list = snap.docs
           .map(FeatureGroup.fromDoc)
           .where((g) => !g.isDeleted)
@@ -140,7 +139,10 @@ class FeatureService {
         });
         return existing.id;
       }
-      throw StateError('A feature with this key already exists.');
+      throw StateError(
+        'A feature with the key "$keyLower" already exists in the system. '
+        'If you cannot see it, check if it belongs to a different group or search by key.',
+      );
     }
 
     await docRef.set({

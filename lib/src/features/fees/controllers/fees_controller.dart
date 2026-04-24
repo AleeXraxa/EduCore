@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
@@ -14,8 +15,9 @@ class FeesController extends BaseController {
       : _feeService = feeService ?? AppServices.instance.feeService!,
         _academyId = AppServices.instance.authService!.session!.academyId;
 
-  List<Fee> _fees = [];
-  List<Fee> get fees => _fees;
+  final List<Fee> _allFees = [];
+  List<Fee> _filteredFees = [];
+  List<Fee> get fees => _filteredFees;
 
   Map<String, dynamic> _stats = {
     'totalRevenue': 0.0,
@@ -27,11 +29,12 @@ class FeesController extends BaseController {
   DocumentSnapshot? _lastDoc;
   bool _hasMore = true;
   bool _isLoadingMore = false;
-  final int _pageSize = 20;
+  final int _pageSize = 50; // Increased batch size for better local filtering
 
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
 
+  String _searchQuery = '';
   FeeType? _currentType;
   FeeStatus? _currentStatus;
 
@@ -43,11 +46,12 @@ class FeesController extends BaseController {
     _currentStatus = status ?? _currentStatus;
     _lastDoc = null;
     _hasMore = true;
-    _fees = [];
-    
+    _allFees.clear();
+    _filteredFees.clear();
+
     await runBusy(() async {
       await Future.wait([
-        _fetchFeesBatch(type: _currentType, status: _currentStatus),
+        _fetchFeesBatch(),
         fetchStats(),
       ]);
     });
@@ -58,7 +62,7 @@ class FeesController extends BaseController {
     _isLoadingMore = true;
     notifyListeners();
     try {
-      await _fetchFeesBatch(type: _currentType, status: _currentStatus);
+      await _fetchFeesBatch();
     } finally {
       _isLoadingMore = false;
       notifyListeners();
@@ -72,14 +76,18 @@ class FeesController extends BaseController {
     FeeStatus? status,
   }) async {
     try {
+      // Note: We fetch a general batch to allow local filtering
+      // but we can still respect the initial filter if the dataset is expected to be huge.
+      // However, to follow the "Fetch Once" strategy, we fetch without status filters
+      // and handle them locally.
       final fetchedFees = await _feeService.getFees(
         _academyId,
+        limit: _pageSize,
+        startAfter: _lastDoc,
         studentId: studentId,
         classId: classId,
         type: type,
         status: status,
-        limit: _pageSize,
-        startAfter: _lastDoc,
       );
 
       if (fetchedFees.length < _pageSize) {
@@ -87,16 +95,18 @@ class FeesController extends BaseController {
       }
 
       if (fetchedFees.isNotEmpty) {
-        // Update cursor
-        final lastFee = fetchedFees.last;
+        // Update cursor manually to avoid extra read if possible, but Service expects doc
+        // For simplicity, we just use the last fee's id for pagination if the service supports it
+        // Or we stick to the DocumentSnapshot if it's required.
         _lastDoc = await FirebaseFirestore.instance
             .collection('academies')
             .doc(_academyId)
             .collection('fees')
-            .doc(lastFee.id)
+            .doc(fetchedFees.last.id)
             .get();
 
-        _fees.addAll(fetchedFees);
+        _allFees.addAll(fetchedFees);
+        _applyFilters();
       }
 
       notifyListeners();
@@ -104,6 +114,54 @@ class FeesController extends BaseController {
       debugPrint('Error fetching fees batch: $e');
       _hasMore = false;
     }
+  }
+
+  void _applyFilters() {
+    _filteredFees = _allFees.where((f) {
+      // Search Filter (Student Name or Title)
+      final matchesSearch = _searchQuery.isEmpty ||
+          (f.studentName?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+              false) ||
+          f.title.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      // Type Filter
+      final matchesType = _currentType == null || f.type == _currentType;
+
+      // Status Filter
+      final matchesStatus =
+          _currentStatus == null || f.status == _currentStatus;
+
+      return matchesSearch && matchesType && matchesStatus;
+    }).toList();
+
+    // Local Sorting - by Date descending
+    _filteredFees.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    notifyListeners();
+  }
+
+  Timer? _searchDebounce;
+
+  void onSearchChanged(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters();
+    });
+  }
+
+  void onTypeFilterChanged(FeeType? type) {
+    if (_currentType == type) return;
+    _currentType = type;
+    _applyFilters();
+  }
+
+  void onStatusFilterChanged(FeeStatus? status) {
+    if (_currentStatus == status) return;
+    _currentStatus = status;
+    _applyFilters();
   }
 
   /// Legacy fetch - wrapper around batch for compatibility
@@ -116,7 +174,7 @@ class FeesController extends BaseController {
   }) async {
     _lastDoc = null;
     _hasMore = true;
-    _fees = [];
+    _allFees.clear();
     await _fetchFeesBatch(
       studentId: studentId,
       classId: classId,
@@ -151,7 +209,7 @@ class FeesController extends BaseController {
     // Partial Payment Restriction Check
     if (amount <= 0) return false;
     
-    final fee = _fees.firstWhere((f) => f.id == feeId);
+    final fee = _allFees.firstWhere((f) => f.id == feeId);
     if (amount < fee.remainingAmount && !featureSvc.canAccess('fee_partial_payment')) {
       debugPrint('Access Denied: fee_partial_payment');
       return false;

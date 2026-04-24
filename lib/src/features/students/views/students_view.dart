@@ -897,11 +897,6 @@ class _StudentTable extends StatelessWidget {
               onTap: () => onEdit!(student),
             ),
           AppActionItem(
-            label: 'Assign Fee Plan',
-            icon: Icons.payments_outlined,
-            onTap: () {},
-          ),
-          AppActionItem(
             label: 'Transfer Class',
             icon: Icons.swap_horiz_rounded,
             onTap: () {},

@@ -18,8 +18,9 @@ class StaffController extends BaseController {
       _featureService = featureService ?? AppServices.instance.featureService!,
       _academyId = AppServices.instance.authService?.session?.academyId ?? '';
 
-  List<StaffMember> _staffList = [];
-  List<StaffMember> get staffList => _staffList;
+  List<StaffMember> _allStaff = [];
+  List<StaffMember> _filteredStaffList = [];
+  List<StaffMember> get staffList => _filteredStaffList;
 
   List<FeatureFlag> _allFeatures = [];
   List<FeatureFlag> get allFeatures => _allFeatures;
@@ -27,15 +28,21 @@ class StaffController extends BaseController {
   List<FeatureGroup> _featureGroups = [];
   List<FeatureGroup> get featureGroups => _featureGroups;
 
+  String _searchQuery = '';
+  StaffRole? _roleFilter;
+
+  Timer? _searchDebounce;
+
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
   /// Fetches staff, features, and groups into local cache (One-time fetch)
   Future<void> load() async {
     if (_academyId.isEmpty) return;
-    
+
     await runBusy(() async {
       try {
         final results = await Future.wait([
@@ -44,13 +51,50 @@ class StaffController extends BaseController {
           _featureService.getGroupsCached(),
         ]);
 
-        _staffList = results[0] as List<StaffMember>;
+        _allStaff = results[0] as List<StaffMember>;
         _allFeatures = results[1] as List<FeatureFlag>;
         _featureGroups = results[2] as List<FeatureGroup>;
+
+        _applyFilters();
       } catch (e) {
         debugPrint('Error loading staff data: $e');
       }
     });
+  }
+
+  void _applyFilters() {
+    _filteredStaffList = _allStaff.where((s) {
+      // Search Filter
+      final matchesSearch = _searchQuery.isEmpty ||
+          s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          s.email.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      // Role Filter
+      final matchesRole = _roleFilter == null || s.role == _roleFilter;
+
+      return matchesSearch && matchesRole;
+    }).toList();
+
+    // Local Sorting
+    _filteredStaffList.sort((a, b) => a.name.compareTo(b.name));
+
+    notifyListeners();
+  }
+
+  void onSearchChanged(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters();
+    });
+  }
+
+  void onRoleFilterChanged(StaffRole? role) {
+    if (_roleFilter == role) return;
+    _roleFilter = role;
+    _applyFilters();
   }
 
   /// Legacy helper for views expecting 'init'

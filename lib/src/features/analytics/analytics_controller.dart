@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/models/payment_record.dart';
 import 'package:educore/src/core/models/subscription_record.dart';
@@ -7,7 +9,6 @@ import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/features/plans/models/plan.dart';
-import 'dart:async';
 import 'dart:math';
 
 enum AnalyticsRange { last7, last30, last3Months, last12Months }
@@ -21,38 +22,32 @@ class AnalyticsController extends BaseController {
   AnalyticsRange get range => _range;
   String? get plan => _plan;
 
-  AnalyticsSnapshot _snapshot =
-      const AnalyticsSnapshot(
-        totalRevenuePkr: 0,
-        revenueThisMonthPkr: 0,
-        totalInstitutes: 0,
-        activeSubscriptions: 0,
-        avgRevenuePerInstitutePkr: 0,
-        expiringSubscriptions: 0,
-        revenueTrend: '—',
-        revenueTrendUp: true,
-        monthTrend: '—',
-        monthTrendUp: true,
-        arpiTrend: '—',
-        arpiTrendUp: true,
-        revenueSeries: <double>[0, 0],
-        growthSeries: <double>[0, 0],
-        planDist: PlanDistribution(items: []),
-        paymentBreakdown: PaymentBreakdown(approved: 0, pending: 0, rejected: 0),
-        topInstitutes: <TopInstituteRow>[],
-        upcomingExpiries: <ExpiryRow>[],
-      );
+  AnalyticsSnapshot _snapshot = const AnalyticsSnapshot(
+    totalRevenuePkr: 0,
+    revenueThisMonthPkr: 0,
+    totalInstitutes: 0,
+    activeSubscriptions: 0,
+    avgRevenuePerInstitutePkr: 0,
+    expiringSubscriptions: 0,
+    revenueTrend: '—',
+    revenueTrendUp: true,
+    monthTrend: '—',
+    monthTrendUp: true,
+    arpiTrend: '—',
+    arpiTrendUp: true,
+    revenueSeries: <double>[0, 0],
+    growthSeries: <double>[0, 0],
+    planDist: PlanDistribution(items: []),
+    paymentBreakdown: PaymentBreakdown(approved: 0, pending: 0, rejected: 0),
+    topInstitutes: <TopInstituteRow>[],
+    upcomingExpiries: <ExpiryRow>[],
+  );
   AnalyticsSnapshot get snapshot => _snapshot;
 
   AdminSubscriptionsService? _subsService;
   AdminPaymentsService? _paymentsService;
   PlanService? _planService;
   InstituteService? _instituteService;
-
-  StreamSubscription<List<SubscriptionRecord>>? _subsSub;
-  StreamSubscription<List<PaymentRecord>>? _paymentsSub;
-  StreamSubscription<List<Plan>>? _plansSub;
-  StreamSubscription<List<Academy>>? _academiesSub;
 
   List<SubscriptionRecord> _subscriptions = const [];
   List<PaymentRecord> _payments = const [];
@@ -61,7 +56,10 @@ class AnalyticsController extends BaseController {
   Map<String, Academy> _academyById = const <String, Academy>{};
 
   List<String?> get planOptions {
-    final names = _planById.values.map((p) => p.name).where((n) => n.isNotEmpty).toList();
+    final names = _planById.values
+        .map((p) => p.name)
+        .where((n) => n.isNotEmpty)
+        .toList();
     return [null, ...names];
   }
 
@@ -73,8 +71,38 @@ class AnalyticsController extends BaseController {
     _paymentsService = AppServices.instance.adminPaymentsService;
     _planService = AppServices.instance.planService;
     _instituteService = AppServices.instance.instituteService;
-    _attachOrInit();
+    _loadAll();
   }
+
+  Future<void> _loadAll() async {
+    await runBusy(() async {
+      try {
+        final results = await Future.wait([
+          _subsService?.getSubscriptionsBatch() ??
+              Future.value(<SubscriptionRecord>[]),
+          _paymentsService?.getPaymentsBatch() ??
+              Future.value(<PaymentRecord>[]),
+          _planService?.getPlans() ?? Future.value(<Plan>[]),
+          _instituteService?.getAcademies() ?? Future.value(<Academy>[]),
+        ]);
+
+        _subscriptions = results[0] as List<SubscriptionRecord>;
+        _payments = results[1] as List<PaymentRecord>;
+        final plans = results[2] as List<Plan>;
+        _academies = results[3] as List<Academy>;
+
+        _planById = {for (final p in plans) p.id: p};
+        _academyById = {for (final a in _academies) a.id: a};
+
+        _recompute();
+      } catch (e) {
+        errorMessage = e.toString();
+        debugPrint('Analytics Load Error: $e');
+      }
+    });
+  }
+
+  Future<void> refresh() => _loadAll();
 
   Future<void> setRange(AnalyticsRange value) async {
     _range = value;
@@ -88,131 +116,7 @@ class AnalyticsController extends BaseController {
     notifyListeners();
   }
 
-  Future<void> retryInit() => _attachOrInit();
-
-  @override
-  void dispose() {
-    _subsSub?.cancel();
-    _paymentsSub?.cancel();
-    _plansSub?.cancel();
-    _academiesSub?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _attachOrInit() async {
-    if (_subsService != null) {
-      _attachAll();
-      _recompute();
-      return;
-    }
-
-    await runBusy<void>(() async {
-      await AppServices.instance.init();
-    });
-
-    _subsService = AppServices.instance.adminSubscriptionsService;
-    _paymentsService = AppServices.instance.adminPaymentsService;
-    _planService = AppServices.instance.planService;
-    _instituteService = AppServices.instance.instituteService;
-
-    if (_subsService == null) {
-      errorMessage = AppServices.instance.firebaseInitError?.toString();
-      notifyListeners();
-      return;
-    }
-
-    _attachAll();
-    _recompute();
-  }
-
-  void _attachAll() {
-    final subsSvc = _subsService;
-    if (subsSvc != null) _attachSubscriptions(subsSvc);
-
-    final paySvc = _paymentsService;
-    if (paySvc != null) _attachPayments(paySvc);
-
-    final planSvc = _planService;
-    if (planSvc != null) _attachPlans(planSvc);
-
-    final instSvc = _instituteService;
-    if (instSvc != null) _attachAcademies(instSvc);
-  }
-
-  void _attachSubscriptions(AdminSubscriptionsService svc) {
-    if (_subsService == svc && _subsSub != null) return;
-    _subsService = svc;
-    _subsSub?.cancel();
-    _subsSub = svc.watchSubscriptions().listen(
-      (value) {
-        _subscriptions = value;
-        errorMessage = null;
-        _recompute();
-        notifyListeners();
-      },
-      onError: (e) {
-        errorMessage = e.toString();
-        // ignore: avoid_print
-        print('Analytics subscriptions error: $e');
-        notifyListeners();
-      },
-    );
-  }
-
-  void _attachPayments(AdminPaymentsService svc) {
-    if (_paymentsService == svc && _paymentsSub != null) return;
-    _paymentsService = svc;
-    _paymentsSub?.cancel();
-    _paymentsSub = svc.watchPayments().listen(
-      (value) {
-        final list = value.toList(growable: true)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        _payments = list;
-        _recompute();
-        notifyListeners();
-      },
-      onError: (e) {
-        // Payments are optional early on; keep analytics usable if this fails.
-        // ignore: avoid_print
-        print('Analytics payments error: $e');
-      },
-    );
-  }
-
-  void _attachPlans(PlanService svc) {
-    if (_planService == svc && _plansSub != null) return;
-    _planService = svc;
-    _plansSub?.cancel();
-    _plansSub = svc.watchPlans().listen(
-      (items) {
-        _planById = {for (final p in items) p.id: p};
-        _recompute();
-        notifyListeners();
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('Analytics plans error: $e');
-      },
-    );
-  }
-
-  void _attachAcademies(InstituteService svc) {
-    if (_instituteService == svc && _academiesSub != null) return;
-    _instituteService = svc;
-    _academiesSub?.cancel();
-    _academiesSub = svc.watchAcademies().listen(
-      (items) {
-        _academies = items;
-        _academyById = {for (final a in items) a.id: a};
-        _recompute();
-        notifyListeners();
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('Analytics academies error: $e');
-      },
-    );
-  }
+  Future<void> retryInit() => _loadAll();
 
   void _recompute() {
     final now = DateTime.now();
@@ -273,7 +177,9 @@ class AnalyticsController extends BaseController {
 
     final thisMonthStart = DateTime(now.year, now.month, 1);
     final lastMonthStart = DateTime(now.year, now.month - 1, 1);
-    final lastMonthEnd = thisMonthStart.subtract(const Duration(milliseconds: 1));
+    final lastMonthEnd = thisMonthStart.subtract(
+      const Duration(milliseconds: 1),
+    );
 
     final monthRevenueNow = _revenueInRange(
       payments: paymentsFiltered,
@@ -295,7 +201,8 @@ class AnalyticsController extends BaseController {
     final arpiNow =
         revenueThisMonth ~/ max(_academies.isEmpty ? 1 : _academies.length, 1);
     final arpiPrev =
-        (monthRevenuePrev) ~/ max(_academies.isEmpty ? 1 : _academies.length, 1);
+        (monthRevenuePrev) ~/
+        max(_academies.isEmpty ? 1 : _academies.length, 1);
     final arpiTrend = _pctTrend(arpiNow, arpiPrev);
     final arpiTrendUp = arpiNow >= arpiPrev;
 
@@ -449,14 +356,18 @@ class AnalyticsSnapshot {
     );
 
     final base = plan == null
-        ? const PlanDistribution(items: [
-            PlanDistributionItem(label: 'Basic', percentage: 28, count: 14),
-            PlanDistributionItem(label: 'Demo', percentage: 46, count: 23),
-            PlanDistributionItem(label: 'Pro', percentage: 26, count: 13),
-          ])
-        : PlanDistribution(items: [
-            PlanDistributionItem(label: plan, percentage: 100, count: 32),
-          ]);
+        ? const PlanDistribution(
+            items: [
+              PlanDistributionItem(label: 'Basic', percentage: 28, count: 14),
+              PlanDistributionItem(label: 'Demo', percentage: 46, count: 23),
+              PlanDistributionItem(label: 'Pro', percentage: 26, count: 13),
+            ],
+          )
+        : PlanDistribution(
+            items: [
+              PlanDistributionItem(label: plan, percentage: 100, count: 32),
+            ],
+          );
 
     final payment = PaymentBreakdown(
       approved: max(45, (72 * (0.7 + rng.nextDouble() * 0.25)).round()),
@@ -467,7 +378,11 @@ class AnalyticsSnapshot {
     final top = List<TopInstituteRow>.generate(6, (i) {
       final rev = (rng.nextDouble() * 220_000 + 60_000).round();
       final growth = (rng.nextDouble() * 18 + 2);
-      final planLabel = switch (i % 3) { 0 => 'Demo', 1 => 'Pro', _ => 'Basic' };
+      final planLabel = switch (i % 3) {
+        0 => 'Demo',
+        1 => 'Pro',
+        _ => 'Basic',
+      };
       return TopInstituteRow(
         name: 'Institute ${String.fromCharCode(65 + i)}',
         revenuePkr: rev,
@@ -479,7 +394,11 @@ class AnalyticsSnapshot {
     final expiries = List<ExpiryRow>.generate(6, (i) {
       final days = i == 0 ? 2 : (3 + i * 3);
       final date = DateTime.now().add(Duration(days: days));
-      final planLabel = switch (i % 3) { 0 => 'Demo', 1 => 'Pro', _ => 'Basic' };
+      final planLabel = switch (i % 3) {
+        0 => 'Demo',
+        1 => 'Pro',
+        _ => 'Basic',
+      };
       return ExpiryRow(
         name: 'Institute ${String.fromCharCode(75 + i)}',
         plan: planLabel,
@@ -545,11 +464,13 @@ List<SubscriptionRecord> _filterByPlan(
 ) {
   if (filter == null) return input;
 
-  return input.where((s) {
-    final p = planById[s.planId];
-    final name = p?.name ?? s.planId;
-    return name == filter;
-  }).toList(growable: false);
+  return input
+      .where((s) {
+        final p = planById[s.planId];
+        final name = p?.name ?? s.planId;
+        return name == filter;
+      })
+      .toList(growable: false);
 }
 
 List<PaymentRecord> _filterPaymentsByPlan(
@@ -585,7 +506,9 @@ int _revenueInRange({
   required DateTime start,
   required DateTime end,
 }) {
-  final approved = payments.where((p) => p.status == PaymentReviewStatus.approved);
+  final approved = payments.where(
+    (p) => p.status == PaymentReviewStatus.approved,
+  );
   final sumPayments = approved
       .where((p) => !p.createdAt.isBefore(start) && p.createdAt.isBefore(end))
       .fold<int>(0, (sum, p) => sum + p.amountPkr);
@@ -616,10 +539,20 @@ _SeriesResult _buildSeries({
 
   DateTime bucketStart(DateTime anchor, int i) {
     return switch (range) {
-      AnalyticsRange.last12Months => DateTime(anchor.year, anchor.month - (buckets - 1 - i), 1),
-      AnalyticsRange.last3Months => anchor.subtract(Duration(days: (buckets - 1 - i) * 7)),
-      AnalyticsRange.last30 => anchor.subtract(Duration(days: (buckets - 1 - i))),
-      AnalyticsRange.last7 => anchor.subtract(Duration(days: (buckets - 1 - i))),
+      AnalyticsRange.last12Months => DateTime(
+        anchor.year,
+        anchor.month - (buckets - 1 - i),
+        1,
+      ),
+      AnalyticsRange.last3Months => anchor.subtract(
+        Duration(days: (buckets - 1 - i) * 7),
+      ),
+      AnalyticsRange.last30 => anchor.subtract(
+        Duration(days: (buckets - 1 - i)),
+      ),
+      AnalyticsRange.last7 => anchor.subtract(
+        Duration(days: (buckets - 1 - i)),
+      ),
     };
   }
 
@@ -676,7 +609,7 @@ PlanDistribution _planDistribution(
     final plan = planById[s.planId];
     String label = plan?.name ?? s.planId;
     if (label.trim().isEmpty) label = 'Unknown';
-    
+
     counts[label] = (counts[label] ?? 0) + 1;
   }
 
@@ -708,7 +641,8 @@ List<TopInstituteRow> _topInstitutes({
   final byAcademy = <String, int>{};
   for (final p in payments) {
     if (p.status != PaymentReviewStatus.approved) continue;
-    if (p.createdAt.isBefore(window.start) || !p.createdAt.isBefore(window.end)) {
+    if (p.createdAt.isBefore(window.start) ||
+        !p.createdAt.isBefore(window.end)) {
       continue;
     }
     byAcademy[p.academyId] = (byAcademy[p.academyId] ?? 0) + p.amountPkr;
@@ -736,21 +670,25 @@ List<TopInstituteRow> _topInstitutes({
     return sum;
   }
 
-  final rows = byAcademy.entries.map((e) {
-    final academy = academyById[e.key];
-    final name = academy?.name ?? e.key;
-    final planName = planById[academy?.planId ?? '']?.name ??
-        (academy?.planId ?? '—');
-    final prev = revenuePrev(e.key);
-    final growthPct = _pctValue(e.value, prev);
-    return TopInstituteRow(
-      name: name,
-      revenuePkr: e.value,
-      plan: planName.trim().isEmpty ? '—' : planName,
-      growthPct: growthPct,
-    );
-  }).toList(growable: true)
-    ..sort((a, b) => b.revenuePkr.compareTo(a.revenuePkr));
+  final rows =
+      byAcademy.entries
+          .map((e) {
+            final academy = academyById[e.key];
+            final name = academy?.name ?? e.key;
+            final planName =
+                planById[academy?.planId ?? '']?.name ??
+                (academy?.planId ?? '—');
+            final prev = revenuePrev(e.key);
+            final growthPct = _pctValue(e.value, prev);
+            return TopInstituteRow(
+              name: name,
+              revenuePkr: e.value,
+              plan: planName.trim().isEmpty ? '—' : planName,
+              growthPct: growthPct,
+            );
+          })
+          .toList(growable: true)
+        ..sort((a, b) => b.revenuePkr.compareTo(a.revenuePkr));
 
   return rows.take(6).toList(growable: false);
 }

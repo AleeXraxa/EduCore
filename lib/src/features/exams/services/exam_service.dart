@@ -34,9 +34,19 @@ class ExamService {
   // ==========================================
 
   Stream<List<Exam>> watchExams(String academyId) {
-    return _examsCol(academyId).orderBy('createdAt', descending: true).snapshots().map((snap) {
+    return _examsCol(academyId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) {
       return snap.docs.map((doc) => Exam.fromMap(doc.id, doc.data())).toList();
     });
+  }
+
+  Future<List<Exam>> getExams(String academyId) async {
+    final snap = await _examsCol(academyId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((doc) => Exam.fromMap(doc.id, doc.data())).toList();
   }
 
   Future<Exam?> getExam(String academyId, String examId) async {

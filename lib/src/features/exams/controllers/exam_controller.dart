@@ -26,15 +26,18 @@ class ExamController extends BaseController {
         _classService = classService ?? AppServices.instance.classService!,
         _studentService = studentService ?? AppServices.instance.studentService!,
         _academyId = AppServices.instance.authService!.session!.academyId {
-    _init();
+    load();
   }
 
-  StreamSubscription? _examsSub;
-  List<Exam> _exams = [];
-  List<Exam> get exams => _exams;
+  List<Exam> _allExams = [];
+  List<Exam> _filteredExams = [];
+  List<Exam> get exams => _filteredExams;
 
   List<InstituteClass> _classes = [];
   List<InstituteClass> get classes => _classes;
+
+  String _searchQuery = '';
+  Timer? _searchDebounce;
 
   // Selected state for navigation/forms
   Exam? selectedExam;
@@ -43,18 +46,50 @@ class ExamController extends BaseController {
   List<ExamResult> currentResults = [];
   List<Student> currentStudentsForMarks = [];
 
-  void _init() {
-    _examsSub = _examService.watchExams(_academyId).listen((data) {
-      _exams = data;
-      notifyListeners();
-    });
-    
-    // Preload classes for UI dropdowns
-    _classService.getClasses(_academyId).then((data) {
-      _classes = data;
-      notifyListeners();
+  Future<void> load() async {
+    await runBusy(() async {
+      try {
+        final results = await Future.wait([
+          _examService.getExams(_academyId),
+          _classService.getClasses(_academyId),
+        ]);
+
+        _allExams = results[0] as List<Exam>;
+        _classes = results[1] as List<InstituteClass>;
+
+        _applyFilters();
+      } catch (e) {
+        debugPrint('Error loading exams: $e');
+      }
     });
   }
+
+  void _applyFilters() {
+    _filteredExams = _allExams.where((e) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          e.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (e.className?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+              false);
+      return matchesSearch;
+    }).toList();
+
+    // Local Sorting - by Date descending
+    _filteredExams.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    notifyListeners();
+  }
+
+  void onSearchChanged(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters();
+    });
+  }
+
+  void init() => load();
 
   // ==========================================
   // EXAM CRUD
@@ -128,16 +163,9 @@ class ExamController extends BaseController {
 
   Future<bool> loadMarksEntry(ExamSchedule schedule) async {
     return (await runBusy(() async {
-      // 1. Fetch students for the class
-      final snap = await AppServices.instance.firestore!
-          .collection('academies')
-          .doc(_academyId)
-          .collection('students')
-          .where('classId', isEqualTo: schedule.classId)
-          .where('status', isEqualTo: 'active')
-          .get();
-      
-      currentStudentsForMarks = snap.docs.map((doc) => Student.fromMap(doc.id, doc.data())).toList();
+      // 1. Fetch active students for the class
+      currentStudentsForMarks =
+          await _studentService.getClassStudents(_academyId, schedule.classId);
 
       // 2. Fetch existing marks for this schedule
       currentMarks = await _examService.getMarks(_academyId, schedule.id);
@@ -208,8 +236,8 @@ class ExamController extends BaseController {
 
   @override
   void dispose() {
-    _examsSub?.cancel();
     _scheduleSub?.cancel();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 }
