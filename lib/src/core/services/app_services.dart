@@ -26,6 +26,7 @@ import 'package:educore/src/core/services/fee_plan_service.dart';
 import 'package:educore/src/core/services/attendance_service.dart';
 import 'package:educore/src/core/services/fee_generation_lock_service.dart';
 import 'package:educore/src/core/services/fee_document_service.dart';
+import 'package:educore/src/core/services/role_defaults_service.dart';
 
 import 'package:educore/src/features/students/services/student_service.dart';
 import 'package:educore/src/features/exams/services/exam_service.dart';
@@ -75,6 +76,7 @@ class AppServices {
   AuditLogService? auditLogService;
   ExamService? examService;
   MonthlyTestService? monthlyTestService;
+  RoleDefaultsService? roleDefaultsService;
   
   // Repositories
   UserRepository? userRepository;
@@ -143,10 +145,13 @@ class AppServices {
       featureService = FeatureService(firestore: firestore!);
       subscriptionService = SubscriptionService(firestore: firestore!);
       
+      roleDefaultsService = RoleDefaultsService(firestore: firestore!);
+      
       featureAccessService = FeatureAccessService(
         featureService: featureService!,
         planService: planService!,
         subscriptionService: subscriptionService!,
+        roleDefaultsService: roleDefaultsService,
       );
       
       instituteService = InstituteService(

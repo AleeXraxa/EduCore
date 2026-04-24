@@ -43,7 +43,7 @@ class _NotificationsViewState extends State<NotificationsView> {
       controller: _controller,
       builder: (context, controller, child) {
         final featureSvc = AppServices.instance.featureAccessService;
-        if (featureSvc == null || !featureSvc.canAccess('notifications_view')) {
+        if (featureSvc == null || !featureSvc.canAccess('notification_view')) {
           return const AccessDeniedView(featureName: 'Notifications Hub');
         }
 

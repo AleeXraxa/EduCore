@@ -145,7 +145,7 @@ class _StudentsViewState extends State<StudentsView> {
   @override
   Widget build(BuildContext context) {
     final featureSvc = AppServices.instance.featureAccessService;
-    if (featureSvc == null || !featureSvc.canAccess('students_view')) {
+    if (featureSvc == null || !featureSvc.canAccess('student_view')) {
       return const AccessDeniedView(featureName: 'Students Management');
     }
 

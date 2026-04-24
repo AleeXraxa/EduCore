@@ -50,7 +50,7 @@ class _MonthlyTestsViewState extends State<MonthlyTestsView> {
       controller: _controller,
       builder: (context, controller, _) {
         final featureSvc = AppServices.instance.featureAccessService;
-        if (featureSvc == null || !featureSvc.canAccess('monthly_tests_view')) {
+        if (featureSvc == null || !featureSvc.canAccess('monthly_test_view')) {
           return const AccessDeniedView(featureName: 'Monthly Tests');
         }
 

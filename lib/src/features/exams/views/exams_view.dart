@@ -44,7 +44,7 @@ class _ExamsViewState extends State<ExamsView> {
       controller: _controller,
       builder: (context, controller, _) {
         final featureSvc = AppServices.instance.featureAccessService;
-        if (featureSvc == null || !featureSvc.canAccess('exams_view')) {
+        if (featureSvc == null || !featureSvc.canAccess('exam_view')) {
           return const AccessDeniedView(featureName: 'Exams & Results');
         }
 

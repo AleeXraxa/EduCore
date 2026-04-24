@@ -48,7 +48,7 @@ class _FeesViewState extends State<FeesView>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final featureSvc = AppServices.instance.featureAccessService;
-    if (featureSvc == null || !featureSvc.canAccess('fees_view')) {
+    if (featureSvc == null || !featureSvc.canAccess('fee_view')) {
       return const AccessDeniedView(featureName: 'Fee Management');
     }
 
@@ -196,7 +196,7 @@ class _FeesHeader extends StatelessWidget {
                   label: const Text('Generate Monthly Fees'),
                 ),
               const SizedBox(width: 12),
-              if (featureSvc.canAccess('fees_manage'))
+              if (featureSvc.canAccess('fee_manage'))
                 FilledButton.tonalIcon(
                   onPressed: () => _showCreateOtherFeeDialog(context),
                   icon: const Icon(Icons.add_rounded),
@@ -513,7 +513,7 @@ class _FeeRow extends StatelessWidget {
                     builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
                   ),
                 ),
-              if (featureSvc.canAccess('fees_manage'))
+              if (featureSvc.canAccess('fee_manage'))
                 AppActionItem(
                   label: 'Edit Record',
                   icon: Icons.edit_rounded,

@@ -4,19 +4,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/services/feature_service.dart';
 import 'package:educore/src/core/services/plan_service.dart';
 import 'package:educore/src/core/services/subscription_service.dart';
+import 'package:educore/src/core/services/role_defaults_service.dart';
 
 class FeatureAccessService {
   FeatureAccessService({
     required FeatureService featureService,
     required PlanService planService,
     required SubscriptionService subscriptionService,
+    RoleDefaultsService? roleDefaultsService,
   }) : _featureService = featureService,
        _planService = planService,
-       _subscriptionService = subscriptionService;
+       _subscriptionService = subscriptionService,
+       _roleDefaultsService = roleDefaultsService;
 
   final FeatureService _featureService;
   final PlanService _planService;
   final SubscriptionService _subscriptionService;
+  final RoleDefaultsService? _roleDefaultsService;
+
+  Map<String, List<String>> _roleDefaults = {};
 
   String? _currentAcademyId;
   String? _currentStaffId;
@@ -37,7 +43,11 @@ class FeatureAccessService {
     }
   }
 
-  Future<void> init(String academyId, {String? staffId, bool isSuperAdmin = false}) async {
+  Future<void> init(
+    String academyId, {
+    String? staffId,
+    bool isSuperAdmin = false,
+  }) async {
     _currentAcademyId = academyId;
     _currentStaffId = staffId;
     _isSuperAdmin = isSuperAdmin;
@@ -59,11 +69,23 @@ class FeatureAccessService {
       return false;
     }
 
-    final allowed = _allowedFeatures.contains(featureKey);
+    final key = _normalize(featureKey);
+    final allowed = _allowedFeatures.contains(key);
+
     debugPrint(
-      'FeatureAccess: $featureKey -> ${allowed ? 'ALLOWED' : 'DENIED'}',
+      'FeatureAccess: $featureKey ($key) -> ${allowed ? 'ALLOWED' : 'DENIED'}',
     );
     return allowed;
+  }
+
+  String _normalize(String key) {
+    return key.toLowerCase()
+        .replaceAll('students', 'student')
+        .replaceAll('fees', 'fee')
+        .replaceAll('classes', 'class')
+        .replaceAll('exams', 'exam')
+        .replaceAll('monthly_tests', 'monthly_test')
+        .replaceAll('notifications', 'notification');
   }
 
   /// Returns the current list of allowed feature keys.
@@ -79,11 +101,16 @@ class FeatureAccessService {
 
   Future<void> _load() async {
     try {
+      // 0. Load Role Defaults (Dynamic)
+      if (_roleDefaultsService != null) {
+        _roleDefaults = await _roleDefaultsService!.getRoleDefaults();
+      }
+
       // 1. Load Registry (Always needed to know what features exist)
       final registry = await _featureService.watchFeatures().first;
       final activeInRegistry = registry
           .where((f) => f.isActive)
-          .map((f) => f.key)
+          .map((f) => _normalize(f.key))
           .toSet();
 
       // OPTION: Super Admin bypass
@@ -110,7 +137,7 @@ class FeatureAccessService {
       if (subscription?.planId != null && subscription!.planId.isNotEmpty) {
         final plan = await _planService.getPlan(subscription.planId);
         if (plan != null) {
-          planFeatures = plan.features.toSet();
+          planFeatures = plan.features.map(_normalize).toSet();
         }
       }
 
@@ -118,7 +145,7 @@ class FeatureAccessService {
       Set<String> staffAllowed = {};
       Set<String> staffDenied = {};
       String? staffRole;
-      
+
       if (_currentStaffId != null) {
         final staffDoc = await FirebaseFirestore.instance
             .collection('academies')
@@ -126,12 +153,20 @@ class FeatureAccessService {
             .collection('staff')
             .doc(_currentStaffId)
             .get();
-        
+
         if (staffDoc.exists) {
           final data = staffDoc.data()!;
           staffRole = data['role']?.toString();
-          staffAllowed = (data['assignedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
-          staffDenied = (data['deniedFeatureKeys'] as List<dynamic>?)?.map((e) => e.toString()).toSet() ?? {};
+          staffAllowed =
+              (data['assignedFeatureKeys'] as List<dynamic>?)
+                  ?.map((e) => _normalize(e.toString()))
+                  .toSet() ??
+              {};
+          staffDenied =
+              (data['deniedFeatureKeys'] as List<dynamic>?)
+                  ?.map((e) => _normalize(e.toString()))
+                  .toSet() ??
+              {};
         }
       }
 
@@ -144,7 +179,7 @@ class FeatureAccessService {
         // --- STEP 1: SUBSCRIPTION BOUNDARY (HARD LIMIT) ---
         final inPlan = planFeatures.contains(key);
         final forciblyEnabled = overrides?.isEnabled(key) ?? false;
-        
+
         // If it's not in the plan AND not explicitly granted via SA override, DENY ALWAYS.
         final academyHasAccess = inPlan || forciblyEnabled;
         if (!academyHasAccess) continue;
@@ -191,34 +226,53 @@ class FeatureAccessService {
 
   /// Role-based default permissions (Only used as a fallback)
   bool _hasRoleAccess(String role, String featureKey) {
+    // Normalize feature key
+    final normalized = _normalize(featureKey);
+
     // These defaults are only applied WITHIN the academy's plan boundary
     final defaults = {
-      'admin': {
-        'dashboard', 'staff_view', 'staff_manage', 'staff_add', 'staff_edit', 'staff_delete', 'role_management',
-        'classes_view', 'classes_manage', 'class_create', 'class_edit', 'class_delete', 'section_management', 'teacher_assignment',
-        'students_view', 'students_manage', 'student_create', 'student_edit', 'student_delete', 'bulk_import',
-        'attendance_view', 'attendance_mark', 'attendance_edit', 'attendance_report',
-        'exams_view', 'exams_manage', 'exam_create', 'exam_edit', 'exam_delete', 'marks_entry', 'result_publish',
-        'monthly_tests_view', 'monthly_tests_manage', 'test_create', 'test_edit', 'test_delete', 'question_manage',
-        'fees_view', 'fees_manage', 'fee_collect', 'fee_refund', 'challan_generate', 'fee_plan_view', 'fee_plan_manage',
-        'expense_view', 'expense_manage', 'fee_override', 
-        'payments_view', 'payment_approve', 'payment_reject', 'payment_create',
-        'analytics_view', 'audit_view',
-        'settings_view', 'settings_edit',
-        'notifications_view', 'notifications_add', 'notifications_delete', 'notifications_maintenance'
+      'institute_admin': {
+        'dashboard', 'academic_year_manage', 'advanced_analytics', 'ai_insights',
+        'announcement_schedule', 'announcement_send', 'attendance_edit', 'attendance_export',
+        'attendance_mark', 'attendance_monthly_summary', 'attendance_reports', 'attendance_view',
+        'audit_logs_view', 'automated_fee_generation', 'backup_restore', 'broadcast_message',
+        'certificate_create', 'certificate_download', 'certificate_generate', 'certificate_template_manage',
+        'certificate_verification', 'class_create', 'class_delete', 'class_edit', 'class_view',
+        'custom_dashboard_builder', 'dashboard_analytics', 'data_export_csv', 'data_export_excel',
+        'email_notifications', 'exam_create', 'exam_reports', 'exam_schedule', 'exams_view',
+        'exam_view', // Add both for safety
+        'expense_add', 'expense_delete', 'expense_edit', 'expense_reports', 'expense_view',
+        'fee_collect', 'fee_create', 'fee_delete', 'fee_discount_apply', 'fee_edit',
+        'fee_history_view', 'fee_monthly_generate', 'fee_partial_payment', 'fee_pending_view',
+        'fee_plan_assign', 'fee_plan_create', 'fee_plan_delete', 'fee_plan_edit', 'fee_plan_view', 'fee_plan',
+        'fee_receipt_generate', 'fee_reports', 'fee_view', 'financial_reports', 'grade_system_manage',
+        'login_access', 'marks_entry', 'monthly_test_view', 'result_edit', 'result_generate',
+        'result_publish', 'result_view', 'role_management', 'section_management', 'settings_view',
+        'smart_notifications', 'sms_notifications', 'staff_add', 'staff_attendance', 'staff_delete',
+        'staff_edit', 'staff_view', 'student_create', 'student_delete', 'student_edit',
+        'student_id_generate', 'student_profile_documents', 'student_reports', 'student_transfer',
+        'student_view', 'subject_management', 'teacher_assignment', 'test_bulk_import',
+        'test_create', 'test_delete', 'test_edit', 'test_generate_paper', 'test_marks_entry',
+        'test_questions_manage', 'test_result_download', 'test_result_view', 'timetable_setup',
+        'user_management', 'whatsapp_api_integration', 'whatsapp_integration'
       },
       'teacher': {
-        'dashboard', 'classes_view', 'students_view', 
-        'attendance_view', 'attendance_mark', 'exams_view', 'exams_manage',
-        'monthly_tests_view', 'monthly_tests_manage'
+        'dashboard', 'class_view', 'student_view', 'attendance_view', 'attendance_mark',
+        'exams_view', 'exam_view', 'marks_entry', 'monthly_test_view', 'test_marks_entry',
+        'test_result_view', 'result_view'
       },
       'accountant': {
-        'dashboard', 'fees_view', 'fees_manage', 'expense_view', 'expense_manage',
+        'dashboard', 'fee_view', 'fee_collect', 'fee_reports', 'fee_history_view',
+        'expense_view', 'expense_add', 'expense_edit', 'expense_reports', 'financial_reports',
         'settings_view'
       },
     };
 
-    return defaults[role.toLowerCase()]?.contains(featureKey) ?? false;
+    final effectiveDefaults = _roleDefaults.isEmpty ? defaults : _roleDefaults;
+    final allowedForRole = effectiveDefaults[role.toLowerCase()] ?? {};
+
+    // Check both original and normalized
+    return allowedForRole.contains(featureKey) || allowedForRole.contains(normalized);
   }
 
   /// Watches effective access for a specific academy.

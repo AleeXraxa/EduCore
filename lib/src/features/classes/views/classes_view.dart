@@ -43,7 +43,7 @@ class _ClassesViewState extends State<ClassesView> {
       controller: _controller,
       builder: (context, controller, child) {
         final featureSvc = AppServices.instance.featureAccessService;
-        if (featureSvc == null || !featureSvc.canAccess('classes_view')) {
+        if (featureSvc == null || !featureSvc.canAccess('class_view')) {
           return const AccessDeniedView(featureName: 'Class Management');
         }
 

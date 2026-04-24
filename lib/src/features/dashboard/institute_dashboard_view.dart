@@ -99,14 +99,14 @@ enum _InstituteNav {
     'Students',
     'Student Directory',
     Icons.people_alt_rounded,
-    featureKey: 'students_view',
+    featureKey: 'student_view',
   ),
   classes(
     'classes',
     'Classes',
     'Class Management',
     Icons.class_rounded,
-    featureKey: 'classes_view',
+    featureKey: 'class_view',
   ),
   attendance(
     'attendance',
@@ -120,14 +120,14 @@ enum _InstituteNav {
     'Fees / Payments',
     'Fee Collection',
     Icons.request_quote_rounded,
-    featureKey: 'fees_view',
+    featureKey: 'fee_view',
   ),
   feePlans(
     'fee_plans',
     'Fee Plans',
     'Pricing Structures',
     Icons.payments_rounded,
-    featureKey: 'fee_plans_view',
+    featureKey: 'fee_plan_view',
   ),
   staff(
     'staff',
@@ -141,14 +141,14 @@ enum _InstituteNav {
     'Exams & Results',
     'Academic Assessments',
     Icons.assessment_rounded,
-    featureKey: 'exams_view',
+    featureKey: 'exam_view',
   ),
   monthlyTests(
     'monthly_tests',
     'Monthly Tests',
     'Monthly Assessments',
     Icons.quiz_rounded,
-    featureKey: 'monthly_tests_view',
+    featureKey: 'monthly_test_view',
   ),
   settings(
     'settings',
@@ -320,7 +320,7 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
                       direction: size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (AppServices.instance.featureAccessService?.canAccess('students_view') ?? true)
+                        if (AppServices.instance.featureAccessService?.canAccess('student_view') ?? true)
                           Expanded(
                             flex: 1,
                             child: _RecentList(
@@ -332,13 +332,13 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
                               subtitleKey: 'className',
                             ),
                           ),
-                        if ((AppServices.instance.featureAccessService?.canAccess('students_view') ?? true) &&
-                            (AppServices.instance.featureAccessService?.canAccess('fees_view') ?? true))
+                        if ((AppServices.instance.featureAccessService?.canAccess('student_view') ?? true) &&
+                            (AppServices.instance.featureAccessService?.canAccess('fee_view') ?? true))
                           SizedBox(
                             width: size == ScreenSize.compact ? 0 : 24,
                             height: size == ScreenSize.compact ? 24 : 0,
                           ),
-                        if (AppServices.instance.featureAccessService?.canAccess('fees_view') ?? true)
+                        if (AppServices.instance.featureAccessService?.canAccess('fee_view') ?? true)
                           Expanded(
                             child: _RecentList(
                               title: 'Recent Payments',
