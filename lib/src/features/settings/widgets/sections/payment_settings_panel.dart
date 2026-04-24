@@ -49,7 +49,7 @@ class _PaymentSettingsPanelState extends State<PaymentSettingsPanel> {
                 Expanded(
                   child: AppTextField(
                     label: 'Account Title',
-                    hintText: 'EduCore',
+                    hintText: 'Institute Name',
                     initialValue: config.accountTitle,
                     onChanged: (v) => onUpdate(config.copyWith(accountTitle: v)),
                   ),
@@ -80,7 +80,7 @@ class _PaymentSettingsPanelState extends State<PaymentSettingsPanel> {
                 Expanded(
                   child: AppTextField(
                     label: 'Account Title',
-                    hintText: 'EduCore',
+                    hintText: 'Institute Name',
                     initialValue: config.accountTitle,
                     onChanged: (v) => onUpdate(config.copyWith(accountTitle: v)),
                   ),
@@ -118,7 +118,7 @@ class _PaymentSettingsPanelState extends State<PaymentSettingsPanel> {
                 Expanded(
                   child: AppTextField(
                     label: 'Account Title',
-                    hintText: 'EduCore Solutions',
+                    hintText: 'Official Account Title',
                     initialValue: config.accountTitle,
                     onChanged: (v) => onUpdate(config.copyWith(accountTitle: v)),
                   ),

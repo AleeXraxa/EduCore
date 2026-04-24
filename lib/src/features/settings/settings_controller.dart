@@ -23,30 +23,33 @@ class SettingsController extends BaseController {
   }
 
   void _init() {
-    _subscription = _service?.watchGlobalSettings().listen((data) {
+    final academyId = _auth?.session?.academyId;
+    if (academyId == null) return;
+
+    _subscription = _service?.watchAcademySettings(academyId).listen((data) {
       _settings =
           data ??
           GlobalSettings(
-            appName: 'EduCore',
+            appName: 'Institute Name',
             appLogoUrl: '',
-            supportEmail: 'support@educore.com',
-            supportPhone: '+92 300 0000000',
+            supportEmail: '',
+            supportPhone: '',
             paymentMethods: {
               'jazzcash': PaymentMethodConfig(
-                isActive: true,
+                isActive: false,
                 number: '',
-                accountTitle: 'EduCore',
+                accountTitle: '',
               ),
               'easypaisa': PaymentMethodConfig(
-                isActive: true,
+                isActive: false,
                 number: '',
-                accountTitle: 'EduCore',
+                accountTitle: '',
               ),
               'bank': PaymentMethodConfig(
-                isActive: true,
+                isActive: false,
                 accountNumber: '',
-                accountTitle: 'EduCore',
-                bankName: 'Bank Name',
+                accountTitle: '',
+                bankName: '',
               ),
             },
           );
@@ -73,9 +76,12 @@ class SettingsController extends BaseController {
   }
 
   Future<void> save() async {
-    if (_settings == null) return;
+    final academyId = _auth?.session?.academyId;
+    if (_settings == null || academyId == null) return;
+    
     await runBusy<void>(() async {
-      await _service?.updateGlobalSettings(
+      await _service?.updateAcademySettings(
+        academyId,
         _settings!,
         userId: _auth?.currentUser?.uid,
       );
@@ -97,4 +103,16 @@ class SettingsController extends BaseController {
   bool enableNotifications = true;
   bool enableEmailNotifications = true;
   bool enablePushNotifications = false;
+
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await runBusy<void>(() async {
+      await _auth?.updatePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+    });
+  }
 }

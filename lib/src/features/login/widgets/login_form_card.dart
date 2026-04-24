@@ -45,7 +45,7 @@ class LoginFormCard extends StatelessWidget {
           children: [
             const AppSectionHeader(
               title: 'Welcome Back',
-              subtitle: 'Sign in to EduCore',
+              subtitle: 'Sign in to your account',
             ),
             const SizedBox(height: 18),
             AppTextField(

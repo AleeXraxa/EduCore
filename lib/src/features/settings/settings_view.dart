@@ -203,8 +203,6 @@ class _SectionBody extends StatelessWidget {
       SettingsSection.notificationSettings =>
         NotificationSettingsPanel(controller: controller),
       SettingsSection.security => SecuritySettingsPanel(controller: controller),
-      SettingsSection.systemPreferences =>
-        SystemPreferencesPanel(controller: controller),
     };
   }
 }

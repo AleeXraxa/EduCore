@@ -254,4 +254,23 @@ class AuthService extends ChangeNotifier {
       password: password,
     );
   }
+  /// Updates the current user's password.
+  /// Requires re-authentication with [currentPassword] for security.
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) throw Exception('No active user session');
+
+    // Re-authenticate
+    final cred = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(cred);
+
+    // Update Password
+    await user.updatePassword(newPassword);
+  }
 }

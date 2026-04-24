@@ -4,6 +4,7 @@ import 'package:educore/src/app/navigation/app_routes.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/features/settings/models/global_settings.dart';
 import 'package:flutter/material.dart';
 
 class Sidebar extends StatelessWidget {
@@ -152,16 +153,20 @@ class _BrandRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final settingsService = AppServices.instance.settingsService;
+    final academyId = AppServices.instance.authService?.session?.academyId;
+    final isSuperAdmin = AppServices.instance.authService?.session?.user.role.name == 'super_admin';
 
     return Container(
       padding: collapsed
           ? const EdgeInsets.symmetric(vertical: 20)
           : const EdgeInsets.fromLTRB(20, 20, 16, 8),
-      child: StreamBuilder(
-        stream: settingsService?.watchGlobalSettings(),
+      child: StreamBuilder<GlobalSettings?>(
+        stream: (isSuperAdmin || academyId == null)
+            ? settingsService?.watchAcademySettings('global') // Fallback/Global
+            : settingsService?.watchAcademySettings(academyId),
         builder: (context, snapshot) {
           final settings = snapshot.data;
-          final appName = settings?.appName ?? 'EduCore';
+          final appName = settings?.appName ?? (isSuperAdmin ? 'EduCore' : 'Institute');
           final logoUrl = settings?.appLogoUrl;
           final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
 
@@ -214,7 +219,7 @@ class _BrandRow extends StatelessWidget {
                             ),
                       ),
                       Text(
-                        (AppServices.instance.authService?.session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'PLATFORM ADMIN'),
+                        (AppServices.instance.authService?.session?.user.role.name.replaceAll('_', ' ').toUpperCase() ?? 'STAFF'),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w900,

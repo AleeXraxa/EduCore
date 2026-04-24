@@ -148,7 +148,7 @@ class _AnimatedCountText extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: numericValue),
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1000),
       curve: Curves.fastLinearToSlowEaseIn,
       builder: (context, val, child) {
         final formattedValue = val.toInt().toString();

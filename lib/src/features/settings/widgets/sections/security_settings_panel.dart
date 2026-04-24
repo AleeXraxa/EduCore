@@ -104,20 +104,40 @@ class _SecuritySettingsPanelState extends State<SecuritySettingsPanel> {
               Align(
                 alignment: Alignment.centerRight,
                 child: AppPrimaryButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState?.validate() != true) {
                       return;
                     }
 
-                    AppDialogs.showSuccess(
-                      context,
-                      title: 'Password Updated',
-                      message: 'Your security credentials have been updated successfully.',
-                    );
-                    _current.clear();
-                    _new.clear();
-                    _confirm.clear();
+                    try {
+                      AppDialogs.showLoading(context, message: 'Updating password...');
+                      await widget.controller.updatePassword(
+                        currentPassword: _current.text,
+                        newPassword: _new.text,
+                      );
+                      if (!mounted) return;
+                      AppDialogs.hide(context);
+                      AppDialogs.showSuccess(
+                        context,
+                        title: 'Password Updated',
+                        message: 'Your security credentials have been updated successfully.',
+                      );
+                      _current.clear();
+                      _new.clear();
+                      _confirm.clear();
+                    } catch (e) {
+                      if (!mounted) return;
+                      AppDialogs.hide(context);
+                      AppDialogs.showError(
+                        context,
+                        title: 'Update Failed',
+                        message: e.toString().contains('wrong-password') 
+                          ? 'The current password you entered is incorrect.'
+                          : 'An error occurred while updating your password. Please try again.',
+                      );
+                    }
                   },
+                  busy: widget.controller.busy,
                   icon: Icons.published_with_changes_rounded,
                   label: 'Update Password',
                 ),

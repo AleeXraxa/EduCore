@@ -58,18 +58,18 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
         const _SectionHeader(
           title: 'Identity & Branding',
           subtitle:
-              'Configure the public-facing attributes of the EduCore platform.',
+              'Configure the public-facing attributes of your institute.',
         ),
         const SizedBox(height: 20),
         _GroupCard(
-          title: 'PLATFORM IDENTITY',
+          title: 'INSTITUTE IDENTITY',
           child: Column(
             children: [
               AppTextField(
                 controller: _appName,
-                label: 'Platform Name',
-                hintText: 'EduCore',
-                prefixIcon: Icons.edit_note_rounded,
+                label: 'Institute Name',
+                hintText: 'Your Institute Name',
+                prefixIcon: Icons.business_rounded,
               ),
               const SizedBox(height: 16),
               Container(
@@ -95,7 +95,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'The platform name is displayed across login portals and email notifications.',
+                        'This name is displayed across portals, certificates, and student communications.',
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -108,7 +108,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
         ),
         const SizedBox(height: 12),
         _GroupCard(
-          title: 'PLATFORM SUPPORT',
+          title: 'CONTACT DETAILS',
           child: Column(
             children: [
               Row(
@@ -116,8 +116,8 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportEmail,
-                      label: 'Support Email',
-                      hintText: 'support@educore.com',
+                      label: 'Official Email',
+                      hintText: 'email@institute.com',
                       prefixIcon: Icons.email_rounded,
                     ),
                   ),
@@ -125,8 +125,8 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportPhone,
-                      label: 'Support Phone',
-                      hintText: '+92 300 0000000',
+                      label: 'Contact Number',
+                      hintText: '+92 000 0000000',
                       prefixIcon: Icons.phone_rounded,
                     ),
                   ),
@@ -136,7 +136,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'These details are accessible to all registered institutes in their support dashboard.',
+                  'These details will be used for official communications and displayed on reports.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,

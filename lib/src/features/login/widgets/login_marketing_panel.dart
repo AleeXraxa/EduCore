@@ -26,7 +26,7 @@ class LoginMarketingPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'EduCore',
+            'Institution Portal',
             style: textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w900,
               letterSpacing: -1.2,

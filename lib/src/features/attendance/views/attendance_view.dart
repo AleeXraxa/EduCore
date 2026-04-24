@@ -202,10 +202,9 @@ class _AttendanceHeader extends StatelessWidget {
             labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
             unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
             dividerColor: Colors.transparent,
-            tabs: [
-              const Tab(text: 'MARK ATTENDANCE'),
-              if (AppServices.instance.featureAccessService!.canAccess('attendance_report'))
-                const Tab(text: 'ADVANCED REPORTS'),
+            tabs: const [
+              Tab(text: 'MARK ATTENDANCE'),
+              Tab(text: 'ADVANCED REPORTS'),
             ],
           ),
         ],

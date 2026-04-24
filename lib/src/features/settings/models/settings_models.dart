@@ -4,7 +4,6 @@ enum SettingsSection {
   paymentSettings,
   notificationSettings,
   security,
-  systemPreferences,
   documentCustomization,
 }
 

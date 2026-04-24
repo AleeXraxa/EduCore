@@ -98,11 +98,6 @@ const _items = <_SettingsNavItem>[
     label: 'Security',
     icon: Icons.shield_rounded,
   ),
-  _SettingsNavItem(
-    section: SettingsSection.systemPreferences,
-    label: 'App Preferences',
-    icon: Icons.settings_suggest_rounded,
-  ),
 ];
 
 class _NavItem extends StatefulWidget {

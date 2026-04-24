@@ -202,9 +202,7 @@ class _StudentsViewState extends State<StudentsView> {
 
                         // Table Body
                         Expanded(
-                          child: RefreshIndicator(
-                            onRefresh: () => controller.loadInitialData(),
-                            child:
+                          child:
                                 controller.busy && controller.students.isEmpty
                                 ? const _LoadingSkeleton()
                                 : controller.students.isEmpty
@@ -223,7 +221,6 @@ class _StudentsViewState extends State<StudentsView> {
                                         ? _handleDelete
                                         : null,
                                   ),
-                          ),
                         ),
 
                         // Footer / Pagination
