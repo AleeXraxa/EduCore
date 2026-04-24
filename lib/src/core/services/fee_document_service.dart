@@ -257,18 +257,30 @@ class FeeDocumentService {
   // ── Academy Info ───────────────────────────────────────────────────────────
 
   /// Fetches academy display info for PDF headers.
+  /// Prioritizes white-label settings from 'settings/institute'
   Future<Map<String, String>> getAcademyInfo(String academyId) async {
     try {
-      final snap = await _firestore
+      // 1. Get base info
+      final academySnap = await _firestore
           .collection('academies')
           .doc(academyId)
           .get();
-      final data = snap.data() ?? {};
+      final baseData = academySnap.data() ?? {};
+
+      // 2. Get white-label info from settings/institute
+      final settingsSnap = await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('settings')
+          .doc('institute')
+          .get();
+      final settingsData = settingsSnap.data() ?? {};
+
       return {
-        'name': (data['name'] ?? 'Institute') as String,
-        'address': (data['address'] ?? '') as String,
-        'phone': (data['phone'] ?? '') as String,
-        'email': (data['email'] ?? '') as String,
+        'name': (settingsData['appName'] ?? baseData['name'] ?? 'Institute') as String,
+        'address': (baseData['address'] ?? '') as String,
+        'phone': (settingsData['supportPhone'] ?? baseData['phone'] ?? '') as String,
+        'email': (settingsData['supportEmail'] ?? baseData['email'] ?? '') as String,
       };
     } catch (e) {
       debugPrint('FeeDocumentService: Failed to fetch academy info: $e');

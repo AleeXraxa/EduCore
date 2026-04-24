@@ -140,6 +140,7 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
       final studentName =
           studentData?['name'] as String? ?? widget.fee.studentName ?? '';
       final fatherName = studentData?['fatherName'] as String? ?? '';
+      final rollNo = studentData?['rollNo'] as String? ?? '';
       final className =
           studentData?['className'] as String? ?? widget.fee.className ?? '';
 
@@ -157,6 +158,7 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
         challanNumber: widget.mode == 'challan' ? _documentNumber : null,
         receiptNumber: widget.mode == 'receipt' ? _documentNumber : null,
         fatherName: fatherName,
+        rollNo: rollNo,
         generatedAt: DateTime.now(),
         settings: docSettings,
       );

@@ -20,6 +20,7 @@ class FeeDocumentData {
     this.challanNumber,
     this.receiptNumber,
     this.fatherName,
+    this.rollNo,
     this.generatedAt,
     this.settings = const DocumentSettings(),
   });
@@ -34,6 +35,7 @@ class FeeDocumentData {
   final String? challanNumber;
   final String? receiptNumber;
   final String? fatherName;
+  final String? rollNo;
   final DateTime? generatedAt;
   final DocumentSettings settings;
 }
@@ -97,24 +99,24 @@ class FeePdfGenerator {
         theme: theme,
         build: (ctx) => [
           _buildHeader(data, fontBlack, fontBold, font),
-          pw.SizedBox(height: 24),
+          pw.SizedBox(height: 16),
           _buildDocumentBanner(data, fontBlack, fontBold),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 12),
           _buildStudentInfoSection(data, fontBold, font),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
           _buildFeeDetailsTable(data, fontBold, font),
           if (data.documentMode == 'receipt' && data.transactions.isNotEmpty)
             pw.Column(
               children: [
-                pw.SizedBox(height: 14),
+                pw.SizedBox(height: 10),
                 _buildTransactionSection(data, fontBold, font),
               ],
             ),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
           _buildAmountSummary(data, fontBlack, fontBold, font),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
           _buildNoteSection(data, font),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 12),
           _buildFooterBranding(data, font, fontBold),
         ],
       ),
@@ -340,58 +342,56 @@ class FeePdfGenerator {
     if (!s.showStudentInfo) return pw.SizedBox.shrink();
 
     return pw.Container(
-      padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: _borderColor),
         borderRadius: pw.BorderRadius.circular(8),
       ),
-      child: pw.Column(
+      child: pw.Table(
+        border: pw.TableBorder.symmetric(
+          inside: pw.BorderSide(color: _borderColor, width: 0.5),
+        ),
         children: [
-          pw.Row(
+          pw.TableRow(
             children: [
-              pw.Expanded(
-                child: _infoField(
-                  'Student Name',
-                  data.fee.studentName ?? '',
-                  fontBold,
-                  font,
-                ),
-              ),
-              if (s.showFatherName)
-                pw.Expanded(
-                  child: _infoField(
-                    'Father Name',
-                    data.fatherName ?? '',
-                    fontBold,
-                    font,
-                  ),
-                ),
+              _infoCell('STUDENT NAME', data.fee.studentName ?? '', fontBold, font),
+              _infoCell('FATHER NAME', data.fatherName ?? '', fontBold, font),
             ],
           ),
-          pw.SizedBox(height: 8),
-          pw.Row(
+          pw.TableRow(
             children: [
-              if (s.showClassSection)
-                pw.Expanded(
-                  child: _infoField(
-                    'Class',
-                    data.fee.className ?? '',
-                    fontBold,
-                    font,
-                  ),
-                ),
-              pw.Expanded(
-                child: _infoField('Fee Type', data.fee.title, fontBold, font),
-              ),
-              pw.Expanded(
-                child: _infoField(
-                  'Student ID',
-                  data.fee.studentId,
-                  fontBold,
-                  font,
-                ),
-              ),
+              _infoCell('CLASS / SECTION', data.fee.className ?? '', fontBold, font),
+              _infoCell('ROLL NO.', data.rollNo ?? '---', fontBold, font),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _infoCell(
+    String label,
+    String value,
+    pw.Font fontBold,
+    pw.Font font,
+  ) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              font: font,
+              fontSize: 7.5,
+              color: _textMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            value,
+            style: pw.TextStyle(font: fontBold, fontSize: 10, color: _textDark),
           ),
         ],
       ),
@@ -438,7 +438,7 @@ class FeePdfGenerator {
           // Fee row
           pw.TableRow(
             children: [
-              _tableCell(fee.title, font),
+              _tableCell(fee.className ?? '---', font),
               _tableCell(
                 'Rs. ${_currencyFmt.format(fee.originalAmount)}',
                 font,
@@ -787,70 +787,35 @@ class FeePdfGenerator {
           pw.SizedBox(height: 20),
         ],
         pw.Divider(color: _borderColor, thickness: 0.5),
-        pw.SizedBox(height: 8),
+        pw.SizedBox(height: 6),
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
             pw.Text(
               'Generated: ${_dateTimeFmt.format(data.generatedAt ?? DateTime.now())}',
               style: pw.TextStyle(fontSize: 7, font: font, color: _textMuted),
             ),
             pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 pw.Text(
-                  'System generated document — No signature required',
+                  'EduCore | Powered by TryUnity Solutions',
                   style: pw.TextStyle(
-                    fontSize: 7,
-                    font: font,
-                    color: _textMuted,
-                  ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  'EduCore — Powered by TryUnity Solutions',
-                  style: pw.TextStyle(
-                    fontSize: 7,
-                    font: font,
-                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 7.5,
+                    font: fontBold,
                     color: _primaryColor,
                   ),
                 ),
                 pw.Text(
-                  'Email: infotryunity@gmail.com | Phone: +92-302-3476605',
-                  style: pw.TextStyle(
-                    fontSize: 7,
-                    font: font,
-                    color: _textMuted,
-                  ),
+                  'Phone: +92-302-3476605',
+                  style: pw.TextStyle(fontSize: 7, font: font, color: _textMuted),
                 ),
               ],
             ),
             pw.Text(
-              data.academyName,
-              style: pw.TextStyle(
-                font: fontBold,
-                fontSize: 8,
-                color: _textMuted,
-              ),
-            ),
-          ],
-        ),
-        pw.SizedBox(height: 6),
-        pw.Column(
-          mainAxisAlignment: pw.MainAxisAlignment.center,
-          children: [
-            pw.Text(
-              'EduCore — Powered by TryUnity Solutions',
-              style: pw.TextStyle(
-                font: fontBold,
-                fontSize: 7,
-                color: _primaryColor,
-              ),
-            ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              'Email: infotryunity@gmail.com   |   Phone: +92-302-3476605',
-              style: pw.TextStyle(font: font, fontSize: 7, color: _textMuted),
+              'System generated document | No signature required',
+              style: pw.TextStyle(fontSize: 7, font: font, color: _textMuted),
             ),
           ],
         ),
@@ -883,33 +848,6 @@ class FeePdfGenerator {
     );
   }
 
-  static pw.Widget _infoField(
-    String label,
-    String value,
-    pw.Font fontBold,
-    pw.Font font,
-  ) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          label.toUpperCase(),
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 7,
-            color: _textMuted,
-            letterSpacing: 0.5,
-          ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(
-          value,
-          style: pw.TextStyle(font: fontBold, fontSize: 10, color: _textDark),
-        ),
-      ],
-    );
-  }
-
   static pw.Widget _noteBullet(String text, pw.Font font) {
     return pw.Padding(
       padding: const pw.EdgeInsets.only(bottom: 4),
@@ -928,44 +866,6 @@ class FeePdfGenerator {
                 fontSize: 8.5,
                 color: _textDark,
                 lineSpacing: 2,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _infoRow(
-    String label,
-    String value,
-    pw.Font fontBold,
-    pw.Font font,
-  ) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 100,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                font: fontBold,
-                fontSize: 9,
-                color: _textMuted,
-              ),
-            ),
-          ),
-          pw.Text(': ', style: pw.TextStyle(fontSize: 9, color: _textMuted)),
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(
-                font: fontBold,
-                fontSize: 9,
-                color: _textDark,
               ),
             ),
           ),
@@ -1001,15 +901,6 @@ class FeePdfGenerator {
         ],
       ),
     );
-  }
-
-  // ── Utilities ─────────────────────────────────────────────────────────────
-
-  static String _initials(String name) {
-    final words = name.trim().split(RegExp(r'\s+'));
-    if (words.isEmpty) return 'I';
-    if (words.length == 1) return words[0][0].toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
   }
 
   static String _feeTypeLabel(FeeType type) {
