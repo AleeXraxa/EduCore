@@ -109,6 +109,11 @@ const _items = <_SettingsNavItem>[
     label: 'Security',
     icon: Icons.shield_rounded,
   ),
+  _SettingsNavItem(
+    section: SettingsSection.studentCustomFields,
+    label: 'Student Fields',
+    icon: Icons.dynamic_feed_rounded,
+  ),
 ];
 
 class _NavItem extends StatefulWidget {

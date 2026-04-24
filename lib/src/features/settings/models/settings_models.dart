@@ -5,6 +5,7 @@ enum SettingsSection {
   notificationSettings,
   security,
   documentCustomization,
+  studentCustomFields,
 }
 
 enum Currency { pkr, usd }

@@ -293,7 +293,29 @@ service cloud.firestore {
         allow create, update: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
         allow delete: if false;
       }
+
+      // --- Certificates & Templates ---
+      match /certificates/{certId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
+
+      match /certificate_templates/{templateId} {
+        allow read:   if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
     }
+
+    // ======================================================
+    // §16  COLLECTION GROUP: certificates (Public Verification)
+    // ======================================================
+    match /{path=**}/certificates/{certId} {
+      // Allow anyone to read a single certificate for verification
+      allow get: if true;
+    }
+
 
     // ======================================================
     // §8  COLLECTION: subscriptions/{academyId}

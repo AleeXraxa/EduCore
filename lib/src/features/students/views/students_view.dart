@@ -14,6 +14,8 @@ import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/views/student_form_dialog.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
+import 'package:educore/src/features/students/views/update_status_dialog.dart';
+import 'package:educore/src/features/students/views/assign_fee_plan_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
@@ -110,34 +112,52 @@ class _StudentsViewState extends State<StudentsView> {
     );
   }
 
+  void _showUpdateStatus(Student student) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          UpdateStudentStatusDialog(student: student, controller: _controller),
+    );
+  }
+
+  void _showAssignFeePlan(Student student) {
+    showDialog(
+      context: context,
+      builder: (_) => AssignFeePlanDialog(student: student),
+    ).then((success) {
+      if (success == true) {
+        _controller.loadInitialData();
+      }
+    });
+  }
+
   Future<void> _handleDelete(Student student) async {
     final confirmed = await AppDialogs.showDeleteConfirmation(
       context,
+      title: 'Delete Student',
       message:
           'Are you sure you want to delete ${student.name}? This action cannot be undone.',
     );
 
-    if (confirmed == true) {
-      if (mounted) {
-        AppDialogs.showLoading(context, message: 'Deleting record...');
-      }
-      final success = await _controller.deleteStudent(student.id);
-      if (mounted) {
-        AppDialogs.hideLoading(context);
-        if (success) {
-          AppDialogs.showSuccess(
-            context,
-            title: 'Record Deleted',
-            message: '${student.name} has been removed from the system.',
-          );
-        } else {
-          AppDialogs.showError(
-            context,
-            title: 'Delete Failed',
-            message:
-                'An error occurred while trying to delete the student record.',
-          );
-        }
+    if (!mounted || confirmed != true) return;
+
+    final success = await _controller.deleteStudent(student.id);
+    
+    if (mounted) {
+      if (success) {
+        AppDialogs.showSuccess(
+          context,
+          title: 'Record Deleted',
+          message: '${student.name} has been removed from the system.',
+        );
+      } else {
+        AppDialogs.showError(
+          context,
+          title: 'Delete Failed',
+          message:
+              'An error occurred while trying to delete the student record.',
+        );
       }
     }
   }
@@ -165,7 +185,9 @@ class _StudentsViewState extends State<StudentsView> {
                 _StudentsPageHeader(
                   controller: controller,
                   onAddStudent: canCreate ? () => _showStudentForm() : null,
-                  onBulkImport: featureSvc.canAccess('bulk_import') ? _showBulkImport : null,
+                  onBulkImport: featureSvc.canAccess('bulk_import')
+                      ? _showBulkImport
+                      : null,
                   searchController: _searchController,
                   errorMessage: controller.errorMessage,
                 ),
@@ -202,25 +224,26 @@ class _StudentsViewState extends State<StudentsView> {
 
                         // Table Body
                         Expanded(
-                          child:
-                                controller.busy && controller.students.isEmpty
-                                ? const _LoadingSkeleton()
-                                : controller.students.isEmpty
-                                ? _EmptyStudents(
-                                    onAdd: canCreate
-                                        ? () => _showStudentForm()
-                                        : null,
-                                  )
-                                : _StudentTable(
-                                    controller: controller,
-                                    scrollController: _scrollController,
-                                    onView: _showStudentProfile,
-                                    onEdit: canCreate ? _showStudentForm : null,
-                                    onDelete:
-                                        featureSvc.canAccess('student_delete')
-                                        ? _handleDelete
-                                        : null,
-                                  ),
+                          child: controller.busy && controller.students.isEmpty
+                              ? const _LoadingSkeleton()
+                              : controller.students.isEmpty
+                              ? _EmptyStudents(
+                                  onAdd: canCreate
+                                      ? () => _showStudentForm()
+                                      : null,
+                                )
+                              : _StudentTable(
+                                  students: controller.students,
+                                  scrollController: _scrollController,
+                                  onView: _showStudentProfile,
+                                  onEdit: canCreate ? _showStudentForm : null,
+                                  onDelete:
+                                      featureSvc.canAccess('student_delete')
+                                      ? _handleDelete
+                                      : null,
+                                  onUpdateStatus: _showUpdateStatus,
+                                  onAssignFeePlan: _showAssignFeePlan,
+                                ),
                         ),
 
                         // Footer / Pagination
@@ -286,25 +309,25 @@ class _StudentStatsGrid extends StatelessWidget {
             ),
           ),
           (
-            'inactive',
+            'passout',
             KpiCardData(
-              label: 'Inactive',
-              value: controller.inactiveCount.toString(),
-              icon: Icons.pause_circle_rounded,
-              gradient: const [Color(0xFF64748B), Color(0xFF94A3B8)],
-              trendText: 'Pending follow up',
-              trendUp: false,
+              label: 'Passed Out',
+              value: controller.passoutCount.toString(),
+              icon: Icons.school_rounded,
+              gradient: const [Color(0xFF6366F1), Color(0xFF818CF8)],
+              trendText: 'Successful graduates',
+              trendUp: true,
             ),
           ),
           (
-            'all', // Future: Add a "New" status if needed
+            'dropped',
             KpiCardData(
-              label: 'New Admissions',
-              value: controller.newAdmissionsCount.toString(),
-              icon: Icons.auto_awesome_rounded,
-              gradient: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
-              trendText: 'Growth this month',
-              trendUp: true,
+              label: 'Dropped',
+              value: controller.droppedCount.toString(),
+              icon: Icons.person_remove_rounded,
+              gradient: const [Color(0xFFEF4444), Color(0xFFF87171)],
+              trendText: 'Needs attention',
+              trendUp: false,
             ),
           ),
         ];
@@ -625,18 +648,22 @@ class _TableStatsBar extends StatelessWidget {
 
 class _StudentTable extends StatelessWidget {
   const _StudentTable({
-    required this.controller,
+    required this.students,
     required this.scrollController,
     required this.onView,
     this.onEdit,
     this.onDelete,
+    this.onUpdateStatus,
+    this.onAssignFeePlan,
   });
 
-  final StudentController controller;
+  final List<Student> students;
   final ScrollController scrollController;
   final Function(Student) onView;
   final Function(Student)? onEdit;
   final Function(Student)? onDelete;
+  final Function(Student)? onUpdateStatus;
+  final Function(Student)? onAssignFeePlan;
 
   @override
   Widget build(BuildContext context) {
@@ -680,7 +707,7 @@ class _StudentTable extends StatelessWidget {
                   ],
                 ),
                 // Rows
-                ...controller.students.map(
+                ...students.map(
                   (student) => TableRow(
                     decoration: BoxDecoration(
                       border: Border(
@@ -694,7 +721,7 @@ class _StudentTable extends StatelessWidget {
                       _studentProfileCell(context, student),
                       _classCell(context, student),
                       _feePlanCell(context, student),
-                      _statusCell(context, student.status == 'active'),
+                      _statusCell(context, student),
                       _lastUpdatedCell(context, student),
                       _actionCell(student),
                     ],
@@ -702,26 +729,6 @@ class _StudentTable extends StatelessWidget {
                 ),
               ],
             ),
-            if (controller.hasMore)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: controller.busy
-                    ? const CircularProgressIndicator()
-                    : TextButton.icon(
-                        onPressed: () => controller.fetchMore(),
-                        icon: const Icon(
-                          Icons.arrow_downward_rounded,
-                          size: 18,
-                        ),
-                        label: const Text('Load More Data'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
-                          ),
-                        ),
-                      ),
-              ),
           ],
         ),
       ),
@@ -834,36 +841,8 @@ class _StudentTable extends StatelessWidget {
     );
   }
 
-  Widget _statusCell(BuildContext context, bool isActive) {
-    final color = isActive ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isActive ? 'Active' : 'Inactive',
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _statusCell(BuildContext context, Student student) {
+    return Center(child: _StatusBadge(status: student.status));
   }
 
   Widget _lastUpdatedCell(BuildContext context, Student student) {
@@ -881,6 +860,10 @@ class _StudentTable extends StatelessWidget {
   }
 
   Widget _actionCell(Student student) {
+    final featureSvc = AppServices.instance.featureAccessService;
+    final canTransfer =
+        featureSvc != null && featureSvc.canAccess('student_transfer');
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: AppActionMenu(
@@ -896,6 +879,17 @@ class _StudentTable extends StatelessWidget {
               icon: Icons.edit_outlined,
               onTap: () => onEdit!(student),
             ),
+          if (canTransfer)
+            AppActionItem(
+              label: 'Update Status',
+              icon: Icons.published_with_changes_rounded,
+              onTap: () => onUpdateStatus?.call(student),
+            ),
+          AppActionItem(
+            label: 'Assign Fee Plan',
+            icon: Icons.payments_outlined,
+            onTap: () => onAssignFeePlan?.call(student),
+          ),
           AppActionItem(
             label: 'Transfer Class',
             icon: Icons.swap_horiz_rounded,
@@ -1140,10 +1134,7 @@ class _StudentProfileDialog extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _StatusBadge(
-                      active: student.status == 'active',
-                      isWhite: true,
-                    ),
+                    _StatusBadge(status: student.status, isWhite: true),
                   ],
                 ),
               ),
@@ -1389,13 +1380,38 @@ class _ProfileCustomFields extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.active, this.isWhite = false});
-  final bool active;
+  const _StatusBadge({required this.status, this.isWhite = false});
+  final String status;
   final bool isWhite;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? const Color(0xFF10B981) : const Color(0xFF64748B);
+    Color color;
+    String label;
+    IconData icon;
+
+    switch (status) {
+      case 'active':
+        color = const Color(0xFF10B981);
+        label = 'Active';
+        icon = Icons.check_circle_rounded;
+        break;
+      case 'passout':
+        color = const Color(0xFF6366F1);
+        label = 'Pass Out';
+        icon = Icons.school_rounded;
+        break;
+      case 'dropped':
+        color = const Color(0xFFEF4444);
+        label = 'Dropped';
+        icon = Icons.person_remove_rounded;
+        break;
+      default:
+        color = const Color(0xFF64748B);
+        label = status.toUpperCase();
+        icon = Icons.help_outline_rounded;
+    }
+
     final bgColor = isWhite ? Colors.white24 : color.withValues(alpha: 0.1);
     final textColor = isWhite ? Colors.white : color;
     final borderColor = isWhite ? Colors.white30 : color.withValues(alpha: 0.2);
@@ -1410,21 +1426,15 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: isWhite ? Colors.white : color,
-              shape: BoxShape.circle,
-            ),
-          ),
+          Icon(icon, size: 12, color: textColor),
           const SizedBox(width: 8),
           Text(
-            active ? 'Active' : 'Inactive',
+            label,
             style: TextStyle(
               color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
             ),
           ),
         ],

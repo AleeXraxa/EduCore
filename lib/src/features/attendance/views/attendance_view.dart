@@ -113,7 +113,7 @@ class _AttendanceViewState extends State<AttendanceView> {
                             controller: _controller,
                             isMobile: isMobile,
                           ),
-                          if (featureSvc.canAccess('attendance_report'))
+                          if (featureSvc.canAccess('attendance_reports'))
                             _ReportsTab(controller: _reportController)
                           else
                             const AccessDeniedView(featureName: 'Attendance Reports'),

@@ -29,6 +29,10 @@ class AuthService extends ChangeNotifier {
   /// The currently active in-memory session.
   /// This should be the source of truth for the app state.
   AuthSession? get session => _session;
+  
+  String? get currentAcademyId => _session?.academyId;
+  String? get currentAcademyName => _session?.academyName;
+  String? get currentAcademyLogo => _session?.logoUrl;
 
   User? get currentUser => _auth.currentUser;
 
@@ -77,7 +81,14 @@ class AuthService extends ChangeNotifier {
       }
 
       // Step 5: Build Session Context
-      _session = buildSessionContext(appUser);
+      final academy = await _firestore.collection('academies').doc(appUser.academyId).get();
+      final academyData = academy.data();
+      
+      _session = buildSessionContext(
+        appUser,
+        academyName: academyData?['name'],
+        logoUrl: academyData?['logoUrl'],
+      );
       
       // Step 6: Initialize Feature Access Middleware
       await AppServices.instance.featureAccessService?.init(
@@ -156,8 +167,17 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Constructs the in-memory [AuthSession].
-  AuthSession buildSessionContext(AppUser appUser) {
-    return AuthSession(user: appUser, academyId: appUser.academyId);
+  AuthSession buildSessionContext(
+    AppUser appUser, {
+    String? academyName,
+    String? logoUrl,
+  }) {
+    return AuthSession(
+      user: appUser,
+      academyId: appUser.academyId,
+      academyName: academyName,
+      logoUrl: logoUrl,
+    );
   }
 
   /// Periodically re-validates the current session.
@@ -195,11 +215,14 @@ class AuthService extends ChangeNotifier {
       final isPlatformAdmin = appUser.role == AppUserRole.superAdmin;
       AppServices.instance.featureAccessService?.setSuperAdmin(isPlatformAdmin);
 
-      if (!isPlatformAdmin) {
-        await validateInstitute(appUser.academyId);
-      }
+      final academy = await _firestore.collection('academies').doc(appUser.academyId).get();
+      final academyData = academy.data();
 
-      _session = buildSessionContext(appUser);
+      _session = buildSessionContext(
+        appUser,
+        academyName: academyData?['name'],
+        logoUrl: academyData?['logoUrl'],
+      );
 
       // Re-initialize Feature Access Middleware on refresh
       await AppServices.instance.featureAccessService?.init(

@@ -31,6 +31,8 @@ import 'package:educore/src/core/services/role_defaults_service.dart';
 import 'package:educore/src/features/students/services/student_service.dart';
 import 'package:educore/src/features/exams/services/exam_service.dart';
 import 'package:educore/src/features/monthly_tests/services/monthly_test_service.dart';
+import 'package:educore/src/features/certificates/services/certificate_service.dart';
+import 'package:educore/src/features/certificates/services/certificate_template_service.dart';
 
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
@@ -76,6 +78,8 @@ class AppServices {
   AuditLogService? auditLogService;
   ExamService? examService;
   MonthlyTestService? monthlyTestService;
+  CertificateService? certificateService;
+  CertificateTemplateService? certificateTemplateService;
   RoleDefaultsService? roleDefaultsService;
   
   // Repositories
@@ -224,6 +228,7 @@ class AppServices {
         subscriptionService: subscriptionService!,
         feeService: feeService!,
         feePlanService: feePlanService!,
+        auditLogService: auditLogService!,
       );
 
       examService = ExamService(
@@ -235,6 +240,9 @@ class AppServices {
         firestore: firestore!,
         auditLogService: auditLogService!,
       );
+
+      certificateService = CertificateService(auditLogService!);
+      certificateTemplateService = CertificateTemplateService(auditLogService!);
 
       // Initialize Repositories
       userRepository = UserRepository(

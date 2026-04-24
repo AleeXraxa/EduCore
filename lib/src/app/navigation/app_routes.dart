@@ -5,4 +5,5 @@ abstract final class AppRoutes {
   static const instituteDashboard = '/institute/dashboard';
   static const staffDashboard = '/staff/dashboard';
   static const teacherDashboard = '/teacher/dashboard';
+  static const verifyCertificate = '/verify-certificate';
 }

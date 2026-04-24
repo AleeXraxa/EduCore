@@ -14,6 +14,7 @@ import 'package:educore/src/features/settings/widgets/sections/plan_features_pan
 import 'package:educore/src/features/settings/widgets/sections/security_settings_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/system_preferences_panel.dart';
 import 'package:educore/src/features/settings/widgets/sections/document_settings_panel.dart';
+import 'package:educore/src/features/settings/widgets/sections/student_custom_fields_panel.dart';
 import 'package:educore/src/features/settings/widgets/settings_nav.dart';
 import 'package:flutter/material.dart';
 
@@ -214,6 +215,9 @@ class _SectionBody extends StatelessWidget {
       SettingsSection.documentCustomization => isSuperAdmin
           ? GeneralSettingsPanel(controller: controller)
           : DocumentSettingsPanel(controller: controller),
+      SettingsSection.studentCustomFields => isSuperAdmin
+          ? GeneralSettingsPanel(controller: controller)
+          : StudentCustomFieldsPanel(controller: controller),
     };
   }
 }

@@ -17,6 +17,7 @@ import 'package:educore/src/features/fees/views/fee_plans_view.dart';
 import 'package:educore/src/features/fees/views/fees_view.dart';
 import 'package:educore/src/features/exams/views/exams_view.dart';
 import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
+import 'package:educore/src/features/certificates/views/certificates_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +81,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
       _InstituteNav.fees => const FeesView(),
       _InstituteNav.exams => const ExamsView(),
       _InstituteNav.monthlyTests => const MonthlyTestsView(),
+      _InstituteNav.certificates => const CertificatesView(),
       _InstituteNav.feePlans => const FeePlansView(),
       _InstituteNav.staff => const StaffListView(),
       _InstituteNav.settings => const SettingsView(),
@@ -150,6 +152,13 @@ enum _InstituteNav {
     Icons.quiz_rounded,
     featureKey: 'monthly_test_view',
   ),
+  certificates(
+    'certificates',
+    'Certificates',
+    'Student Certificates',
+    Icons.workspace_premium_rounded,
+    featureKey: 'certificate_generate',
+  ),
   settings(
     'settings',
     'Settings',
@@ -183,6 +192,7 @@ enum _InstituteNav {
         fees.toSidebarItem(),
         exams.toSidebarItem(),
         monthlyTests.toSidebarItem(),
+        certificates.toSidebarItem(),
         staff.toSidebarItem(),
       ],
     ),

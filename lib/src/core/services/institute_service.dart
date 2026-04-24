@@ -41,6 +41,7 @@ class Academy {
     required this.planId,
     required this.createdAt,
     required this.createdBy,
+    this.logoUrl,
   });
 
   final String id; // academyId
@@ -53,6 +54,7 @@ class Academy {
   final String planId;
   final DateTime? createdAt;
   final String createdBy;
+  final String? logoUrl;
 
   static Academy fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
@@ -67,6 +69,7 @@ class Academy {
       planId: (data['planId'] as String?) ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       createdBy: (data['createdBy'] as String?) ?? '',
+      logoUrl: data['logoUrl'] as String?,
     );
   }
 }

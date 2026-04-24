@@ -26,7 +26,7 @@ class StudentController extends BaseController {
   String _searchQuery = '';
   String? _classIdFilter;
   String? get classIdFilter => _classIdFilter;
-  String? _statusFilter;
+  String? _statusFilter = 'active';
   String? get statusFilter => _statusFilter;
 
   String? _errorMessage;
@@ -35,7 +35,8 @@ class StudentController extends BaseController {
   // Stats for Quick Insights
   int totalCount = 0;
   int activeCount = 0;
-  int inactiveCount = 0;
+  int passoutCount = 0;
+  int droppedCount = 0;
   int newAdmissionsCount = 0;
 
   // Custom Fields
@@ -63,7 +64,8 @@ class StudentController extends BaseController {
     // Temporarily reset before loading
     totalCount = 0;
     activeCount = 0;
-    inactiveCount = 0;
+    passoutCount = 0;
+    droppedCount = 0;
     newAdmissionsCount = 0;
 
     await Future.wait([
@@ -83,7 +85,8 @@ class StudentController extends BaseController {
     final stats = await _studentService.getStudentStats(_academyId);
     totalCount = stats['total'] ?? 0;
     activeCount = stats['active'] ?? 0;
-    inactiveCount = stats['inactive'] ?? 0;
+    passoutCount = stats['passout'] ?? 0;
+    droppedCount = stats['dropped'] ?? 0;
     newAdmissionsCount = stats['newAdmissions'] ?? 0;
     notifyListeners();
   }
@@ -242,6 +245,20 @@ class StudentController extends BaseController {
         success = true;
       } catch (e, st) {
         debugPrint('Error deleting student: $e $st');
+      }
+    });
+    return success;
+  }
+
+  Future<bool> updateStatus(Student student, String newStatus, {String? reason}) async {
+    bool success = false;
+    await runBusy(() async {
+      try {
+        await _studentService.updateStudentStatus(_academyId, student, newStatus, reason: reason);
+        await loadInitialData();
+        success = true;
+      } catch (e, st) {
+        debugPrint('Error updating student status: $e $st');
       }
     });
     return success;

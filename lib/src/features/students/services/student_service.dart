@@ -7,22 +7,27 @@ import 'package:educore/src/features/fees/models/fee_plan.dart';
 
 import 'package:educore/src/core/services/fee_service.dart';
 import 'package:educore/src/core/services/fee_plan_service.dart';
+import 'package:educore/src/core/services/audit_log_service.dart';
+import 'package:educore/src/features/audit/models/audit_log.dart';
 
 class StudentService {
   final FirebaseFirestore _firestore;
   final SubscriptionService _subscriptionService;
   final FeeService _feeService;
   final FeePlanService _feePlanService;
+  final AuditLogService _audit;
 
   StudentService({
     FirebaseFirestore? firestore,
     required SubscriptionService subscriptionService,
     required FeeService feeService,
     required FeePlanService feePlanService,
+    required AuditLogService auditLogService,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _subscriptionService = subscriptionService,
         _feeService = feeService,
-        _feePlanService = feePlanService;
+        _feePlanService = feePlanService,
+        _audit = auditLogService;
 
   CollectionReference<Map<String, dynamic>> _studentsRef(String academyId) {
     return _firestore.collection('academies').doc(academyId).collection('students');
@@ -108,12 +113,66 @@ class StudentService {
       }
     }
     
+    // Increment studentCount in class
+    await _firestore
+        .collection('academies')
+        .doc(academyId)
+        .collection('classes')
+        .doc(newStudent.classId)
+        .update({'studentCount': FieldValue.increment(1)});
+    
     return newStudent;
   }
 
   Future<void> updateStudent(String academyId, Student student) async {
     final updateData = student.copyWith(updatedAt: DateTime.now()).toMap();
     await _studentsRef(academyId).doc(student.id).update(updateData);
+  }
+
+  Future<void> updateStudentStatus(String academyId, Student student, String newStatus, {String? reason}) async {
+    final before = student.status;
+    final now = DateTime.now();
+    
+    await _studentsRef(academyId).doc(student.id).update({
+      'status': newStatus,
+      'statusReason': reason,
+      'statusUpdatedAt': Timestamp.fromDate(now),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _audit.logAction(
+      action: 'student_status_updated',
+      module: 'students',
+      targetId: student.id,
+      targetType: 'student',
+      before: {'status': before},
+      after: {
+        'status': newStatus,
+        'reason': reason,
+      },
+      metadata: {
+        'studentName': student.name,
+        'rollNo': student.rollNo,
+      },
+      severity: newStatus == 'active' ? AuditSeverity.info : AuditSeverity.warning,
+    );
+
+    // Sync studentCount in Class document if status changed away from or back to active
+    if (before == 'active' && newStatus != 'active') {
+      await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('classes')
+          .doc(student.classId)
+          .update({'studentCount': FieldValue.increment(-1)});
+    } else if (before != 'active' && newStatus == 'active') {
+      await _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('classes')
+          .doc(student.classId)
+          .update({'studentCount': FieldValue.increment(1)});
+    }
   }
 
   Future<void> softDeleteStudent(String academyId, String studentId) async {
@@ -156,11 +215,13 @@ class StudentService {
 
     try {
       final activeQuery = await ref.where('status', isEqualTo: 'active').count().get();
-      final inactiveQuery = await ref.where('status', isEqualTo: 'inactive').count().get();
+      final passoutQuery = await ref.where('status', isEqualTo: 'passout').count().get();
+      final droppedQuery = await ref.where('status', isEqualTo: 'dropped').count().get();
       
       final activeCount = activeQuery.count ?? 0;
-      final inactiveCount = inactiveQuery.count ?? 0;
-      final totalCount = activeCount + inactiveCount;
+      final passoutCount = passoutQuery.count ?? 0;
+      final droppedCount = droppedQuery.count ?? 0;
+      final totalCount = activeCount + passoutCount + droppedCount;
 
       final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
       final newAdmissionsQuery = await ref
@@ -171,7 +232,8 @@ class StudentService {
       return {
         'total': totalCount,
         'active': activeCount,
-        'inactive': inactiveCount,
+        'passout': passoutCount,
+        'dropped': droppedCount,
         'newAdmissions': newAdmissionsQuery.count ?? 0,
       };
     } catch (e) {
@@ -275,5 +337,48 @@ class StudentService {
       debugPrint('Error getting next roll number: $e');
       return 'EDU - 1';
     }
+  }
+
+  Future<List<Student>> getStudents(String academyId) async {
+    final snap = await _studentsRef(academyId)
+        .where('status', isNotEqualTo: 'deleted')
+        .get();
+    return snap.docs.map((doc) => Student.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> assignFeePlan({
+    required String academyId,
+    required Student student,
+    required FeePlan plan,
+  }) async {
+    final now = DateTime.now();
+    final feeMode = (plan.planType == FeePlanType.package) ? 'package' : 'monthly';
+
+    await _studentsRef(academyId).doc(student.id).update({
+      'feePlanId': plan.id,
+      'feePlanName': plan.name,
+      'feeMode': feeMode,
+      'updatedAt': Timestamp.fromDate(now),
+    });
+
+    await _audit.logAction(
+      action: 'student_fee_plan_assigned',
+      module: 'students',
+      targetId: student.id,
+      targetType: 'student',
+      before: {
+        'feePlanId': student.feePlanId,
+        'feePlanName': student.feePlanName,
+      },
+      after: {
+        'feePlanId': plan.id,
+        'feePlanName': plan.name,
+        'feeMode': feeMode,
+      },
+      metadata: {
+        'studentName': student.name,
+        'rollNo': student.rollNo,
+      },
+    );
   }
 }

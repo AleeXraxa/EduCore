@@ -5,6 +5,7 @@ import 'package:educore/src/features/dashboard/institute_dashboard_view.dart';
 import 'package:educore/src/features/dashboard/staff_dashboard_view.dart';
 import 'package:educore/src/features/dashboard/teacher_dashboard_view.dart';
 import 'package:educore/src/features/login/login_view.dart';
+import 'package:educore/src/features/certificates/views/certificate_verification_view.dart';
 import 'package:educore/src/features/splash/splash_view.dart';
 import 'package:flutter/material.dart';
 
@@ -80,6 +81,11 @@ abstract final class AppRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const TeacherDashboardView(),
+        );
+      case AppRoutes.verifyCertificate:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const CertificateVerificationView(),
         );
     }
 

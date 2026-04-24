@@ -10,6 +10,8 @@ class Student {
     this.className = '',
     required this.admissionDate,
     required this.status,
+    this.statusReason,
+    this.statusUpdatedAt,
     required this.feePlanId,
     this.feePlanName,
     this.feeMode = 'monthly',
@@ -30,6 +32,8 @@ class Student {
   final String className; // Optional cache
   final DateTime admissionDate;
   final String status;
+  final String? statusReason;
+  final DateTime? statusUpdatedAt;
   final String feePlanId;
   final String? feePlanName;
   final String feeMode; // 'monthly' or 'package'
@@ -46,6 +50,8 @@ class Student {
     String? className,
     DateTime? admissionDate,
     String? status,
+    String? statusReason,
+    DateTime? statusUpdatedAt,
     String? feePlanId,
     String? feePlanName,
     String? feeMode,
@@ -66,6 +72,8 @@ class Student {
       className: className ?? this.className,
       admissionDate: admissionDate ?? this.admissionDate,
       status: status ?? this.status,
+      statusReason: statusReason ?? this.statusReason,
+      statusUpdatedAt: statusUpdatedAt ?? this.statusUpdatedAt,
       feePlanId: feePlanId ?? this.feePlanId,
       feePlanName: feePlanName ?? this.feePlanName,
       feeMode: feeMode ?? this.feeMode,
@@ -84,6 +92,8 @@ class Student {
       'className': className,
       'admissionDate': Timestamp.fromDate(admissionDate),
       'status': status,
+      'statusReason': statusReason,
+      'statusUpdatedAt': statusUpdatedAt != null ? Timestamp.fromDate(statusUpdatedAt!) : null,
       'feePlanId': feePlanId,
       'feePlanName': feePlanName,
       'feeMode': feeMode,
@@ -106,6 +116,8 @@ class Student {
       admissionDate:
           (map['admissionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'active',
+      statusReason: map['statusReason'],
+      statusUpdatedAt: (map['statusUpdatedAt'] as Timestamp?)?.toDate(),
       feePlanId: map['feePlanId'] ?? '',
       feePlanName: map['feePlanName'],
       feeMode: map['feeMode'] ?? 'monthly',
