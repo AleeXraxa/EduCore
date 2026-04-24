@@ -1,4 +1,5 @@
 import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/settings/models/settings_models.dart';
 import 'package:flutter/material.dart';
 
@@ -41,7 +42,17 @@ class SettingsNav extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 12),
-          for (final item in _items)
+          for (final item in _items.where((i) {
+            if (AppServices.instance.authService?.session?.isSuperAdmin ??
+                false) {
+              return [
+                SettingsSection.general,
+                SettingsSection.notificationSettings,
+                SettingsSection.security,
+              ].contains(i.section);
+            }
+            return true;
+          }))
             _NavItem(
               icon: item.icon,
               label: item.label,

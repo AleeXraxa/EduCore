@@ -11,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
 
-
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
 
@@ -529,8 +528,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
               padding: const EdgeInsets.all(32),
               child: FilledButton(
                 onPressed:
-                    (_selectedClassId.isEmpty ||
-                        _selectedFeePlanId.isEmpty)
+                    (_selectedClassId.isEmpty || _selectedFeePlanId.isEmpty)
                     ? null
                     : _submit,
                 style: FilledButton.styleFrom(

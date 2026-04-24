@@ -41,6 +41,27 @@ class ClassesController extends BaseController {
     return _classes.where((c) => c.teacherIds.contains(teacherId)).length;
   }
 
+  /// Returns true if [teacherId] is already the primary class teacher
+  /// in any class other than [excludeClassId].
+  bool isAlreadyPrimaryTeacher(String teacherId, {String? excludeClassId}) {
+    return _classes.any(
+      (c) => c.classTeacherId == teacherId && c.id != excludeClassId,
+    );
+  }
+
+  /// Returns the display name of the class where [teacherId] is currently
+  /// the primary teacher (excluding [excludeClassId]), or null if none.
+  String? primaryClassNameOf(String teacherId, {String? excludeClassId}) {
+    try {
+      final cls = _classes.firstWhere(
+        (c) => c.classTeacherId == teacherId && c.id != excludeClassId,
+      );
+      return cls.displayName;
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _searchQuery = '';
   String? get searchQuery => _searchQuery;
 
@@ -135,6 +156,17 @@ class ClassesController extends BaseController {
       return false;
     }
 
+    // Fast in-memory pre-flight: check before hitting Firestore
+    if (classTeacherId != null &&
+        isAlreadyPrimaryTeacher(classTeacherId)) {
+      final conflict = primaryClassNameOf(classTeacherId);
+      _errorMessage =
+          'This teacher is already the primary teacher of "$conflict". '
+          'A teacher can only be the primary teacher of one class at a time.';
+      notifyListeners();
+      return false;
+    }
+
     bool success = false;
     await runBusy(() async {
       try {
@@ -173,6 +205,18 @@ class ClassesController extends BaseController {
   }) async {
     if (!canEdit) {
       _errorMessage = 'Permission denied to edit classes.';
+      notifyListeners();
+      return false;
+    }
+
+    // Fast in-memory pre-flight: check before hitting Firestore
+    if (classTeacherId != null &&
+        isAlreadyPrimaryTeacher(classTeacherId, excludeClassId: classId)) {
+      final conflict =
+          primaryClassNameOf(classTeacherId, excludeClassId: classId);
+      _errorMessage =
+          'This teacher is already the primary teacher of "$conflict". '
+          'A teacher can only be the primary teacher of one class at a time.';
       notifyListeners();
       return false;
     }

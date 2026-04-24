@@ -197,17 +197,23 @@ class _SectionBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSuperAdmin = controller.isSuperAdmin;
+
     return switch (controller.section) {
       SettingsSection.general => GeneralSettingsPanel(controller: controller),
-      SettingsSection.planAndFeatures =>
-        PlanFeaturesPanel(controller: controller),
-      SettingsSection.paymentSettings =>
-        PaymentSettingsPanel(controller: controller),
-      SettingsSection.documentCustomization =>
-        DocumentSettingsPanel(controller: controller),
       SettingsSection.notificationSettings =>
         NotificationSettingsPanel(controller: controller),
       SettingsSection.security => SecuritySettingsPanel(controller: controller),
+      // Hide these for Super Admin (Platform level)
+      SettingsSection.planAndFeatures => isSuperAdmin
+          ? GeneralSettingsPanel(controller: controller)
+          : PlanFeaturesPanel(controller: controller),
+      SettingsSection.paymentSettings => isSuperAdmin
+          ? GeneralSettingsPanel(controller: controller)
+          : PaymentSettingsPanel(controller: controller),
+      SettingsSection.documentCustomization => isSuperAdmin
+          ? GeneralSettingsPanel(controller: controller)
+          : DocumentSettingsPanel(controller: controller),
     };
   }
 }

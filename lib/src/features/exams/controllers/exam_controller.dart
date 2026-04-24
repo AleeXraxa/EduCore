@@ -98,6 +98,7 @@ class ExamController extends BaseController {
   Future<bool> createExam(Exam exam) async {
     return (await runBusy(() async {
       await _examService.createExam(_academyId, exam);
+      await load();
       return true;
     })) ?? false;
   }
@@ -105,6 +106,7 @@ class ExamController extends BaseController {
   Future<bool> updateExam(Exam exam) async {
     return (await runBusy(() async {
       await _examService.updateExam(_academyId, exam);
+      await load();
       return true;
     })) ?? false;
   }
@@ -112,6 +114,7 @@ class ExamController extends BaseController {
   Future<bool> deleteExam(String examId) async {
     return (await runBusy(() async {
       await _examService.deleteExam(_academyId, examId);
+      await load();
       return true;
     })) ?? false;
   }

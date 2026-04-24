@@ -24,6 +24,7 @@ class AssignClassTeacherDialog extends StatefulWidget {
 class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
   String _searchQuery = '';
   bool _saving = false;
+  String? _errorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +60,33 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
                       fontWeight: FontWeight.w600,
                     ),
               ),
-              const SizedBox(height: 32),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer,
+                    borderRadius: AppRadii.r12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: cs.onErrorContainer, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: cs.onErrorContainer,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
               AppSearchField(
                 hintText: 'Search teachers...',
                 onChanged: (v) => setState(() => _searchQuery = v),
@@ -73,22 +100,67 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
                     final t = teachers[index];
                     final count = widget.controller.getTeacherClassCount(t.id);
                     final isSelected = widget.classData.classTeacherId == t.id;
+                    // Check if this teacher is already primary in another class
+                    final alreadyPrimary = widget.controller.isAlreadyPrimaryTeacher(
+                      t.id,
+                      excludeClassId: widget.classData.id,
+                    );
+                    final primaryClassName = alreadyPrimary
+                        ? widget.controller.primaryClassNameOf(
+                            t.id,
+                            excludeClassId: widget.classData.id,
+                          )
+                        : null;
 
-                    return ListTile(
-                      onTap: isSelected || _saving ? null : () => _assign(t),
-                      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
-                      tileColor: isSelected
-                          ? cs.primaryContainer.withValues(alpha: 0.3)
-                          : cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                      leading: CircleAvatar(
-                        backgroundColor: isSelected ? cs.primary : cs.outlineVariant,
-                        child: Text(t.name[0].toUpperCase(), style: TextStyle(color: isSelected ? cs.onPrimary : cs.onSurface)),
+                    return Opacity(
+                      opacity: alreadyPrimary ? 0.5 : 1.0,
+                      child: ListTile(
+                        onTap: (isSelected || _saving || alreadyPrimary) ? null : () => _assign(t),
+                        shape: const RoundedRectangleBorder(borderRadius: AppRadii.r12),
+                        tileColor: isSelected
+                            ? cs.primaryContainer.withValues(alpha: 0.3)
+                            : alreadyPrimary
+                                ? cs.errorContainer.withValues(alpha: 0.15)
+                                : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                        leading: CircleAvatar(
+                          backgroundColor: isSelected
+                              ? cs.primary
+                              : alreadyPrimary
+                                  ? cs.error.withValues(alpha: 0.2)
+                                  : cs.outlineVariant,
+                          child: Text(
+                            t.name[0].toUpperCase(),
+                            style: TextStyle(
+                              color: isSelected ? cs.onPrimary : cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          t.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          alreadyPrimary
+                              ? 'Primary teacher of "$primaryClassName"'
+                              : '$count classes assigned',
+                          style: TextStyle(
+                            color: alreadyPrimary ? cs.error : cs.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: alreadyPrimary ? FontWeight.w700 : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(Icons.check_circle_rounded, color: cs.primary)
+                            : alreadyPrimary
+                                ? Icon(Icons.lock_rounded, color: cs.error, size: 18)
+                                : _saving
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : null,
                       ),
-                      title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('$count classes assigned', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
-                      trailing: isSelected 
-                          ? Icon(Icons.check_circle_rounded, color: cs.primary)
-                          : _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
                     );
                   },
                 ),
@@ -99,7 +171,10 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Close', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                    child: Text('Close',
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -111,7 +186,10 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
   }
 
   Future<void> _assign(StaffMember teacher) async {
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
     final ok = await widget.controller.assignClassTeacher(
       widget.classData.id,
       teacher.id,
@@ -121,7 +199,10 @@ class _AssignClassTeacherDialogState extends State<AssignClassTeacherDialog> {
       if (ok) {
         Navigator.pop(context);
       } else {
-        setState(() => _saving = false);
+        setState(() {
+          _saving = false;
+          _errorMessage = widget.controller.errorMessage;
+        });
       }
     }
   }

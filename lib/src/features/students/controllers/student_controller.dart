@@ -208,9 +208,9 @@ class StudentController extends BaseController {
     bool success = false;
     await runBusy(() async {
       try {
-        final newStudent = await _studentService.createStudent(_academyId, student);
-        _allStudents.insert(0, newStudent);
-        _applyFilters();
+        await _studentService.createStudent(_academyId, student);
+        await loadInitialData();
+        success = true;
       } catch (e, st) {
         debugPrint('Error adding student in controller: $e $st');
         rethrow;
@@ -224,11 +224,7 @@ class StudentController extends BaseController {
     await runBusy(() async {
       try {
         await _studentService.updateStudent(_academyId, student);
-        final index = _allStudents.indexWhere((s) => s.id == student.id);
-        if (index != -1) {
-          _allStudents[index] = student.copyWith(updatedAt: DateTime.now());
-          _applyFilters();
-        }
+        await loadInitialData();
         success = true;
       } catch (e, st) {
         debugPrint('Error updating student: $e $st');
@@ -242,8 +238,8 @@ class StudentController extends BaseController {
     await runBusy(() async {
       try {
         await _studentService.softDeleteStudent(_academyId, studentId);
-        _allStudents.removeWhere((s) => s.id == studentId);
-        _applyFilters();
+        await loadInitialData();
+        success = true;
       } catch (e, st) {
         debugPrint('Error deleting student: $e $st');
       }

@@ -98,6 +98,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> createTest(MonthlyTest test) async {
     return (await runBusy(() async {
       await _testService.createTest(_academyId, test);
+      await load();
       return true;
     })) ?? false;
   }
@@ -105,6 +106,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> updateTest(MonthlyTest test) async {
     return (await runBusy(() async {
       await _testService.updateTest(_academyId, test);
+      await load();
       return true;
     })) ?? false;
   }
@@ -112,6 +114,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> deleteTest(String testId) async {
     return (await runBusy(() async {
       await _testService.deleteTest(_academyId, testId);
+      await load();
       return true;
     })) ?? false;
   }

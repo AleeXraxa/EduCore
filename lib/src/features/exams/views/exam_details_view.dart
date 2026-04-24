@@ -35,7 +35,7 @@ class _ExamDetailsViewState extends State<ExamDetailsView>
     final featureSvc = AppServices.instance.featureAccessService!;
     int tabCount = 1;
     if (featureSvc.canAccess('exam_edit')) tabCount++;
-    if (featureSvc.canAccess('marks_entry')) tabCount++;
+    if (featureSvc.canAccess('test_marks_entry')) tabCount++;
     if (featureSvc.canAccess('result_publish')) tabCount++;
 
     _tabController = TabController(length: tabCount, vsync: this);
@@ -87,7 +87,7 @@ class _ExamDetailsViewState extends State<ExamDetailsView>
                 ))
                   const Tab(text: 'Schedule Papers'),
                 if (AppServices.instance.featureAccessService!.canAccess(
-                  'marks_entry',
+                  'test_marks_entry',
                 ))
                   const Tab(text: 'Marks Entry'),
                 if (AppServices.instance.featureAccessService!.canAccess(
@@ -154,7 +154,7 @@ class _ExamDetailsViewState extends State<ExamDetailsView>
 
               // 3. Marks Entry
               if (AppServices.instance.featureAccessService!.canAccess(
-                'marks_entry',
+                'test_marks_entry',
               ))
                 MarksEntryView(controller: controller, exam: currentExam),
 

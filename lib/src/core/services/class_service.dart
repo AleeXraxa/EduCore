@@ -20,6 +20,27 @@ class ClassService {
   CollectionReference<Map<String, dynamic>> _col(String academyId) =>
       _firestore.collection('academies').doc(academyId).collection('classes');
 
+  /// Returns the display name of the class where [teacherId] is already the
+  /// primary class teacher, or `null` if they are not assigned elsewhere.
+  /// Pass [excludeClassId] when editing an existing class to skip self-match.
+  Future<String?> _primaryClassOf(
+    String academyId,
+    String teacherId, {
+    String? excludeClassId,
+  }) async {
+    final snap = await _col(academyId)
+        .where('classTeacherId', isEqualTo: teacherId)
+        .limit(2)
+        .get();
+    for (final doc in snap.docs) {
+      if (doc.id == excludeClassId) continue;
+      final name = doc.data()['name'] as String? ?? '';
+      final section = doc.data()['section'] as String? ?? '';
+      return section.isEmpty ? name : '$name - $section';
+    }
+    return null;
+  }
+
   DocumentReference<Map<String, dynamic>> _staffRef(
           String academyId, String staffId) =>
       _firestore
@@ -70,7 +91,7 @@ class ClassService {
     // 1. Enforce Plan Limits
     await _subscriptionService.checkLimit(academyId, 'maxClasses');
 
-    // Check for duplicates
+    // Check for duplicate class name/section
     final existing = await _col(academyId)
         .where('name', isEqualTo: name.trim())
         .where('section', isEqualTo: section.trim())
@@ -78,6 +99,17 @@ class ClassService {
 
     if (existing.docs.isNotEmpty) {
       throw Exception('A class with this name and section already exists.');
+    }
+
+    // 2. Enforce one-primary-teacher-per-class rule
+    if (classTeacherId != null) {
+      final conflict = await _primaryClassOf(academyId, classTeacherId);
+      if (conflict != null) {
+        throw Exception(
+          'This teacher is already the primary teacher of "$conflict". '
+          'A teacher can only be the primary teacher of one class at a time.',
+        );
+      }
     }
 
     final batch = _firestore.batch();
@@ -157,11 +189,23 @@ class ClassService {
       final newId = updates['classTeacherId'] as String?;
 
       if (oldId != newId) {
+        // Enforce one-primary-teacher-per-class rule before writing
+        if (newId != null) {
+          final conflict = await _primaryClassOf(
+            academyId,
+            newId,
+            excludeClassId: classId,
+          );
+          if (conflict != null) {
+            throw Exception(
+              'This teacher is already the primary teacher of "$conflict". '
+              'A teacher can only be the primary teacher of one class at a time.',
+            );
+          }
+        }
+
         // Remove from old
         if (oldId != null) {
-          // Note: Only remove from membership if they are not in teacherIds list 
-          // (But usually class teacher is part of teacherIds)
-          // For simplicity, we manage classTeacherId as a primary assignment.
           batch.update(_staffRef(academyId, oldId), {
             'assignedClassIds': FieldValue.arrayRemove([classId]),
           });
@@ -260,6 +304,21 @@ class ClassService {
     // Get current CT to remove mapping
     final doc = await docRef.get();
     final oldCT = doc.data()?['classTeacherId'] as String?;
+
+    // Enforce one-primary-teacher-per-class rule
+    if (oldCT != teacherId) {
+      final conflict = await _primaryClassOf(
+        academyId,
+        teacherId,
+        excludeClassId: classId,
+      );
+      if (conflict != null) {
+        throw Exception(
+          'This teacher is already the primary teacher of "$conflict". '
+          'A teacher can only be the primary teacher of one class at a time.',
+        );
+      }
+    }
 
     if (oldCT != null && oldCT != teacherId) {
       batch.update(_staffRef(academyId, oldCT), {

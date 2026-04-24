@@ -345,7 +345,7 @@ class _TestsTable extends StatelessWidget {
                     width: 48,
                     child: AppActionMenu(
                       actions: [
-                        if (AppServices.instance.featureAccessService?.canAccess('question_manage') ?? false)
+                        if (AppServices.instance.featureAccessService?.canAccess('test_questions_manage') ?? false)
                           AppActionItem(
                             label: 'Manage Questions',
                             icon: Icons.library_add_rounded,
@@ -356,7 +356,7 @@ class _TestsTable extends StatelessWidget {
                               );
                             },
                           ),
-                        if (AppServices.instance.featureAccessService?.canAccess('marks_entry') ?? false)
+                        if (AppServices.instance.featureAccessService?.canAccess('test_marks_entry') ?? false)
                           AppActionItem(
                             label: 'Enter Marks',
                             icon: Icons.edit_note_rounded,
