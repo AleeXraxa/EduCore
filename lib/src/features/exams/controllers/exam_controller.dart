@@ -149,6 +149,7 @@ class ExamController extends BaseController {
   Future<bool> createSchedule(ExamSchedule schedule) async {
     return (await runBusy(() async {
       await _examService.createSchedule(_academyId, schedule);
+      await load();
       return true;
     })) ?? false;
   }
@@ -156,6 +157,7 @@ class ExamController extends BaseController {
   Future<bool> deleteSchedule(String scheduleId) async {
     return (await runBusy(() async {
       await _examService.deleteSchedule(_academyId, scheduleId);
+      await load();
       return true;
     })) ?? false;
   }
@@ -206,6 +208,7 @@ class ExamController extends BaseController {
   Future<bool> saveMarks(List<ExamMarks> marks) async {
     return (await runBusy(() async {
       await _examService.submitMarks(_academyId, marks);
+      await load();
       return true;
     })) ?? false;
   }
@@ -225,6 +228,7 @@ class ExamController extends BaseController {
     return (await runBusy(() async {
       await _examService.generateResults(_academyId, exam.id, exam.classId);
       await loadResults(exam.id); // reload
+      await load();
       return true;
     })) ?? false;
   }
@@ -233,6 +237,7 @@ class ExamController extends BaseController {
     return (await runBusy(() async {
       await _examService.togglePublishStatus(_academyId, exam.id, publish);
       await loadResults(exam.id); // reload to get updated status
+      await load();
       return true;
     })) ?? false;
   }

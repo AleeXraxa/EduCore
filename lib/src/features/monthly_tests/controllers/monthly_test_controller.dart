@@ -149,6 +149,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> addQuestion(TestQuestion question) async {
     return (await runBusy(() async {
       await _testService.addQuestion(_academyId, question);
+      await load();
       return true;
     })) ?? false;
   }
@@ -156,6 +157,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> deleteQuestion(TestQuestion question) async {
     return (await runBusy(() async {
       await _testService.deleteQuestion(_academyId, question);
+      await load();
       return true;
     })) ?? false;
   }
@@ -166,6 +168,7 @@ class MonthlyTestController extends BaseController {
       for (var q in questions) {
         await _testService.deleteQuestion(_academyId, q);
       }
+      await load();
       return true;
     })) ?? false;
   }
@@ -174,6 +177,7 @@ class MonthlyTestController extends BaseController {
     if (selectedTest == null) return false;
     return (await runBusy(() async {
       await _testService.bulkImportQuestions(_academyId, selectedTest!.id, questions);
+      await load();
       return true;
     })) ?? false;
   }
@@ -251,6 +255,7 @@ class MonthlyTestController extends BaseController {
     return (await runBusy(() async {
       await _testService.generateResults(_academyId, test.id);
       await loadResults(test.id);
+      await load();
       return true;
     })) ?? false;
   }
@@ -258,6 +263,7 @@ class MonthlyTestController extends BaseController {
   Future<bool> togglePublishResult(MonthlyTest test, bool publish) async {
     return (await runBusy(() async {
       await _testService.togglePublishStatus(_academyId, test.id, publish);
+      await load();
       return true;
     })) ?? false;
   }
