@@ -8,6 +8,7 @@ class InstituteDashboardController extends BaseController {
   int totalStudents = 0;
   int todaysAttendance = 0;
   int pendingFeesCount = 0;
+  int paidFeesCount = 0;
   int totalStaff = 0;
 
   double admissionCollected = 0;
@@ -17,6 +18,9 @@ class InstituteDashboardController extends BaseController {
 
   List<Map<String, dynamic>> recentStudents = [];
   List<Map<String, dynamic>> recentPayments = [];
+
+  List<double> studentGrowth = [0, 0, 0, 0, 0, 0];
+  List<String> studentGrowthLabels = ['', '', '', '', '', ''];
 
   bool hasActiveSubscription = true;
   String academyName = '';
@@ -64,11 +68,17 @@ class InstituteDashboardController extends BaseController {
       final startOfDay = DateTime(now.year, now.month, now.day);
       final attendanceCountFuture = attendanceRef
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('status', isEqualTo: 'present')
           .count()
           .get();
 
       final feesCountFuture = feesRef
           .where('status', isEqualTo: 'pending')
+          .count()
+          .get();
+
+      final paidFeesCountFuture = feesRef
+          .where('status', isEqualTo: 'paid')
           .count()
           .get();
 
@@ -96,6 +106,8 @@ class InstituteDashboardController extends BaseController {
           .where('status', isEqualTo: 'paid')
           .get();
 
+      final allStudentsFuture = studentsRef.get();
+
       final recentStudentsFuture = studentsRef
           .orderBy('createdAt', descending: true)
           .limit(5)
@@ -103,7 +115,7 @@ class InstituteDashboardController extends BaseController {
 
       final recentPaymentsFuture = feesRef
           .where('status', isEqualTo: 'paid')
-          .orderBy('paidAt', descending: true)
+          .orderBy('updatedAt', descending: true)
           .limit(5)
           .get();
 
@@ -120,6 +132,8 @@ class InstituteDashboardController extends BaseController {
         miscSumFuture,
         recentStudentsFuture,
         recentPaymentsFuture,
+        allStudentsFuture,
+        paidFeesCountFuture,
       ]);
 
       final subDoc = results[0] as DocumentSnapshot;
@@ -137,12 +151,13 @@ class InstituteDashboardController extends BaseController {
       todaysAttendance = (results[3] as AggregateQuerySnapshot).count ?? 0;
       pendingFeesCount = (results[4] as AggregateQuerySnapshot).count ?? 0;
       totalStaff = (results[5] as AggregateQuerySnapshot).count ?? 0;
+      paidFeesCount = (results[13] as AggregateQuerySnapshot).count ?? 0;
 
-      // Manually sum 'amount' field from fee documents (5.x compatible approach).
+      // Manually sum 'paidAmount' field from fee documents (5.x compatible approach).
       double sumAmount(QuerySnapshot snap) {
         return snap.docs.fold(0.0, (total, doc) {
           final data = doc.data() as Map<String, dynamic>;
-          final amt = data['amount'];
+          final amt = data['paidAmount'] ?? data['finalAmount'];
           if (amt is num) return total + amt.toDouble();
           return total;
         });
@@ -164,8 +179,30 @@ class InstituteDashboardController extends BaseController {
       recentPayments = paySnaps.docs.map((e) {
         final data = e.data() as Map<String, dynamic>;
         data['id'] = e.id;
+        // In the UI we show subtitleKey: 'amount', so we need to map paidAmount or finalAmount to amount
+        data['amount'] = data['paidAmount'] ?? data['finalAmount'] ?? 0.0;
         return data;
       }).toList();
+
+      final allStudentsSnap = results[12] as QuerySnapshot;
+      final nowTime = DateTime.now();
+      List<int> monthlyCounts = List.filled(6, 0);
+      for (var doc in allStudentsSnap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? nowTime;
+        for (int i = 0; i < 6; i++) {
+          final monthEnd = DateTime(nowTime.year, nowTime.month - i + 1, 1);
+          if (createdAt.isBefore(monthEnd)) {
+            monthlyCounts[5 - i]++;
+          }
+        }
+      }
+      studentGrowth = monthlyCounts.map((e) => e.toDouble()).toList();
+      studentGrowthLabels = List.generate(6, (i) {
+        final m = DateTime(nowTime.year, nowTime.month - (5 - i), 1);
+        final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return monthNames[m.month - 1];
+      });
     });
   }
 }

@@ -184,16 +184,21 @@ enum _InstituteNav {
       items: [dashboard.toSidebarItem()],
     ),
     SidebarSectionData(
-      title: 'Management',
+      title: 'Academic Management',
       items: [
         students.toSidebarItem(),
         classes.toSidebarItem(),
         attendance.toSidebarItem(),
-        fees.toSidebarItem(),
         exams.toSidebarItem(),
         monthlyTests.toSidebarItem(),
         certificates.toSidebarItem(),
         staff.toSidebarItem(),
+      ],
+    ),
+    SidebarSectionData(
+      title: 'Finance/Financial Management',
+      items: [
+        fees.toSidebarItem(),
       ],
     ),
     SidebarSectionData(
@@ -357,6 +362,7 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
                               emptyMessage: 'No recent fees collected.',
                               titleKey: 'studentName',
                               subtitleKey: 'amount',
+                              badgeKey: 'type',
                               isCurrency: true,
                             ),
                           ),
@@ -717,8 +723,13 @@ class _QuickActionsRow extends StatelessWidget {
               _QuickActionButton(
                 label: 'Add Student',
                 icon: Icons.person_add_rounded,
-                onPressed: () {},
-                gradient: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                onPressed: () {
+                  final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
+                  if (state != null) {
+                    state._navigateTo(_InstituteNav.students);
+                  }
+                },
+                gradient: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
               ),
             if (showMarkAttendance)
               _QuickActionButton(
@@ -730,14 +741,19 @@ class _QuickActionsRow extends StatelessWidget {
                     state._navigateTo(_InstituteNav.attendance);
                   }
                 },
-                gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
+                gradient: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
               ),
             if (showCollectFee)
               _QuickActionButton(
                 label: 'Collect Fee',
                 icon: Icons.payments_rounded,
-                onPressed: () {},
-                gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
+                onPressed: () {
+                  final state = context.findAncestorStateOfType<_InstituteDashboardViewState>();
+                  if (state != null) {
+                    state._navigateTo(_InstituteNav.fees);
+                  }
+                },
+                gradient: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
               ),
             if (showCreateExam)
               _QuickActionButton(
@@ -749,7 +765,7 @@ class _QuickActionsRow extends StatelessWidget {
                     state._navigateTo(_InstituteNav.exams);
                   }
                 },
-                gradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                gradient: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
               ),
             if (showMonthlyTest)
               _QuickActionButton(
@@ -761,7 +777,7 @@ class _QuickActionsRow extends StatelessWidget {
                     state._navigateTo(_InstituteNav.monthlyTests);
                   }
                 },
-                gradient: const [Color(0xFFEC4899), Color(0xFFDB2777)],
+                gradient: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
               ),
           ],
         ),
@@ -859,6 +875,7 @@ class _RecentList extends StatelessWidget {
     required this.emptyMessage,
     required this.titleKey,
     required this.subtitleKey,
+    this.badgeKey,
     this.isCurrency = false,
   });
 
@@ -868,6 +885,7 @@ class _RecentList extends StatelessWidget {
   final String emptyMessage;
   final String titleKey;
   final String subtitleKey;
+  final String? badgeKey;
   final bool isCurrency;
 
   Color _getAvatarColor(String name) {
@@ -942,12 +960,14 @@ class _RecentList extends StatelessWidget {
                 final subtitle = isCurrency && subtitleRaw != null
                   ? 'PKR ${NumberFormat("#,##0").format(double.tryParse(subtitleRaw.toString()) ?? 0)}'
                   : subtitleRaw.toString();
+                final badge = badgeKey != null ? item[badgeKey]?.toString() : null;
                 
                 return _ListItem(
                   title: name,
                   subtitle: subtitle,
                   avatarInitials: _getInitials(name),
                   avatarColor: _getAvatarColor(name),
+                  badge: badge,
                 );
               },
             ),
@@ -963,12 +983,14 @@ class _ListItem extends StatefulWidget {
     required this.subtitle,
     required this.avatarInitials,
     required this.avatarColor,
+    this.badge,
   });
 
   final String title;
   final String subtitle;
   final String avatarInitials;
   final Color avatarColor;
+  final String? badge;
 
   @override
   State<_ListItem> createState() => _ListItemState();
@@ -1032,6 +1054,24 @@ class _ListItemState extends State<_ListItem> {
                 ],
               ),
             ),
+            if (widget.badge != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  widget.badge!.toUpperCase(),
+                  style: TextStyle(
+                    color: cs.onPrimaryContainer,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
             Icon(
               Icons.chevron_right_rounded,
               size: 16,

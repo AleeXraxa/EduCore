@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/core/services/app_services.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -178,6 +179,17 @@ class _AttendanceHeader extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              if (isDesktop && controller.classes.isNotEmpty) ...[
+                SizedBox(
+                  width: 200,
+                  child: _ClassSelector(
+                    selected: controller.selectedClass,
+                    classes: controller.classes,
+                    onChanged: controller.setClass,
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
               if (isDesktop && AppServices.instance.featureAccessService!.canAccess('attendance_mark'))
                 FilledButton.icon(
                   onPressed: onMarkPressed,
@@ -694,30 +706,15 @@ class _ClassSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      height: 44,
-      decoration: BoxDecoration(
-        color: cs.secondaryContainer.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<InstituteClass>(
-          value: selected,
-          hint: const Text('All Classes', style: TextStyle(fontSize: 13)),
-          style: TextStyle(
-            color: cs.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-          items: classes
-              .map((c) => DropdownMenuItem(value: c, child: Text(c.displayName)))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
+    return AppDropdown<InstituteClass>(
+      label: 'Class',
+      showLabel: false,
+      compact: true,
+      hintText: 'All Classes',
+      items: classes,
+      value: selected,
+      itemLabel: (c) => c.displayName,
+      onChanged: onChanged,
     );
   }
 }

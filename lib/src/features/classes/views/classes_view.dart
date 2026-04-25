@@ -92,6 +92,14 @@ class _ClassesViewState extends State<ClassesView> {
                     if (controller.canCreate)
                       AppPrimaryButton(
                         onPressed: () {
+                          if (!controller.hasFeePlans) {
+                            AppDialogs.showInfo(
+                              context,
+                              title: 'Action Required',
+                              message: 'Please create a Fee Plan before creating a Class.',
+                            );
+                            return;
+                          }
                           showDialog(
                             context: context,
                             builder: (_) =>
@@ -159,6 +167,14 @@ class _ClassesViewState extends State<ClassesView> {
                             (controller.searchQuery?.isEmpty ?? true))
                           AppPrimaryButton(
                             onPressed: () {
+                              if (!controller.hasFeePlans) {
+                                AppDialogs.showInfo(
+                                  context,
+                                  title: 'Action Required',
+                                  message: 'Please create a Fee Plan before creating a Class.',
+                                );
+                                return;
+                              }
                               showDialog(
                                 context: context,
                                 builder: (_) =>

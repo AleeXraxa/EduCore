@@ -3,6 +3,7 @@ import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_card.dart';
 import 'package:educore/src/features/dashboard/institute_dashboard_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 
 class InstituteChartsSection extends StatelessWidget {
   const InstituteChartsSection({super.key, required this.controller});
@@ -15,20 +16,10 @@ class InstituteChartsSection extends StatelessWidget {
     final absent = max(0, controller.totalStudents - controller.todaysAttendance).toDouble();
     
     final pending = controller.pendingFeesCount.toDouble();
-    final paid = max(0, controller.totalStudents - controller.pendingFeesCount).toDouble();
+    final paid = controller.paidFeesCount.toDouble();
 
-    // Generate a smooth mock curve ending linearly at total students
-    final total = controller.totalStudents;
-    final growthSeries = total == 0 
-        ? [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        : [
-            total * 0.4,
-            total * 0.5,
-            total * 0.55,
-            total * 0.7,
-            total * 0.85,
-            total * 1.0,
-          ];
+    final growthSeries = controller.studentGrowth;
+    final growthLabels = controller.studentGrowthLabels;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -52,7 +43,7 @@ class InstituteChartsSection extends StatelessWidget {
               child: _ChartBox(
                 title: 'Student Growth',
                 subtitle: 'Enrollment over last 6 months',
-                child: _SimpleLineChart(values: growthSeries),
+                child: _SimpleLineChart(values: growthSeries, labels: growthLabels),
               ),
             ),
             const SizedBox(height: 20),
@@ -141,18 +132,43 @@ class _ChartBox extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ],
               ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
+            ),
+            SizedBox(
+              width: 130,
+              child: AppDropdown<String>(
+                label: 'Filter',
+                showLabel: false,
+                compact: true,
+                items: const ['Today', '7d', '30d'],
+                value: 'Today',
+                itemLabel: (s) => s,
+                onChanged: (_) {}, // To be wired up to controller later
               ),
+            ),
+          ],
         ),
         const SizedBox(height: 24),
         SizedBox(height: 160, child: child),
@@ -166,8 +182,9 @@ class _ChartBox extends StatelessWidget {
 // ==========================================
 
 class _SimpleLineChart extends StatelessWidget {
-  const _SimpleLineChart({required this.values});
+  const _SimpleLineChart({required this.values, required this.labels});
   final List<double> values;
+  final List<String> labels;
 
   @override
   Widget build(BuildContext context) {
@@ -175,8 +192,14 @@ class _SimpleLineChart extends StatelessWidget {
     return CustomPaint(
       painter: _LinePainter(
         values: values,
+        labels: labels,
         primary: cs.primary,
         gridColor: cs.outlineVariant.withOpacity(0.5),
+        labelStyle: TextStyle(
+          color: cs.onSurfaceVariant,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       child: const SizedBox.expand(),
     );
@@ -186,24 +209,31 @@ class _SimpleLineChart extends StatelessWidget {
 class _LinePainter extends CustomPainter {
   const _LinePainter({
     required this.values,
+    required this.labels,
     required this.primary,
     required this.gridColor,
+    required this.labelStyle,
   });
 
   final List<double> values;
+  final List<String> labels;
   final Color primary;
   final Color gridColor;
+  final TextStyle labelStyle;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
+
+    final double bottomPadding = 24.0;
+    final double drawHeight = size.height - bottomPadding;
 
     final gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
 
     for (var i = 1; i <= 3; i++) {
-      final y = size.height * (i / 4);
+      final y = drawHeight * (i / 4);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
@@ -214,7 +244,7 @@ class _LinePainter extends CustomPainter {
     final dx = size.width / (values.length - 1);
     final points = <Offset>[
       for (var i = 0; i < values.length; i++)
-        Offset(i * dx, size.height - ((values[i] - minV) / span) * (size.height * 0.8) - (size.height * 0.1)),
+        Offset(i * dx, drawHeight - ((values[i] - minV) / span) * (drawHeight * 0.8) - (drawHeight * 0.1)),
     ];
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
@@ -233,8 +263,8 @@ class _LinePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final fillPath = Path.from(path)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
+      ..lineTo(size.width, drawHeight)
+      ..lineTo(0, drawHeight)
       ..close();
 
     final fillGradient = LinearGradient(
@@ -244,20 +274,31 @@ class _LinePainter extends CustomPainter {
     );
 
     canvas.drawPath(
-        fillPath, Paint()..shader = fillGradient.createShader(Offset.zero & size));
+        fillPath, Paint()..shader = fillGradient.createShader(Offset(0, 0) & Size(size.width, drawHeight)));
     canvas.drawPath(path, linePaint);
 
     final dotPaint = Paint()..color = Colors.white;
     final dotStroke = Paint()..color = primary..style = PaintingStyle.stroke..strokeWidth = 2;
 
-    for (final p in points) {
+    for (var i = 0; i < points.length; i++) {
+      final p = points[i];
       canvas.drawCircle(p, 4, dotPaint);
       canvas.drawCircle(p, 4, dotStroke);
+
+      // Draw label
+      if (i < labels.length) {
+        final tp = TextPainter(
+          text: TextSpan(text: labels[i], style: labelStyle),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+        tp.paint(canvas, Offset(p.dx - tp.width / 2, size.height - bottomPadding + 6));
+      }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _LinePainter oldDelegate) => oldDelegate.values != values || oldDelegate.primary != primary;
+  bool shouldRepaint(covariant _LinePainter oldDelegate) => oldDelegate.values != values || oldDelegate.primary != primary || oldDelegate.labels != labels;
 }
 
 class _SimpleBarChart extends StatelessWidget {

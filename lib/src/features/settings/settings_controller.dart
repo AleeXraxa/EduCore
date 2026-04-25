@@ -42,6 +42,7 @@ class SettingsController extends BaseController {
           appLogoUrl: '',
           supportEmail: '',
           supportPhone: '',
+          address: '',
           paymentMethods: {
             'jazzcash': PaymentMethodConfig(
               isActive: false,

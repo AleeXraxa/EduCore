@@ -5,6 +5,7 @@ class GlobalSettings {
   final String appLogoUrl;
   final String supportEmail;
   final String supportPhone;
+  final String address;
   final Map<String, PaymentMethodConfig> paymentMethods;
   final DateTime? updatedAt;
   final String? updatedBy;
@@ -15,6 +16,7 @@ class GlobalSettings {
     required this.supportEmail,
     required this.supportPhone,
     required this.paymentMethods,
+    this.address = '',
     this.updatedAt,
     this.updatedBy,
   });
@@ -28,6 +30,7 @@ class GlobalSettings {
       appLogoUrl: data['appLogoUrl'] ?? '',
       supportEmail: data['supportEmail'] ?? '',
       supportPhone: data['supportPhone'] ?? '',
+      address: data['address'] ?? '',
       paymentMethods: pmData.map(
         (key, value) => MapEntry(key, PaymentMethodConfig.fromMap(Map<String, dynamic>.from(value))),
       ),
@@ -42,6 +45,7 @@ class GlobalSettings {
       'appLogoUrl': appLogoUrl,
       'supportEmail': supportEmail,
       'supportPhone': supportPhone,
+      'address': address,
       'paymentMethods': paymentMethods.map((key, value) => MapEntry(key, value.toMap())),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': updatedBy,
@@ -53,6 +57,7 @@ class GlobalSettings {
     String? appLogoUrl,
     String? supportEmail,
     String? supportPhone,
+    String? address,
     Map<String, PaymentMethodConfig>? paymentMethods,
   }) {
     return GlobalSettings(
@@ -60,6 +65,7 @@ class GlobalSettings {
       appLogoUrl: appLogoUrl ?? this.appLogoUrl,
       supportEmail: supportEmail ?? this.supportEmail,
       supportPhone: supportPhone ?? this.supportPhone,
+      address: address ?? this.address,
       paymentMethods: paymentMethods ?? this.paymentMethods,
       updatedAt: updatedAt,
       updatedBy: updatedBy,

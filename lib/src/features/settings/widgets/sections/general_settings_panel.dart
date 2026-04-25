@@ -16,6 +16,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
   late final TextEditingController _appName;
   late final TextEditingController _supportEmail;
   late final TextEditingController _supportPhone;
+  late final TextEditingController _address;
 
   @override
   void initState() {
@@ -24,10 +25,32 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
     _appName = TextEditingController(text: settings?.appName);
     _supportEmail = TextEditingController(text: settings?.supportEmail);
     _supportPhone = TextEditingController(text: settings?.supportPhone);
+    _address = TextEditingController(text: settings?.address);
 
     _appName.addListener(_update);
     _supportEmail.addListener(_update);
     _supportPhone.addListener(_update);
+    _address.addListener(_update);
+  }
+
+  @override
+  void didUpdateWidget(GeneralSettingsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final settings = widget.controller.settings;
+    if (settings != null) {
+      if (_appName.text != settings.appName) {
+        _appName.text = settings.appName;
+      }
+      if (_supportEmail.text != settings.supportEmail) {
+        _supportEmail.text = settings.supportEmail;
+      }
+      if (_supportPhone.text != settings.supportPhone) {
+        _supportPhone.text = settings.supportPhone;
+      }
+      if (_address.text != settings.address) {
+        _address.text = settings.address;
+      }
+    }
   }
 
   void _update() {
@@ -38,6 +61,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
         appName: _appName.text,
         supportEmail: _supportEmail.text,
         supportPhone: _supportPhone.text,
+        address: _address.text,
       ),
     );
   }
@@ -47,6 +71,7 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
     _appName.dispose();
     _supportEmail.dispose();
     _supportPhone.dispose();
+    _address.dispose();
     super.dispose();
   }
 
@@ -135,6 +160,14 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _address,
+                label: isSuperAdmin ? 'Headquarters Address' : 'Institute Address',
+                hintText: isSuperAdmin ? '123 Tech Park, Suite 100' : '123 Education Street, City',
+                prefixIcon: Icons.location_on_rounded,
+                maxLines: 2,
               ),
               const SizedBox(height: 16),
               Align(

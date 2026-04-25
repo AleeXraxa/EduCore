@@ -62,6 +62,9 @@ class ClassesController extends BaseController {
     }
   }
 
+  bool _hasFeePlans = false;
+  bool get hasFeePlans => _hasFeePlans;
+
   String _searchQuery = '';
   String? get searchQuery => _searchQuery;
 
@@ -99,10 +102,13 @@ class ClassesController extends BaseController {
         final results = await Future.wait([
           _classService.getClasses(_academyId),
           _staffService.getStaff(_academyId),
+          AppServices.instance.feePlanService!.getFeePlans(_academyId),
         ]);
 
         final fetchedClasses = results[0] as List<InstituteClass>;
         _teachers = results[1] as List<StaffMember>;
+        final fetchedPlans = results[2] as List<dynamic>;
+        _hasFeePlans = fetchedPlans.any((p) => p.isActive == true);
 
         // Dynamically compute exact student counts using Firestore Aggregations
         // Eliminates data-drift from incremental DB counters. Fast via metadata indexing.
