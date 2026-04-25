@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:educore/src/features/notifications/controllers/institute_notifications_controller.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/core/ui/widgets/app_text_field.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 
 class SendIndividualMessagePanel extends StatefulWidget {
   const SendIndividualMessagePanel({super.key, required this.controller});
@@ -15,6 +16,15 @@ class _SendIndividualMessagePanelState extends State<SendIndividualMessagePanel>
   final _recipientController = TextEditingController();
   final _messageController = TextEditingController();
   Student? _selectedStudent;
+  String? _selectedTemplate;
+
+  final List<String> _templates = [
+    'Custom Message',
+    'Fee Reminder',
+    'Test Schedule',
+    'Test Result',
+    'Attendance Alert',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +32,24 @@ class _SendIndividualMessagePanelState extends State<SendIndividualMessagePanel>
     final isConnected = widget.controller.whatsappStatus == 'connected';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -41,6 +67,8 @@ class _SendIndividualMessagePanelState extends State<SendIndividualMessagePanel>
             _buildNotConnectedWarning(cs)
           else ...[
             _buildStudentSelector(cs),
+            const SizedBox(height: 24),
+            _buildTemplateSelector(cs),
             const SizedBox(height: 24),
             AppTextField(
               controller: _recipientController,
@@ -71,6 +99,8 @@ class _SendIndividualMessagePanelState extends State<SendIndividualMessagePanel>
           ],
         ],
       ),
+      ),
+      ),
     );
   }
 
@@ -98,34 +128,66 @@ class _SendIndividualMessagePanelState extends State<SendIndividualMessagePanel>
   }
 
   Widget _buildStudentSelector(ColorScheme cs) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Select Student (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<Student>(
-          value: _selectedStudent,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: widget.controller.students.map((s) {
-            return DropdownMenuItem(
-              value: s,
-              child: Text('${s.name} (${s.rollNo ?? 'N/A'})'),
-            );
-          }).toList(),
-          onChanged: (val) {
-            setState(() {
-              _selectedStudent = val;
-              if (val != null) {
-                _recipientController.text = val.phone; 
-              }
-            });
-          },
-        ),
-      ],
+    return AppDropdown<Student>(
+      label: 'Select Student (Optional)',
+      hintText: 'Search for a student...',
+      items: widget.controller.students,
+      value: _selectedStudent,
+      searchable: true,
+      itemLabel: (s) => '${s.name} (${s.rollNo ?? 'N/A'})',
+      onChanged: (val) {
+        setState(() {
+          _selectedStudent = val;
+          if (val != null) {
+            _recipientController.text = val.phone;
+          }
+          _updateMessageWithTemplate();
+        });
+      },
     );
+  }
+
+  Widget _buildTemplateSelector(ColorScheme cs) {
+    return AppDropdown<String>(
+      label: 'Message Template',
+      items: _templates,
+      value: _selectedTemplate ?? 'Custom Message',
+      itemLabel: (t) => t,
+      onChanged: (val) {
+        setState(() {
+          _selectedTemplate = val;
+          _updateMessageWithTemplate();
+        });
+      },
+    );
+  }
+
+  void _updateMessageWithTemplate() {
+    if (_selectedTemplate == null || _selectedTemplate == 'Custom Message') return;
+
+    String msg = '';
+    switch (_selectedTemplate) {
+      case 'Fee Reminder':
+        msg = 'Dear Parent, this is a reminder that the tuition fee for {month} is pending. Please clear it by {date}. Regards, {institute}';
+        break;
+      case 'Test Schedule':
+        msg = 'Dear Student, your {subject} test is scheduled for {date} at {time}. Regards, {institute}';
+        break;
+      case 'Test Result':
+        msg = 'Dear Parent, the result for {student} in {subject} test is {marks}/{total}. Regards, {institute}';
+        break;
+      case 'Attendance Alert':
+        msg = 'Dear Parent, {student} was absent from the academy today ({date}). Regards, {institute}';
+        break;
+    }
+
+    if (_selectedStudent != null) {
+      msg = msg.replaceAll('{student}', _selectedStudent!.name);
+    }
+    msg = msg.replaceAll('{date}', DateTime.now().toString().split(' ')[0]);
+    msg = msg.replaceAll('{institute}', widget.controller.academyId ?? 'EduCore');
+
+    _messageController.text = msg;
   }
 
   Future<void> _sendMessage() async {

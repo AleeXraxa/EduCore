@@ -230,7 +230,6 @@ class _BrandRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                _ToggleBtn(collapsed: collapsed, onToggle: onToggle),
               ],
             ],
           );
@@ -472,35 +471,6 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-class _ToggleBtn extends StatelessWidget {
-  const _ToggleBtn({required this.collapsed, required this.onToggle});
-  final bool collapsed;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onToggle,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            collapsed ? Icons.menu_open_rounded : Icons.menu_rounded,
-            size: 20,
-            color: cs.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _NavItem extends StatefulWidget {
   const _NavItem({

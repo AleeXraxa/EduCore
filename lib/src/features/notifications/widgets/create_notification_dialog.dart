@@ -1,6 +1,7 @@
 import 'package:educore/src/core/services/institute_service.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/features/notifications/notifications_controller.dart';
+import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:flutter/material.dart';
 
 class CreateNotificationDialog extends StatefulWidget {
@@ -77,8 +78,6 @@ class _CreateNotificationDialogState extends State<CreateNotificationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return AlertDialog(
       title: const Text('Create Notification'),
       titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -123,18 +122,13 @@ class _CreateNotificationDialogState extends State<CreateNotificationDialog> {
               ),
               const SizedBox(height: 24),
               if (!_isBroadcast) ...[
-                DropdownButtonFormField<Academy>(
-                  initialValue: _selectedAcademy,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Institute',
-                    prefixIcon: Icon(Icons.business_rounded),
-                  ),
-                  items: widget.controller.academies.map((a) {
-                    return DropdownMenuItem(
-                      value: a,
-                      child: Text(a.name),
-                    );
-                  }).toList(),
+                AppDropdown<Academy>(
+                  label: 'Select Institute',
+                  items: widget.controller.academies,
+                  value: _selectedAcademy,
+                  searchable: true,
+                  prefixIcon: Icons.business_rounded,
+                  itemLabel: (a) => a.name,
                   onChanged: (val) => setState(() => _selectedAcademy = val),
                   validator: (val) => val == null ? 'Required' : null,
                 ),

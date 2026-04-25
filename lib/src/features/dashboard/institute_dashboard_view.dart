@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:educore/src/app/shell/app_shell.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
@@ -444,7 +445,7 @@ class _HeaderRowState extends State<_HeaderRow> with SingleTickerProviderStateMi
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 12),
     )..repeat();
   }
 
@@ -457,115 +458,265 @@ class _HeaderRowState extends State<_HeaderRow> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        // Visibly panning gradient back and forth
-        final shift = sin(_controller.value * 2 * pi); // -1.0 to 1.0
-        final xStart = -1.0 + (shift * 0.3);
-        final yStart = -1.0 + (shift * 0.3);
-        
-        final xEnd = 1.0 - (shift * 0.3);
-        final yEnd = 1.0 - (shift * 0.3);
-
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          height: 240,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: LinearGradient(
-              begin: Alignment(xStart, yStart),
-              end: Alignment(xEnd, yEnd),
-              colors: [
-                cs.primaryContainer.withValues(alpha: 0.6),
-                cs.primary.withValues(alpha: 0.08),
-                cs.surface,
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
+            borderRadius: BorderRadius.circular(32),
+            color: cs.surface,
             border: Border.all(
-              color: cs.primary.withValues(alpha: 0.15),
-              width: 1,
+              color: cs.primary.withValues(alpha: 0.1),
+              width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
                 color: cs.primary.withValues(alpha: 0.08),
-                blurRadius: 32,
-                offset: const Offset(0, 16),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
               ),
             ],
           ),
-          child: child,
-        );
-      },
-      child: Row(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [cs.primary, cs.tertiary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          child: Stack(
+            children: [
+              // --- Animated Background Blobs (Optimized with BoxShadow instead of BackdropFilter) ---
+              _buildBlob(
+                color: cs.primary.withValues(alpha: 0.1),
+                size: 400,
+                offset: Offset(
+                  -150 + (sin(_controller.value * 2 * pi) * 80),
+                  -150 + (cos(_controller.value * 2 * pi) * 40),
+                ),
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: cs.primary.withValues(alpha: 0.3),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
+              _buildBlob(
+                color: cs.tertiary.withValues(alpha: 0.08),
+                size: 350,
+                offset: Offset(
+                  MediaQuery.of(context).size.width * 0.4 + (cos(_controller.value * 2 * pi) * 100),
+                  -100 + (sin(_controller.value * 2 * pi) * 60),
                 ),
-              ],
-            ),
-            child: const Icon(Icons.school_rounded, color: Colors.white, size: 36),
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.academyName,
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.0,
-                        color: cs.onSurface,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              _buildBlob(
+                color: cs.secondary.withValues(alpha: 0.06),
+                size: 300,
+                offset: Offset(
+                  MediaQuery.of(context).size.width * 0.1 + (sin(_controller.value * 2 * pi + 1.5) * 70),
+                  50 + (cos(_controller.value * 2 * pi + 1.5) * 80),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              ),
+
+              // --- Glass Overlay ---
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        cs.surface.withValues(alpha: 0.4),
+                        cs.surface.withValues(alpha: 0.1),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // --- Content ---
+              Padding(
+                padding: const EdgeInsets.all(40),
+                child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: cs.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Institute Dashboard',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: cs.primary,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
                             ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Pulsing dot
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: cs.primary.withValues(alpha: 0.3 + (sin(_controller.value * 4 * pi).abs() * 0.7)),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: cs.primary.withValues(alpha: 0.5),
+                                        blurRadius: 4 + (sin(_controller.value * 4 * pi).abs() * 4),
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'INSTITUTE COMMAND CENTER',
+                                  style: textTheme.labelSmall?.copyWith(
+                                    color: cs.primary,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            widget.academyName,
+                            style: textTheme.displayMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -2.0,
+                              color: cs.onSurface,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          RichText(
+                            text: TextSpan(
+                              style: textTheme.titleMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              children: [
+                                TextSpan(text: '${_getGreeting()}, '),
+                                TextSpan(
+                                  text: widget.userName,
+                                  style: TextStyle(
+                                    color: cs.onSurface,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const TextSpan(text: '. Welcome back to your dashboard.'),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${_getGreeting()}, ${widget.userName}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
+                    
+                    // --- Decorative Abstract Element ---
+                    if (MediaQuery.of(context).size.width > 900)
+                      _buildHeroGraphic(cs),
                   ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBlob({required Color color, required double size, required Offset offset}) {
+    return Positioned(
+      left: offset.dx,
+      top: offset.dy,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color,
+              blurRadius: 80,
+              spreadRadius: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroGraphic(ColorScheme cs) {
+    return Container(
+      width: 200,
+      height: 200,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Spinning Ring 1
+          Transform.rotate(
+            angle: _controller.value * 2 * pi,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: cs.primary.withValues(alpha: 0.15),
+                  width: 1,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Stack(
+                children: [
+                   Positioned(
+                    top: 0,
+                    left: 80,
+                    child: Container(width: 10, height: 10, decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.4), shape: BoxShape.circle)),
+                   ),
+                ],
+              ),
+            ),
+          ),
+          // Spinning Ring 2
+          Transform.rotate(
+            angle: -_controller.value * 3 * pi,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: cs.tertiary.withValues(alpha: 0.1),
+                  width: 6,
+                  style: BorderStyle.solid,
+                ),
+              ),
+            ),
+          ),
+          // Center Icon with floating effect
+          Transform.translate(
+            offset: Offset(0, sin(_controller.value * 4 * pi) * 10),
+            child: Container(
+              width: 85,
+              height: 85,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [cs.primary, cs.tertiary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.4),
+                    blurRadius: 25,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 44,
+              ),
             ),
           ),
         ],
@@ -607,27 +758,6 @@ class _SmartSummaryBar extends StatelessWidget {
                   label: '${controller.pendingFeesCount} Pending Fees',
                   icon: Icons.info_outline_rounded,
                   color: controller.pendingFeesCount > 0 ? Colors.amber : Colors.blue,
-                ),
-                const Spacer(),
-                Expanded(
-                  child: Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search_rounded, size: 18, color: cs.onSurfaceVariant),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Search anything...',
-                          style: TextStyle(color: cs.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -1094,7 +1224,7 @@ class _ListItemState extends State<_ListItem> {
                 ],
               ),
             ),
-            if (widget.badge != null) ...[
+            if (widget.badge != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -1110,13 +1240,6 @@ class _ListItemState extends State<_ListItem> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-            ],
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
-              color: _isHovered ? cs.primary : cs.outlineVariant,
-            ),
           ],
         ),
       ),

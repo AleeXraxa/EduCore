@@ -27,6 +27,7 @@ import 'package:educore/src/core/services/attendance_service.dart';
 import 'package:educore/src/core/services/fee_generation_lock_service.dart';
 import 'package:educore/src/core/services/fee_document_service.dart';
 import 'package:educore/src/core/services/role_defaults_service.dart';
+import 'package:educore/src/core/services/whatsapp_process_service.dart';
 
 import 'package:educore/src/features/students/services/student_service.dart';
 import 'package:educore/src/features/exams/services/exam_service.dart';
@@ -91,6 +92,7 @@ class AppServices {
   RoleDefaultsService? roleDefaultsService;
   ExpenseService? expenseService;
   WhatsAppService? whatsappService;
+  WhatsAppProcessService? whatsappProcessService;
   
   // Repositories
   UserRepository? userRepository;
@@ -270,6 +272,10 @@ class AppServices {
       );
 
       whatsappService = WhatsAppService();
+      whatsappProcessService = WhatsAppProcessService();
+      
+      // Start backend process in background
+      whatsappProcessService?.init();
 
       // Initialize Repositories
       userRepository = UserRepository(
