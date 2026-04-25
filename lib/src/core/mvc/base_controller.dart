@@ -66,12 +66,12 @@ abstract class BaseController extends ChangeNotifier {
     );
     
     // If it failed, we can still set the local error for UI if needed.
-    if (result == null) {
+    if (!result.success) {
       _error = 'Operation failed';
       notifyListeners();
     }
     
-    return result;
+    return result.data;
   }
 
   @override

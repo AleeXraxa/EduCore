@@ -331,6 +331,7 @@ class FeatureAccessService {
         'test_result_view',
         'timetable_setup',
         'user_management', 'whatsapp_api_integration', 'whatsapp_integration',
+        'announcement_send', 'announcement_schedule', 'broadcast_message',
       },
       'teacher': {
         'dashboard',

@@ -19,6 +19,7 @@ import 'package:educore/src/features/exams/views/exams_view.dart';
 import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
 import 'package:educore/src/features/certificates/views/certificates_view.dart';
 import 'package:educore/src/features/expenses/views/expenses_view.dart';
+import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/reports/views/reports_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
@@ -88,6 +89,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
       _InstituteNav.feePlans => const FeePlansView(),
       _InstituteNav.staff => const StaffListView(),
       _InstituteNav.reports => const ReportsView(),
+      _InstituteNav.notifications => const NotificationsView(), // This will be the NEW view
       _InstituteNav.settings => const SettingsView(),
     };
   }
@@ -183,6 +185,13 @@ enum _InstituteNav {
     'Institute Settings',
     Icons.settings_rounded,
     featureKey: 'settings_view',
+  ),
+  notifications(
+    'notifications',
+    'Notifications',
+    'Notifications & WhatsApp',
+    Icons.notifications_active_rounded,
+    featureKey: 'whatsapp_integration',
   );
 
   const _InstituteNav(this.id, this.label, this.title, this.icon,
@@ -224,6 +233,12 @@ enum _InstituteNav {
       title: 'Reports & Analytics',
       items: [
         reports.toSidebarItem(),
+      ],
+    ),
+    SidebarSectionData(
+      title: 'Communication',
+      items: [
+        notifications.toSidebarItem(),
       ],
     ),
     SidebarSectionData(

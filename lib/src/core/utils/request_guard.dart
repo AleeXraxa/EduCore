@@ -19,7 +19,7 @@ class RequestGuard {
   /// [timeout] - Maximum allowed time (default 10s as per requirement).
   /// [showLoading] - Whether to show the global loading overlay.
   /// [loadingMessage] - Custom text for the loading overlay.
-  static Future<T?> run<T>(
+  static Future<({bool success, T? data})> run<T>(
     BuildContext? context,
     Future<T> Function() action, {
     Duration timeout = const Duration(seconds: 10),
@@ -34,7 +34,7 @@ class RequestGuard {
       if (ctx != null && ctx.mounted) {
         AppDialogs.showNoInternet(ctx);
       }
-      return null;
+      return (success: false, data: null);
     }
 
     // 2. Optional Loading Overlay
@@ -49,13 +49,13 @@ class RequestGuard {
         onTimeout: () => throw TimeoutException('Request timed out'),
       );
       
-      return result;
+      return (success: true, data: result);
     } on TimeoutException {
       if (ctx != null && ctx.mounted) {
         AppDialogs.hideLoading(ctx);
         AppDialogs.showTimeout(ctx);
       }
-      return null;
+      return (success: false, data: null);
     } on FirebaseException catch (e) {
       if (ctx != null && ctx.mounted) {
         AppDialogs.hideLoading(ctx);
@@ -65,13 +65,13 @@ class RequestGuard {
           message: _mapFirebaseError(e),
         );
       }
-      return null;
+      return (success: false, data: null);
     } on SocketException {
       if (ctx != null && ctx.mounted) {
         AppDialogs.hideLoading(ctx);
         AppDialogs.showNoInternet(ctx);
       }
-      return null;
+      return (success: false, data: null);
     } on PlatformException catch (e) {
       if (ctx != null && ctx.mounted) {
         AppDialogs.hideLoading(ctx);
@@ -81,7 +81,7 @@ class RequestGuard {
           message: e.message ?? 'A platform error occurred.',
         );
       }
-      return null;
+      return (success: false, data: null);
     } catch (e) {
       if (ctx != null && ctx.mounted) {
         AppDialogs.hideLoading(ctx);
@@ -92,7 +92,7 @@ class RequestGuard {
         );
       }
       debugPrint('RequestGuard Error: $e');
-      return null;
+      return (success: false, data: null);
     } finally {
       // 4. Always hide loading if it was shown
       if (showLoading && ctx != null && ctx.mounted) {

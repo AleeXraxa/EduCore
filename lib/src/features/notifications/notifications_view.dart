@@ -1,4 +1,3 @@
-
 import 'package:educore/src/core/mvc/controller_builder.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
 import 'package:educore/src/core/ui/widgets/app_animated_slide.dart';
@@ -11,16 +10,34 @@ import 'package:educore/src/features/notifications/widgets/notifications_table.d
 import 'package:educore/src/core/ui/widgets/app_loading_overlay.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
+import 'package:educore/src/core/models/app_user.dart';
+import 'package:educore/src/features/notifications/views/institute_notifications_view.dart';
 import 'package:flutter/material.dart';
 
-class NotificationsView extends StatefulWidget {
+class NotificationsView extends StatelessWidget {
   const NotificationsView({super.key});
 
   @override
-  State<NotificationsView> createState() => _NotificationsViewState();
+  Widget build(BuildContext context) {
+    final user = AppServices.instance.authService?.session?.user;
+    final isSuperAdmin = user?.role == AppUserRole.superAdmin;
+
+    if (!isSuperAdmin) {
+      return const InstituteNotificationsView();
+    }
+
+    return const SuperAdminNotificationsView();
+  }
 }
 
-class _NotificationsViewState extends State<NotificationsView> {
+class SuperAdminNotificationsView extends StatefulWidget {
+  const SuperAdminNotificationsView({super.key});
+
+  @override
+  State<SuperAdminNotificationsView> createState() => _SuperAdminNotificationsViewState();
+}
+
+class _SuperAdminNotificationsViewState extends State<SuperAdminNotificationsView> {
   late final NotificationsController _controller;
 
   @override
@@ -43,7 +60,7 @@ class _NotificationsViewState extends State<NotificationsView> {
       controller: _controller,
       builder: (context, controller, child) {
         final featureSvc = AppServices.instance.featureAccessService;
-        if (featureSvc == null || !featureSvc.canAccess('notification_view')) {
+        if (featureSvc == null || !featureSvc.canAccess('whatsapp_integration')) {
           return const AccessDeniedView(featureName: 'Notifications Hub');
         }
 

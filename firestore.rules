@@ -208,6 +208,12 @@ service cloud.firestore {
         allow update, delete: if isSuperAdmin();
       }
 
+      match /whatsappLogs/{logId} {
+        allow read:   if belongsTo(academyId);
+        allow create: if (isAdminOf(academyId) || isStaffOf(academyId)) && hasActiveSubscription(academyId);
+        allow update, delete: if isSuperAdmin();
+      }
+
       match /attendance/{attendanceId} {
         allow read:   if belongsTo(academyId);
         allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))

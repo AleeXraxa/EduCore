@@ -34,6 +34,7 @@ import 'package:educore/src/features/monthly_tests/services/monthly_test_service
 import 'package:educore/src/features/certificates/services/certificate_service.dart';
 import 'package:educore/src/features/certificates/services/certificate_template_service.dart';
 import 'package:educore/src/features/expenses/services/expense_service.dart';
+import 'package:educore/src/features/notifications/services/whatsapp_service.dart';
 
 import 'package:educore/src/core/repositories/user_repository.dart';
 import 'package:educore/src/core/repositories/institute_repository.dart';
@@ -89,6 +90,7 @@ class AppServices {
   CertificateTemplateService? certificateTemplateService;
   RoleDefaultsService? roleDefaultsService;
   ExpenseService? expenseService;
+  WhatsAppService? whatsappService;
   
   // Repositories
   UserRepository? userRepository;
@@ -266,6 +268,8 @@ class AppServices {
         firestore: firestore!,
         auditLogService: auditLogService!,
       );
+
+      whatsappService = WhatsAppService();
 
       // Initialize Repositories
       userRepository = UserRepository(
