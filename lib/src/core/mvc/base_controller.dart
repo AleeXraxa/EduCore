@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:educore/src/core/utils/request_guard.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -24,12 +27,17 @@ abstract class BaseController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Runs an [action] and manages the [busy] state.
+  /// Use this for background tasks or shimmers where a full dialog isn't needed.
   @protected
   Future<T?> runBusy<T>(Future<T> Function() action) async {
     _error = null;
     setBusy(true);
     try {
-      return await action();
+      return await action().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Network request timed out'),
+      );
     } catch (e) {
       _error = e.toString();
       debugPrint('Controller Error: $e');
@@ -37,6 +45,33 @@ abstract class BaseController extends ChangeNotifier {
     } finally {
       setBusy(false);
     }
+  }
+
+  /// High-reliability wrapper for network operations.
+  /// Handles internet checks, timeouts (10s), and shows professional error dialogs.
+  @protected
+  Future<T?> runGuarded<T>(
+    Future<T> Function() action, {
+    BuildContext? context,
+    String? loadingMessage,
+    bool showLoading = true,
+  }) async {
+    _error = null;
+    // RequestGuard handles showLoading, hideLoading, internet check, and dialogs.
+    final result = await RequestGuard.run(
+      context,
+      action,
+      loadingMessage: loadingMessage,
+      showLoading: showLoading,
+    );
+    
+    // If it failed, we can still set the local error for UI if needed.
+    if (result == null) {
+      _error = 'Operation failed';
+      notifyListeners();
+    }
+    
+    return result;
   }
 
   @override

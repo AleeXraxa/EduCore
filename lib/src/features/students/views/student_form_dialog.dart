@@ -183,9 +183,9 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     try {
       bool success;
       if (widget.student == null) {
-        success = await widget.controller.addStudent(newStudent);
+        success = await widget.controller.addStudent(context, newStudent);
       } else {
-        success = await widget.controller.updateStudent(newStudent);
+        success = await widget.controller.updateStudent(context, newStudent);
       }
 
       // STEP 3: Success or Error Feedback

@@ -149,6 +149,28 @@ class AppDialogs {
     );
   }
 
+  /// Specialized "No Internet" feedback
+  static Future<void> showNoInternet(BuildContext context) {
+    return _showBaseDialog(
+      context,
+      type: _DialogType.error,
+      title: 'No Internet Connection',
+      message: 'Please check your internet connection and try again.',
+      buttonLabel: 'Close',
+    );
+  }
+
+  /// Specialized "Timeout" feedback
+  static Future<void> showTimeout(BuildContext context) {
+    return _showBaseDialog(
+      context,
+      type: _DialogType.error,
+      title: 'Request Timed Out',
+      message: 'Your internet connection seems slow. Please try again later.',
+      buttonLabel: 'Close',
+    );
+  }
+
   /// Informational feedback dialog (non-error, non-success).
   static Future<void> showInfo(
     BuildContext context, {

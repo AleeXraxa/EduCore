@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
+import 'package:educore/src/core/ui/views/no_internet_view.dart';
 
 class AttendanceView extends StatefulWidget {
   const AttendanceView({super.key});
@@ -271,7 +272,9 @@ class _MarkingOverviewTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (controller.records.isEmpty)
+          if (controller.hasError && controller.records.isEmpty)
+            NoInternetView(onRetry: () => controller.loadInitialData())
+          else if (controller.records.isEmpty)
             _EmptyAttendance()
           else
             _StatusOverviewGrid(controller: controller),
@@ -1609,28 +1612,15 @@ class _AttendanceMarkingPanel extends StatelessWidget {
                 Expanded(
                   child: FilledButton(
                     onPressed: () async {
-                      AppDialogs.showLoading(context, message: 'Saving records...');
-
-                      try {
-                        await controller.saveAttendance();
-                        if (context.mounted) {
-                          AppDialogs.hideLoading(context);
-                          Navigator.pop(context);
-                          AppDialogs.showSuccess(
-                            context,
-                            title: 'Attendance Saved',
-                            message: 'Daily attendance records have been synchronized successfully.',
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          AppDialogs.hideLoading(context);
-                          AppDialogs.showError(
-                            context,
-                            title: 'Submission Failed',
-                            message: 'An error occurred while saving attendance records.',
-                          );
-                        }
+                      final success = await controller.saveAttendance(context);
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                        AppDialogs.showSuccess(
+                          context,
+                          title: 'Attendance Saved',
+                          message:
+                              'Daily attendance records have been synchronized successfully.',
+                        );
                       }
                     },
                     style: FilledButton.styleFrom(

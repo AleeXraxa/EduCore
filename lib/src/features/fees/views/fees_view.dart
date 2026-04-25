@@ -15,6 +15,7 @@ import 'package:educore/src/features/fees/widgets/fee_details_dialog.dart';
 import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
 
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
+import 'package:educore/src/core/ui/views/no_internet_view.dart';
 import 'package:intl/intl.dart';
 
 class FeesView extends StatefulWidget {
@@ -153,7 +154,14 @@ class _FeesViewState extends State<FeesView>
               Expanded(
                 child: controller.busy && controller.fees.isEmpty
                     ? const Center(child: CircularProgressIndicator())
-                    : _FeesList(fees: controller.fees, controller: controller),
+                    : controller.hasError && controller.fees.isEmpty
+                        ? NoInternetView(
+                            onRetry: () => controller.loadInitialData(),
+                          )
+                        : _FeesList(
+                            fees: controller.fees,
+                            controller: controller,
+                          ),
               ),
             ],
           ),
@@ -272,6 +280,7 @@ class _FeesHeader extends StatelessWidget {
           AppDialogs.showLoading(context, message: 'Generating records...');
           
           final count = await controller.generateMonthlyFees(
+            context: context,
             classId: classId,
             month: month,
             amount: amount,
@@ -312,7 +321,7 @@ class _FeesHeader extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => CreateOtherFeeDialog(
-        onCreate: (fee) => controller.createOtherFee(fee),
+        onCreate: (fee) => controller.createOtherFee(context, fee),
       ),
     );
   }
@@ -466,6 +475,7 @@ class _FeeRow extends StatelessWidget {
                       onCollectPayment:
                           ({required amount, required method, note}) =>
                               controller.collectPayment(
+                                context,
                                 fee.id,
                                 amount,
                                 method: method,
@@ -536,7 +546,7 @@ class _FeeRow extends StatelessWidget {
         onCollect: ({required amount, required method, note}) async {
           // The dialog manages its own _isLoading state and will pop itself.
           // Just delegate to the controller — no extra loading overlay here.
-          await controller.collectPayment(fee.id, amount, method: method, note: note);
+          await controller.collectPayment(context, fee.id, amount, method: method, note: note);
         },
       ),
     ).then((paidAmount) async {

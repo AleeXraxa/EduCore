@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -193,13 +193,14 @@ class FeesController extends BaseController {
   }
 
   Future<bool> collectPayment(
-    String feeId, 
+    BuildContext context,
+    String feeId,
     double amount, {
     PaymentMethod method = PaymentMethod.cash,
     String? note,
   }) async {
     final featureSvc = AppServices.instance.featureAccessService!;
-    
+
     // Feature Check
     if (!featureSvc.canAccess('fee_collect')) {
       debugPrint('Access Denied: fee_collect');
@@ -208,32 +209,32 @@ class FeesController extends BaseController {
 
     // Partial Payment Restriction Check
     if (amount <= 0) return false;
-    
+
     final fee = _allFees.firstWhere((f) => f.id == feeId);
-    if (amount < fee.remainingAmount && !featureSvc.canAccess('fee_partial_payment')) {
+    if (amount < fee.remainingAmount &&
+        !featureSvc.canAccess('fee_partial_payment')) {
       debugPrint('Access Denied: fee_partial_payment');
       return false;
     }
 
-    return (await runBusy(() async {
-      try {
+    final success = await runGuarded(
+      () async {
         final userId = AppServices.instance.authService!.session!.user.uid;
         await _feeService.collectPayment(
-          _academyId, 
-          feeId: feeId, 
+          _academyId,
+          feeId: feeId,
           paymentAmount: amount,
           method: method,
           collectedBy: userId,
           note: note,
         );
         await loadInitialData(); // Refresh everything
-        return true;
-      } catch (e) {
-        debugPrint('Error collecting payment: $e');
-        setError(e.toString());
-        return false;
-      }
-    })) ?? false;
+      },
+      context: context,
+      loadingMessage: 'Recording Payment...',
+    );
+    
+    return success != null;
   }
 
   Future<List<FeeTransaction>> getFeeTransactions(String feeId) async {
@@ -246,6 +247,7 @@ class FeesController extends BaseController {
   }
 
   Future<int> generateMonthlyFees({
+    required BuildContext context,
     required String classId,
     required String month,
     double? amount,
@@ -258,8 +260,8 @@ class FeesController extends BaseController {
       return -1;
     }
 
-    return (await runBusy(() async {
-      try {
+    final result = await runGuarded(
+      () async {
         final count = await _feeService.generateMonthlyFees(
           _academyId,
           classId: classId,
@@ -270,30 +272,31 @@ class FeesController extends BaseController {
           title: title,
           dueDate: dueDate,
         );
-        
+
         await loadInitialData();
         return count;
-      } catch (e) {
-        debugPrint('Error generating monthly fees: $e');
-        return -1;
-      }
-    })) ?? -1;
+      },
+      context: context,
+      loadingMessage: 'Generating Fees...',
+    );
+    
+    return result ?? -1;
   }
 
-  Future<bool> createOtherFee(Fee fee) async {
+  Future<bool> createOtherFee(BuildContext context, Fee fee) async {
     if (!AppServices.instance.featureAccessService!.canAccess('fee_create')) {
       return false;
     }
 
-    return (await runBusy(() async {
-      try {
+    final success = await runGuarded(
+      () async {
         await _feeService.createFee(_academyId, fee);
         await loadInitialData();
-        return true;
-      } catch (e) {
-        debugPrint('Error creating other fee: $e');
-        return false;
-      }
-    })) ?? false;
+      },
+      context: context,
+      loadingMessage: 'Creating Fee Record...',
+    );
+    
+    return success != null;
   }
 }

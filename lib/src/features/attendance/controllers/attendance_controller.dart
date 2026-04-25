@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/features/attendance/models/attendance_record.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -133,15 +134,21 @@ class AttendanceController extends BaseController {
     }
   }
 
-  Future<void> saveAttendance() async {
+  Future<bool> saveAttendance(BuildContext context) async {
     final academyId = AppServices.instance.authService!.session!.academyId;
-    await runBusy(() async {
-      await AppServices.instance.attendanceService!.saveAttendance(
-        academyId: academyId, 
-        records: _allRecords,
-      );
-      await _fetchAttendanceForSelected(); // Refresh IDs
-    });
+    final success = await runGuarded(
+      () async {
+        await AppServices.instance.attendanceService!.saveAttendance(
+          academyId: academyId,
+          records: _allRecords,
+        );
+        await _fetchAttendanceForSelected(); // Refresh IDs
+      },
+      context: context,
+      loadingMessage: 'Saving Attendance...',
+    );
+    
+    return success != null;
   }
 
   void markAll(AttendanceStatus status) {

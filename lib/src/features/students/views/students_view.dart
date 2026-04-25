@@ -16,6 +16,7 @@ import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
 import 'package:educore/src/features/students/views/update_status_dialog.dart';
 import 'package:educore/src/features/students/views/assign_fee_plan_dialog.dart';
+import 'package:educore/src/core/ui/views/no_internet_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
@@ -142,7 +143,7 @@ class _StudentsViewState extends State<StudentsView> {
 
     if (!mounted || confirmed != true) return;
 
-    final success = await _controller.deleteStudent(student.id);
+    final success = await _controller.deleteStudent(context, student.id);
     
     if (mounted) {
       if (success) {
@@ -226,13 +227,17 @@ class _StudentsViewState extends State<StudentsView> {
                         Expanded(
                           child: controller.busy && controller.students.isEmpty
                               ? const _LoadingSkeleton()
-                              : controller.students.isEmpty
-                              ? _EmptyStudents(
-                                  onAdd: canCreate
-                                      ? () => _showStudentForm()
-                                      : null,
-                                )
-                              : _StudentTable(
+                              : controller.hasError && controller.students.isEmpty
+                                  ? NoInternetView(
+                                      onRetry: () => controller.loadInitialData(),
+                                    )
+                                  : controller.students.isEmpty
+                                      ? _EmptyStudents(
+                                          onAdd: canCreate
+                                              ? () => _showStudentForm()
+                                              : null,
+                                        )
+                                      : _StudentTable(
                                   students: controller.students,
                                   scrollController: _scrollController,
                                   onView: _showStudentProfile,

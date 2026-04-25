@@ -51,6 +51,7 @@ class _UpdateStudentStatusDialogState extends State<UpdateStudentStatusDialog> {
       }
       
       final success = await widget.controller.updateStatus(
+        context,
         widget.student,
         _status,
         reason: _reasonController.text.trim(),

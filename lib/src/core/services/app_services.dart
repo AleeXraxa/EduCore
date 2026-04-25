@@ -45,10 +45,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:educore/firebase_options.dart';
 
+import 'package:flutter/material.dart';
+
 class AppServices {
   AppServices._();
 
   static final AppServices instance = AppServices._();
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  static BuildContext? get globalContext => navigatorKey.currentContext;
 
   late final LocalDbService localDb;
   late final PrefsService prefs;

@@ -144,10 +144,14 @@ class _LoginViewState extends State<LoginView>
 
     try {
       await _controller.signIn(
+        context,
         email: _email.text.trim(),
         password: _password.text,
         rememberMe: _rememberMe,
       );
+
+      // If controller has an error (from runGuarded), we stop here.
+      if (_controller.hasError) return;
 
       final session = AppServices.instance.authService?.session;
       if (session == null) {

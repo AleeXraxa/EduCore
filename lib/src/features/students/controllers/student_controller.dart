@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
@@ -207,60 +207,69 @@ class StudentController extends BaseController {
   @Deprecated('Use fetchMore instead')
   Future<void> loadMore() => fetchMore();
 
-  Future<bool> addStudent(Student student) async {
+  Future<bool> addStudent(BuildContext context, Student student) async {
     bool success = false;
-    await runBusy(() async {
-      try {
+    await runGuarded(
+      () async {
         await _studentService.createStudent(_academyId, student);
         await loadInitialData();
         success = true;
-      } catch (e, st) {
-        debugPrint('Error adding student in controller: $e $st');
-        rethrow;
-      }
-    });
+      },
+      context: context,
+      loadingMessage: 'Adding Student...',
+    );
     return success;
   }
 
-  Future<bool> updateStudent(Student student) async {
+  Future<bool> updateStudent(BuildContext context, Student student) async {
     bool success = false;
-    await runBusy(() async {
-      try {
+    await runGuarded(
+      () async {
         await _studentService.updateStudent(_academyId, student);
         await loadInitialData();
         success = true;
-      } catch (e, st) {
-        debugPrint('Error updating student: $e $st');
-      }
-    });
+      },
+      context: context,
+      loadingMessage: 'Updating Student...',
+    );
     return success;
   }
 
-  Future<bool> deleteStudent(String studentId) async {
+  Future<bool> deleteStudent(BuildContext context, String studentId) async {
     bool success = false;
-    await runBusy(() async {
-      try {
+    await runGuarded(
+      () async {
         await _studentService.softDeleteStudent(_academyId, studentId);
         await loadInitialData();
         success = true;
-      } catch (e, st) {
-        debugPrint('Error deleting student: $e $st');
-      }
-    });
+      },
+      context: context,
+      loadingMessage: 'Deleting Student...',
+    );
     return success;
   }
 
-  Future<bool> updateStatus(Student student, String newStatus, {String? reason}) async {
+  Future<bool> updateStatus(
+    BuildContext context,
+    Student student,
+    String newStatus, {
+    String? reason,
+  }) async {
     bool success = false;
-    await runBusy(() async {
-      try {
-        await _studentService.updateStudentStatus(_academyId, student, newStatus, reason: reason);
+    await runGuarded(
+      () async {
+        await _studentService.updateStudentStatus(
+          _academyId,
+          student,
+          newStatus,
+          reason: reason,
+        );
         await loadInitialData();
         success = true;
-      } catch (e, st) {
-        debugPrint('Error updating student status: $e $st');
-      }
-    });
+      },
+      context: context,
+      loadingMessage: 'Updating Status...',
+    );
     return success;
   }
 
