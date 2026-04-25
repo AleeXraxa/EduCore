@@ -19,6 +19,7 @@ import 'package:educore/src/features/exams/views/exams_view.dart';
 import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
 import 'package:educore/src/features/certificates/views/certificates_view.dart';
 import 'package:educore/src/features/expenses/views/expenses_view.dart';
+import 'package:educore/src/features/reports/views/reports_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +87,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
       _InstituteNav.certificates => const CertificatesView(),
       _InstituteNav.feePlans => const FeePlansView(),
       _InstituteNav.staff => const StaffListView(),
+      _InstituteNav.reports => const ReportsView(),
       _InstituteNav.settings => const SettingsView(),
     };
   }
@@ -168,6 +170,13 @@ enum _InstituteNav {
     Icons.workspace_premium_rounded,
     featureKey: 'certificate_generate',
   ),
+  reports(
+    'reports',
+    'Reports',
+    'Reports & Analytics',
+    Icons.analytics_rounded,
+    featureKey: 'dashboard_analytics',
+  ),
   settings(
     'settings',
     'Settings',
@@ -209,6 +218,12 @@ enum _InstituteNav {
       items: [
         fees.toSidebarItem(),
         expenses.toSidebarItem(),
+      ],
+    ),
+    SidebarSectionData(
+      title: 'Reports & Analytics',
+      items: [
+        reports.toSidebarItem(),
       ],
     ),
     SidebarSectionData(

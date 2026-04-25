@@ -51,6 +51,7 @@ dependencies:
   excel: ^4.0.0
   file_picker: ^8.1.7
   syncfusion_flutter_xlsio: ^29.2.11
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

@@ -15,6 +15,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.enabled = true,
     this.compact = false,
     this.showLabel = true,
+    this.searchable = false,
     this.validator,
   });
 
@@ -27,6 +28,9 @@ class AppDropdown<T> extends StatefulWidget {
   final IconData? prefixIcon;
   final bool enabled;
   final String? Function(T?)? validator;
+
+  /// Whether to show a search field inside the dropdown.
+  final bool searchable;
 
   /// When true, uses a slightly tighter vertical rhythm (toolbars/filters).
   final bool compact;
@@ -118,27 +122,8 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
               ),
               const SizedBox(height: 8),
             ],
-            CustomDropdown<T>(
-              items: widget.items,
-              controller: _controller,
-              enabled: widget.enabled,
-              hintText: widget.hintText ?? 'Select',
-              closedHeaderPadding: closedPad,
-              expandedHeaderPadding: closedPad,
-              listItemPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-              maxlines: 1,
-              onChanged: (value) {
-                state.didChange(value);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    widget.onChanged(value);
-                  }
-                });
-              },
-              decoration: CustomDropdownDecoration(
+            () {
+              final decoration = CustomDropdownDecoration(
                 closedFillColor: AppColors.surface,
                 expandedFillColor: AppColors.surface,
                 prefixIcon: widget.prefixIcon == null
@@ -197,24 +182,23 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                     ),
                   ),
                 ),
-              ),
-              headerBuilder: (context, selectedItem, enabled) {
-                return Text(
-                  widget.itemLabel(selectedItem),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: headerStyle,
-                );
-              },
-              hintBuilder: (context, hint, enabled) {
-                return Text(
-                  hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: hintStyle,
-                );
-              },
-              listItemBuilder: (context, item, isSelected, onItemSelect) {
+              );
+
+              Widget headerBuilder(context, selectedItem, enabled) => Text(
+                    widget.itemLabel(selectedItem as T),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: headerStyle,
+                  );
+
+              Widget hintBuilder(context, hint, enabled) => Text(
+                    hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: hintStyle,
+                  );
+
+              Widget listItemBuilder(context, item, isSelected, onItemSelect) {
                 final fg = isSelected ? cs.primary : cs.onSurface;
                 return InkWell(
                   onTap: onItemSelect,
@@ -227,7 +211,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.itemLabel(item),
+                            widget.itemLabel(item as T),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: listItemStyle?.copyWith(color: fg),
@@ -243,8 +227,62 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                     ),
                   ),
                 );
-              },
-            ),
+              }
+
+              if (widget.searchable) {
+                return CustomDropdown<T>.search(
+                  items: widget.items,
+                  controller: _controller,
+                  enabled: widget.enabled,
+                  hintText: widget.hintText ?? 'Select',
+                  closedHeaderPadding: closedPad,
+                  expandedHeaderPadding: closedPad,
+                  listItemPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  maxlines: 1,
+                  onChanged: (value) {
+                    state.didChange(value);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        widget.onChanged(value);
+                      }
+                    });
+                  },
+                  decoration: decoration,
+                  headerBuilder: headerBuilder,
+                  hintBuilder: hintBuilder,
+                  listItemBuilder: listItemBuilder,
+                );
+              } else {
+                return CustomDropdown<T>(
+                  items: widget.items,
+                  controller: _controller,
+                  enabled: widget.enabled,
+                  hintText: widget.hintText ?? 'Select',
+                  closedHeaderPadding: closedPad,
+                  expandedHeaderPadding: closedPad,
+                  listItemPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  maxlines: 1,
+                  onChanged: (value) {
+                    state.didChange(value);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        widget.onChanged(value);
+                      }
+                    });
+                  },
+                  decoration: decoration,
+                  headerBuilder: headerBuilder,
+                  hintBuilder: hintBuilder,
+                  listItemBuilder: listItemBuilder,
+                );
+              }
+            }(),
             if (hasError) ...[
               const SizedBox(height: 6),
               Padding(

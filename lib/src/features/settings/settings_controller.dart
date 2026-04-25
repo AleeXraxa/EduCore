@@ -4,6 +4,7 @@ import 'package:educore/src/core/services/app_services.dart';
 
 import 'package:educore/src/features/settings/models/global_settings.dart';
 import 'package:educore/src/features/settings/models/settings_models.dart';
+import 'package:educore/src/core/services/institute_service.dart';
 
 class SettingsController extends BaseController {
   final _service = AppServices.instance.settingsService;
@@ -22,6 +23,8 @@ class SettingsController extends BaseController {
     _init();
   }
 
+  Academy? _academy;
+
   void _init() {
     final session = _auth?.session;
     if (session == null) return;
@@ -29,39 +32,50 @@ class SettingsController extends BaseController {
     if (session.isSuperAdmin) {
       _subscription = _service?.watchGlobalSettings().listen(_handleData);
     } else {
+      _loadAcademy(session.academyId);
       _subscription =
           _service?.watchAcademySettings(session.academyId).listen(_handleData);
     }
   }
 
+  Future<void> _loadAcademy(String aid) async {
+    try {
+      _academy = await AppServices.instance.getInstituteService.getAcademy(aid);
+      // Re-trigger handle data if settings are still default
+      if (_settings?.appName == 'Institute Name') {
+        _handleData(_settings);
+      }
+    } catch (_) {}
+  }
+
   void _handleData(GlobalSettings? data) {
-    _settings =
-        data ??
-        GlobalSettings(
-          appName: _auth?.session?.isSuperAdmin ?? false ? 'EduCore Platform' : 'Institute Name',
-          appLogoUrl: '',
-          supportEmail: '',
-          supportPhone: '',
-          address: '',
-          paymentMethods: {
-            'jazzcash': PaymentMethodConfig(
-              isActive: false,
-              number: '',
-              accountTitle: '',
-            ),
-            'easypaisa': PaymentMethodConfig(
-              isActive: false,
-              number: '',
-              accountTitle: '',
-            ),
-            'bank': PaymentMethodConfig(
-              isActive: false,
-              accountNumber: '',
-              accountTitle: '',
-              bankName: '',
-            ),
-          },
-        );
+    final defaultMethods = {
+      'jazzcash': PaymentMethodConfig(isActive: false, number: '', accountTitle: ''),
+      'easypaisa': PaymentMethodConfig(isActive: false, number: '', accountTitle: ''),
+      'bank': PaymentMethodConfig(isActive: false, accountNumber: '', accountTitle: '', bankName: ''),
+    };
+
+    if (data == null) {
+      _settings = GlobalSettings(
+        appName: isSuperAdmin ? 'EduCore Platform' : (_academy?.name ?? 'Institute Name'),
+        appLogoUrl: _academy?.logoUrl ?? '',
+        supportEmail: _academy?.email ?? '',
+        supportPhone: _academy?.phone ?? '',
+        address: _academy?.address ?? '',
+        paymentMethods: defaultMethods,
+      );
+    } else {
+      // If doc exists but fields are generic/empty, use academy details as fallback
+      _settings = data.copyWith(
+        appName: (data.appName == 'EduCore' || data.appName.isEmpty) && !isSuperAdmin
+            ? (_academy?.name ?? data.appName)
+            : data.appName,
+        supportEmail: data.supportEmail.isEmpty ? (_academy?.email ?? '') : data.supportEmail,
+        supportPhone: data.supportPhone.isEmpty ? (_academy?.phone ?? '') : data.supportPhone,
+        address: data.address.isEmpty ? (_academy?.address ?? '') : data.address,
+        appLogoUrl: data.appLogoUrl.isEmpty ? (_academy?.logoUrl ?? '') : data.appLogoUrl,
+      );
+    }
     notifyListeners();
   }
 

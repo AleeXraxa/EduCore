@@ -110,6 +110,16 @@ class AppServices {
     return featureAccessService!;
   }
 
+  InstituteService get getInstituteService {
+    if (instituteService == null) throw StateError('InstituteService not initialized.');
+    return instituteService!;
+  }
+
+  SettingsService get getSettingsService {
+    if (settingsService == null) throw StateError('SettingsService not initialized.');
+    return settingsService!;
+  }
+
   Future<void> init() async {
     if (!_coreInitialized) {
       const useSqlite = bool.fromEnvironment(
