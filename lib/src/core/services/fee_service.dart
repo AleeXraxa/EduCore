@@ -574,11 +574,8 @@ class FeeService {
       final status = data['status'] as String?;
       final type = data['type'] as String?;
 
-      if (status == FeeStatus.paid.name) {
-        totalRevenue += finalAmt;
-      } else {
-        totalPending += (finalAmt - paidAmt);
-      }
+      totalRevenue += paidAmt;
+      totalPending += (finalAmt - paidAmt);
 
       if (type == FeeType.package.name) {
         totalPackageRevenue += paidAmt;

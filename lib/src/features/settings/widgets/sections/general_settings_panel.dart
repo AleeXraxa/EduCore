@@ -95,8 +95,12 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
               AppTextField(
                 controller: _appName,
                 label: isSuperAdmin ? 'Platform Name' : 'Institute Name',
-                hintText: isSuperAdmin ? 'Your Platform Name' : 'Your Institute Name',
-                prefixIcon: isSuperAdmin ? Icons.hub_rounded : Icons.business_rounded,
+                hintText: isSuperAdmin
+                    ? 'Your Platform Name'
+                    : 'Your Institute Name',
+                prefixIcon: isSuperAdmin
+                    ? Icons.hub_rounded
+                    : Icons.business_rounded,
               ),
               const SizedBox(height: 16),
               Container(
@@ -125,8 +129,9 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                         isSuperAdmin
                             ? 'This name represents the overall platform identity across all institutes.'
                             : 'This name is displayed across portals, certificates, and student communications.',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -145,8 +150,12 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportEmail,
-                      label: isSuperAdmin ? 'Platform Support Email' : 'Official Email',
-                      hintText: isSuperAdmin ? 'support@platform.com' : 'email@institute.com',
+                      label: isSuperAdmin
+                          ? 'Platform Support Email'
+                          : 'Official Email',
+                      hintText: isSuperAdmin
+                          ? 'support@platform.com'
+                          : 'email@institute.com',
                       prefixIcon: Icons.email_rounded,
                     ),
                   ),
@@ -154,7 +163,9 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
                   Expanded(
                     child: AppTextField(
                       controller: _supportPhone,
-                      label: isSuperAdmin ? 'Support Hotline' : 'Contact Number',
+                      label: isSuperAdmin
+                          ? 'Support Hotline'
+                          : 'Contact Number',
                       hintText: '+92 000 0000000',
                       prefixIcon: Icons.phone_rounded,
                     ),
@@ -164,8 +175,12 @@ class _GeneralSettingsPanelState extends State<GeneralSettingsPanel> {
               const SizedBox(height: 16),
               AppTextField(
                 controller: _address,
-                label: isSuperAdmin ? 'Headquarters Address' : 'Institute Address',
-                hintText: isSuperAdmin ? '123 Tech Park, Suite 100' : '123 Education Street, City',
+                label: isSuperAdmin
+                    ? 'Headquarters Address'
+                    : 'Institute Address',
+                hintText: isSuperAdmin
+                    ? '123 Tech Park, Suite 100'
+                    : '123 Education Street, City',
                 prefixIcon: Icons.location_on_rounded,
                 maxLines: 2,
               ),
@@ -262,4 +277,3 @@ class _GroupCard extends StatelessWidget {
     );
   }
 }
-

@@ -306,6 +306,12 @@ service cloud.firestore {
         allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
                                          && hasActiveSubscription(academyId);
       }
+
+      match /expenses/{expenseId} {
+        allow read: if belongsTo(academyId);
+        allow create, update, delete: if (isAdminOf(academyId) || isStaffOf(academyId))
+                                         && hasActiveSubscription(academyId);
+      }
     }
 
     // ======================================================

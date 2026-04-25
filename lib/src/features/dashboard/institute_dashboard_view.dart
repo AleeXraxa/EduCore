@@ -18,6 +18,7 @@ import 'package:educore/src/features/fees/views/fees_view.dart';
 import 'package:educore/src/features/exams/views/exams_view.dart';
 import 'package:educore/src/features/monthly_tests/views/monthly_tests_view.dart';
 import 'package:educore/src/features/certificates/views/certificates_view.dart';
+import 'package:educore/src/features/expenses/views/expenses_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
 import 'package:flutter/material.dart';
@@ -78,6 +79,7 @@ class _InstituteDashboardViewState extends State<InstituteDashboardView> {
       _InstituteNav.students => const StudentsView(),
       _InstituteNav.classes => const ClassesView(),
       _InstituteNav.attendance => const AttendanceView(),
+      _InstituteNav.expenses => const ExpensesView(),
       _InstituteNav.fees => const FeesView(),
       _InstituteNav.exams => const ExamsView(),
       _InstituteNav.monthlyTests => const MonthlyTestsView(),
@@ -116,6 +118,13 @@ enum _InstituteNav {
     'Daily Attendance',
     Icons.fact_check_rounded,
     featureKey: 'attendance_mark',
+  ),
+  expenses(
+    'expenses',
+    'Expense Management',
+    'Expenses & P/L',
+    Icons.account_balance_wallet_rounded,
+    featureKey: 'expense_view',
   ),
   fees(
     'fees',
@@ -199,6 +208,7 @@ enum _InstituteNav {
       title: 'Finance/Financial Management',
       items: [
         fees.toSidebarItem(),
+        expenses.toSidebarItem(),
       ],
     ),
     SidebarSectionData(
