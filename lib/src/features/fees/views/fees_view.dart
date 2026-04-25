@@ -16,6 +16,7 @@ import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
 
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/core/ui/views/no_internet_view.dart';
+import 'package:educore/src/core/ui/widgets/app_data_grid.dart';
 import 'package:intl/intl.dart';
 
 class FeesView extends StatefulWidget {
@@ -340,230 +341,199 @@ class _FeesList extends StatelessWidget {
       );
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scroll) {
-        if (scroll.metrics.pixels >= scroll.metrics.maxScrollExtent * 0.8) {
-          controller.loadMore();
-        }
-        return false;
-      },
-      child: ListView.separated(
-        padding: const EdgeInsets.all(32),
-        itemCount: fees.length + (controller.isLoadingMore ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          if (index == fees.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          final fee = fees[index];
-          return _FeeRow(fee: fee, controller: controller);
-        },
-      ),
-    );
-  }
-}
-
-class _FeeRow extends StatelessWidget {
-  const _FeeRow({required this.fee, required this.controller});
-  final Fee fee;
-  final FeesController controller;
-
-  @override
-  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isPaid = fee.status == FeeStatus.paid;
-    final featureSvc = AppServices.instance.featureAccessService!;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          if (fee.isLocked) ...[
-            Icon(Icons.lock_rounded, size: 16, color: cs.error),
-            const SizedBox(width: 8),
-          ],
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (isPaid ? Colors.green : Colors.orange).withValues(
-                alpha: 0.1,
+    return AppDataGrid<Fee>(
+      items: fees,
+      columns: const [
+        AppDataGridColumn(label: 'Record', flex: 3),
+        AppDataGridColumn(label: 'Student', flex: 2),
+        AppDataGridColumn(label: 'Amount', width: 140),
+        AppDataGridColumn(label: 'Status', width: 140, center: true),
+        AppDataGridColumn(label: 'Actions', width: 120),
+      ],
+      onSelectionChanged: (selected) {
+        controller.clearSelection();
+        for (final f in selected) {
+          controller.toggleSelection(f.id);
+        }
+      },
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.receipt_long_rounded, color: Colors.white),
+          tooltip: 'Bulk Challan',
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.mark_email_read_rounded, color: Colors.white),
+          tooltip: 'Remind Selection',
+        ),
+      ],
+      rowBuilder: (context, fee) {
+        final isPaid = fee.status == FeeStatus.paid;
+        return [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isPaid ? Colors.green : Colors.orange).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isPaid ? Icons.check_circle_rounded : Icons.access_time_filled_rounded,
+                  color: isPaid ? Colors.green : Colors.orange,
+                  size: 18,
+                ),
               ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isPaid
-                  ? Icons.check_circle_rounded
-                  : Icons.access_time_filled_rounded,
-              color: isPaid ? Colors.green : Colors.orange,
-              size: 20,
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fee.title,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                    Text(
+                      DateFormat('MMM dd, yyyy').format(fee.dueDate ?? fee.createdAt),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fee.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  fee.studentName ?? 'Student ID: ${fee.studentId}',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
-                ),
-                if (fee.className != null)
-                  Text(
-                    fee.className!,
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
-                  ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                fee.studentName ?? 'Unknown',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              Text(
+                fee.className ?? '-',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+              ),
+            ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'Rs. ${fee.amount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
               ),
-              Text(
-                'Paid: Rs. ${fee.paidAmount.toStringAsFixed(0)}',
-                style: TextStyle(
-                  color: isPaid ? Colors.green : cs.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 24),
-          _StatusChip(status: fee.status),
-          const SizedBox(width: 16),
-          if (!isPaid && !fee.isLocked && featureSvc.canAccess('fee_collect'))
-            IconButton.filledTonal(
-              onPressed: () => _collectPayment(context),
-              icon: const Icon(Icons.payments_rounded, size: 20),
-              tooltip: 'Collect Payment',
-            ),
-          AppActionMenu(
-            actions: [
-              AppActionItem(
-                label: 'View Details',
-                icon: Icons.visibility_outlined,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => FeeDetailsDialog(
-                      fee: fee,
-                      controller: controller,
-                      onCollectPayment:
-                          ({required amount, required method, note}) =>
-                              controller.collectPayment(
-                                context,
-                                fee.id,
-                                amount,
-                                method: method,
-                                note: note,
-                              ),
-                    ),
-                  );
-                },
-              ),
-              if (!isPaid) ...[
-                if (featureSvc.canAccess('challan_generate'))
-                  AppActionItem(
-                    label: 'Generate Challan',
-                    icon: Icons.receipt_long_rounded,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
-                    ),
-                  ),
-                if (fee.challanNumber != null)
-                  AppActionItem(
-                    label: 'View Challan (${fee.challanNumber})',
-                    icon: Icons.picture_as_pdf_rounded,
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
-                    ),
-                  ),
-              ],
-              if (fee.paidAmount > 0 && featureSvc.canAccess('challan_generate'))
-                AppActionItem(
-                  label: 'Generate Receipt',
-                  icon: Icons.task_alt_rounded,
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
-                  ),
-                ),
-              if (fee.receiptNumber != null)
-                AppActionItem(
-                  label: 'View Receipt (${fee.receiptNumber})',
-                  icon: Icons.picture_as_pdf_rounded,
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
-                  ),
-                ),
-              if (featureSvc.canAccess('fee_manage'))
-                AppActionItem(
-                  label: 'Edit Record',
-                  icon: Icons.edit_rounded,
-                  type: AppActionType.edit,
-                  isEnabled: !fee.isLocked,
-                  onTap: () {},
+              if (fee.paidAmount > 0)
+                Text(
+                  'Paid: Rs. ${fee.paidAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
             ],
           ),
-        ],
-      ),
+          AppStatusPill(
+            label: fee.status.name,
+            color: _getStatusColor(fee.status),
+          ),
+          _actionCell(context, fee),
+        ];
+      },
     );
   }
 
-  void _collectPayment(BuildContext context) {
+  Color _getStatusColor(FeeStatus status) {
+    return switch (status) {
+      FeeStatus.paid => Colors.green,
+      FeeStatus.partial => Colors.blue,
+      FeeStatus.pending => Colors.orange,
+    };
+  }
+
+  Widget _actionCell(BuildContext context, Fee fee) {
+    final featureSvc = AppServices.instance.featureAccessService!;
+    final isPaid = fee.status == FeeStatus.paid;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (!isPaid && !fee.isLocked && featureSvc.canAccess('fee_collect'))
+          IconButton(
+            onPressed: () => _collectPayment(context, fee),
+            icon: const Icon(Icons.payments_rounded, size: 20),
+            color: Theme.of(context).colorScheme.primary,
+            visualDensity: VisualDensity.compact,
+          ),
+        AppActionMenu(
+          actions: [
+            AppActionItem(
+              label: 'View Details',
+              icon: Icons.visibility_outlined,
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => FeeDetailsDialog(
+                    fee: fee,
+                    controller: controller,
+                    onCollectPayment: ({required amount, required method, note}) =>
+                        controller.collectPayment(
+                      context,
+                      fee.id,
+                      amount,
+                      method: method,
+                      note: note,
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (!isPaid) ...[
+              if (featureSvc.canAccess('challan_generate'))
+                AppActionItem(
+                  label: 'Generate Challan',
+                  icon: Icons.receipt_long_rounded,
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => FeeDocumentDialog(fee: fee, mode: 'challan'),
+                  ),
+                ),
+            ],
+            if (fee.paidAmount > 0 && featureSvc.canAccess('challan_generate'))
+              AppActionItem(
+                label: 'Generate Receipt',
+                icon: Icons.task_alt_rounded,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => FeeDocumentDialog(fee: fee, mode: 'receipt'),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _collectPayment(BuildContext context, Fee fee) {
     showDialog<double>(
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
         onCollect: ({required amount, required method, note}) async {
-          // The dialog manages its own _isLoading state and will pop itself.
-          // Just delegate to the controller — no extra loading overlay here.
           await controller.collectPayment(context, fee.id, amount, method: method, note: note);
         },
       ),
     ).then((paidAmount) async {
-      // Dialog has already closed at this point.
-      // Use the outer context (FeeRow/Scaffold) which is still mounted.
       if (!context.mounted) return;
-
-      // Ask whether to generate a receipt.
       final genReceipt = await AppDialogs.showConfirm(
         context,
         title: 'Payment Successful',
-        message:
-            'Payment has been recorded. Would you like to generate a receipt now?',
+        message: 'Payment has been recorded. Would you like to generate a receipt now?',
         confirmLabel: 'Generate Receipt',
         cancelLabel: 'Later',
       );
-
       if (genReceipt == true && context.mounted) {
         showDialog(
           context: context,
@@ -571,36 +541,5 @@ class _FeeRow extends StatelessWidget {
         );
       }
     });
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-  final FeeStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color color = switch (status) {
-      FeeStatus.paid => Colors.green,
-      FeeStatus.partial => Colors.blue,
-      FeeStatus.pending => Colors.orange,
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        status.name.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
   }
 }

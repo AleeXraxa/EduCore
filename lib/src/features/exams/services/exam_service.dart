@@ -42,10 +42,15 @@ class ExamService {
     });
   }
 
-  Future<List<Exam>> getExams(String academyId) async {
-    final snap = await _examsCol(academyId)
-        .orderBy('createdAt', descending: true)
-        .get();
+  Future<List<Exam>> getExams(String academyId, {int? limit}) async {
+    Query<Map<String, dynamic>> query =
+        _examsCol(academyId).orderBy('createdAt', descending: true);
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    final snap = await query.get();
     return snap.docs.map((doc) => Exam.fromMap(doc.id, doc.data())).toList();
   }
 

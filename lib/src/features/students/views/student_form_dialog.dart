@@ -1,7 +1,7 @@
+import 'package:educore/src/core/ui/widgets/app_form_wizard.dart';
 import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
-import 'package:educore/src/core/ui/widgets/app_text_field.dart';
 import 'package:educore/src/features/students/controllers/student_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:educore/src/features/classes/models/institute_class.dart';
 import 'package:educore/src/features/fees/models/fee_plan.dart';
-
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/services/plan_limit_exception.dart';
 
@@ -25,6 +24,8 @@ class StudentFormDialog extends StatefulWidget {
 }
 
 class _StudentFormDialogState extends State<StudentFormDialog> {
+  int _currentStep = 0;
+  final _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameCtrl;
   late TextEditingController _fatherNameCtrl;
@@ -120,10 +121,34 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     _nameCtrl.dispose();
     _fatherNameCtrl.dispose();
     _phoneCtrl.dispose();
+    _rollNoCtrl.dispose();
+    _pageController.dispose();
     for (var ctrl in _dynamicControllers.values) {
       ctrl.dispose();
     }
     super.dispose();
+  }
+
+  void _nextStep() {
+    if (_currentStep < 2) {
+      setState(() => _currentStep++);
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+      );
+    } else {
+      _submit();
+    }
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -246,15 +271,15 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 550, maxHeight: 800),
         decoration: BoxDecoration(
           color: cs.surface,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 40,
-              offset: const Offset(0, 20),
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 60,
+              offset: const Offset(0, 30),
             ),
           ],
         ),
@@ -262,302 +287,283 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(32, 32, 16, 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      isEditing
-                          ? Icons.edit_note_rounded
-                          : Icons.person_add_rounded,
-                      color: cs.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isEditing ? 'Edit Profile' : 'New Enrollment',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                        ),
-                        Text(
-                          isEditing
-                              ? 'Update student details'
-                              : 'Add a new student to system',
-                          style: TextStyle(color: cs.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
+            // Header with Progress Wizard
+            _buildHeader(cs, isEditing),
+            
+            AppFormWizard(
+              currentStep: _currentStep,
+              steps: const ['Identity', 'Academics', 'Details'],
+              onStepTapped: (index) {
+                if (index < _currentStep) {
+                  setState(() => _currentStep = index);
+                  _pageController.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOutCubic,
+                  );
+                }
+              },
             ),
-            const Divider(),
+
+            const Divider(height: 1),
 
             // Form Content
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionTitle('PERSONAL INFORMATION'),
-                      const SizedBox(height: 16),
-                      _buildField(
-                        controller: _nameCtrl,
-                        label: 'Student Full Name',
-                        hint: 'Enter official name',
-                        icon: Icons.person_outline_rounded,
-                        validator: (v) =>
-                            v!.isEmpty ? 'Name is required' : null,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildField(
-                        controller: _fatherNameCtrl,
-                        label: 'Father\'s Name',
-                        hint: 'Enter guardian name',
-                        icon: Icons.family_restroom_outlined,
-                        validator: (v) =>
-                            v!.isEmpty ? 'Father name is required' : null,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildField(
-                        controller: _rollNoCtrl,
-                        label: 'Roll Number (System Generated)',
-                        hint: 'Roll #',
-                        icon: Icons.tag_rounded,
-                        readOnly: true,
-                        validator: (v) =>
-                            v!.isEmpty ? 'Roll Number is required' : null,
-                      ),
-
-                      const SizedBox(height: 32),
-                      _sectionTitle('ENROLLMENT DETAILS'),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _isFetching
-                                ? const Center(child: LinearProgressIndicator())
-                                : _availableClasses.isEmpty
-                                ? Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: cs.errorContainer.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: AppRadii.r12,
-                                      border: Border.all(color: cs.error),
-                                    ),
-                                    child: Text(
-                                      'NO CLASSES FOUND. Create a class first.',
-                                      style: TextStyle(
-                                        color: cs.error,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  )
-                                : AppDropdown<String>(
-                                    value: _selectedClassId,
-                                    label: 'Class',
-                                    prefixIcon: Icons.school_outlined,
-                                    items: _availableClasses
-                                        .map((e) => e.id)
-                                        .toList(),
-                                    itemLabel: (id) => _availableClasses
-                                        .firstWhere((e) => e.id == id)
-                                        .displayName,
-                                    onChanged: (v) {
-                                      debugPrint(
-                                        'StudentFormDialog: Class selected: $v',
-                                      );
-                                      setState(() {
-                                        _selectedClassId = v!;
-                                        // Auto-fetch fee plan from class for new students
-                                        if (widget.student == null) {
-                                          final cls = _availableClasses
-                                              .firstWhere((c) => c.id == v);
-                                          debugPrint(
-                                            'StudentFormDialog: Class default plan: ${cls.feePlanId}',
-                                          );
-                                          if (cls.feePlanId != null &&
-                                              cls.feePlanId!.isNotEmpty) {
-                                            final planId = cls.feePlanId!;
-                                            if (_availableFeePlans.any(
-                                              (p) => p.id == planId,
-                                            )) {
-                                              _selectedFeePlanId = planId;
-                                              _selectedFeePlanName =
-                                                  cls.feePlanName;
-                                              debugPrint(
-                                                'StudentFormDialog: Setting _selectedFeePlanId to $_selectedFeePlanId',
-                                              );
-                                            } else {
-                                              debugPrint(
-                                                'StudentFormDialog: Default plan $planId for selected class not found in active plans',
-                                              );
-                                              _selectedFeePlanId = '';
-                                              _selectedFeePlanName = null;
-                                            }
-                                          }
-                                        }
-                                      });
-                                    },
-                                  ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-                      _availableFeePlans.isEmpty && !isEditing
-                          ? Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: cs.errorContainer.withValues(alpha: 0.1),
-                                borderRadius: AppRadii.r12,
-                                border: Border.all(
-                                  color: cs.error.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.warning_amber_rounded,
-                                    color: cs.error,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'A Fee Plan is REQUIRED. Please create a Fee Plan in the Fees module first.',
-                                      style: TextStyle(
-                                        color: cs.error,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : AppDropdown<String>(
-                              value: _selectedFeePlanId.isEmpty
-                                  ? null
-                                  : _selectedFeePlanId,
-                              label: 'Fee Plan',
-                              prefixIcon: Icons.payments_outlined,
-                              items: _availableFeePlans
-                                  .map((e) => e.id)
-                                  .toList(),
-                              itemLabel: (id) => _availableFeePlans
-                                  .firstWhere((p) => p.id == id)
-                                  .name,
-                              onChanged: (v) {
-                                setState(() {
-                                  _selectedFeePlanId = v ?? '';
-                                  if (_selectedFeePlanId.isNotEmpty) {
-                                    final plan = _availableFeePlans.firstWhere(
-                                      (p) => p.id == v,
-                                    );
-                                    _selectedFeePlanName = plan.name;
-                                  } else {
-                                    _selectedFeePlanName = null;
-                                  }
-                                });
-                              },
-                            ),
-
-                      if (_selectedFeePlanId.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: _buildBillingHint(),
-                        ),
-
-                      const SizedBox(height: 20),
-                      _buildField(
-                        controller: _phoneCtrl,
-                        label: 'Contact Number',
-                        hint: '03XX XXXXXXX',
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Required';
-                          }
-                          if (!RegExp(r'^03\d{9}$').hasMatch(val.trim())) {
-                            return 'Enter valid 11-digit mobile number';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 32),
-                      ListenableBuilder(
-                        listenable: widget.controller,
-                        builder: (context, _) => _customFieldsSection(),
-                      ),
-                    ],
-                  ),
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildStep1(cs),
+                    _buildStep2(cs),
+                    _buildStep3(cs),
+                  ],
                 ),
               ),
             ),
+
+            const Divider(height: 1),
 
             // Footer
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: FilledButton(
-                onPressed:
-                    (_selectedClassId.isEmpty || _selectedFeePlanId.isEmpty)
-                    ? null
-                    : _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        isEditing ? 'Update Profile' : 'Enroll Student',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-            ),
+            _buildFooter(cs, isEditing),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ColorScheme cs, bool isEditing) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 32, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              isEditing ? Icons.edit_note_rounded : Icons.person_add_rounded,
+              color: cs.primary,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEditing ? 'Update Student' : 'New Enrollment',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                ),
+                Text(
+                  isEditing ? 'Modify student profile' : 'Add to system',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep1(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('PERSONAL INFORMATION'),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _nameCtrl,
+            label: 'Student Full Name',
+            hint: 'Official name for certificates',
+            icon: Icons.person_rounded,
+            validator: (v) => v!.isEmpty ? 'Name is required' : null,
+          ),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _fatherNameCtrl,
+            label: 'Father\'s Name',
+            hint: 'Guardian full name',
+            icon: Icons.family_restroom_rounded,
+            validator: (v) => v!.isEmpty ? 'Father name is required' : null,
+          ),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _rollNoCtrl,
+            label: 'Roll Number',
+            hint: 'Assigned automatically',
+            icon: Icons.tag_rounded,
+            readOnly: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep2(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('ENROLLMENT DETAILS'),
+          const SizedBox(height: 24),
+          if (_isFetching)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: CircularProgressIndicator(),
+            ))
+          else if (_availableClasses.isEmpty)
+            _buildErrorHint(cs, 'NO CLASSES FOUND', 'Create a class first.')
+          else
+            AppDropdown<String>(
+              value: _selectedClassId,
+              label: 'Assigned Class',
+              prefixIcon: Icons.school_rounded,
+              items: _availableClasses.map((e) => e.id).toList(),
+              itemLabel: (id) => _availableClasses.firstWhere((e) => e.id == id).displayName,
+              onChanged: (v) {
+                setState(() {
+                  _selectedClassId = v!;
+                  if (widget.student == null) {
+                    final cls = _availableClasses.firstWhere((c) => c.id == v);
+                    if (cls.feePlanId != null && cls.feePlanId!.isNotEmpty) {
+                      final planId = cls.feePlanId!;
+                      if (_availableFeePlans.any((p) => p.id == planId)) {
+                        _selectedFeePlanId = planId;
+                        _selectedFeePlanName = cls.feePlanName;
+                      }
+                    }
+                  }
+                });
+              },
+            ),
+          const SizedBox(height: 24),
+          if (_availableFeePlans.isEmpty && !_isFetching)
+            _buildErrorHint(cs, 'FEE PLAN REQUIRED', 'Create a Fee Plan in Settings.')
+          else
+            AppDropdown<String>(
+              value: _selectedFeePlanId.isEmpty ? null : _selectedFeePlanId,
+              label: 'Fee Structure',
+              prefixIcon: Icons.payments_rounded,
+              items: _availableFeePlans.map((e) => e.id).toList(),
+              itemLabel: (id) => _availableFeePlans.firstWhere((p) => p.id == id).name,
+              onChanged: (v) {
+                setState(() {
+                  _selectedFeePlanId = v ?? '';
+                  if (_selectedFeePlanId.isNotEmpty) {
+                    _selectedFeePlanName = _availableFeePlans.firstWhere((p) => p.id == v).name;
+                  }
+                });
+              },
+            ),
+          if (_selectedFeePlanId.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildBillingHint(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('CONTACT & CUSTOM FIELDS'),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _phoneCtrl,
+            label: 'Primary Contact',
+            hint: '03XX XXXXXXX',
+            icon: Icons.phone_rounded,
+            keyboardType: TextInputType.phone,
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) return 'Required';
+              if (!RegExp(r'^03\d{9}$').hasMatch(val.trim())) return 'Invalid format';
+              return null;
+            },
+          ),
+          const SizedBox(height: 32),
+          ListenableBuilder(
+            listenable: widget.controller,
+            builder: (context, _) => _customFieldsSection(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter(ColorScheme cs, bool isEditing) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _prevStep,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Previous'),
+              ),
+            ),
+          if (_currentStep > 0) const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: AppPrimaryButton(
+              onPressed: (_selectedClassId.isEmpty || _selectedFeePlanId.isEmpty) ? null : _nextStep,
+              busy: _isLoading,
+              label: _currentStep < 2 
+                  ? 'Continue' 
+                  : (isEditing ? 'Update Profile' : 'Complete Enrollment'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorHint(ColorScheme cs, String title, String sub) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.errorContainer.withValues(alpha: 0.1),
+        borderRadius: AppRadii.r16,
+        border: Border.all(color: cs.error.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_rounded, color: cs.error),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: cs.error, fontWeight: FontWeight.w900, fontSize: 13)),
+                Text(sub, style: TextStyle(color: cs.error, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -646,7 +652,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
           () => TextEditingController(text: value?.toString() ?? ''),
         );
 
-        return _buildField(
+        return AppFormInputField(
           controller: ctrl,
           label: field.label,
           hint: 'Enter ${field.label.toLowerCase()}',
@@ -745,65 +751,7 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     );
   }
 
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
-    bool readOnly = false,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          validator: validator,
-          onChanged: onChanged,
-          readOnly: readOnly,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(
-              icon,
-              size: 20,
-              color: cs.primary.withValues(alpha: 0.7),
-            ),
-            filled: true,
-            fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: cs.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildBillingHint() {
     final plan = _availableFeePlans.firstWhere(
@@ -983,11 +931,11 @@ class __AddCustomFieldDefinitionDialogState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppTextField(
+                  AppFormInputField(
                     controller: _labelCtrl,
                     label: 'Field Label',
-                    hintText: 'e.g. Guardian CNIC',
-                    prefixIcon: Icons.label_outline_rounded,
+                    hint: 'e.g. Guardian CNIC',
+                    icon: Icons.label_outline_rounded,
                   ),
                   const SizedBox(height: 12),
                   AppDropdown<CustomFieldType>(
@@ -1000,11 +948,11 @@ class __AddCustomFieldDefinitionDialogState
                   ),
                   if (_type == CustomFieldType.dropdown) ...[
                     const SizedBox(height: 12),
-                    AppTextField(
+                    AppFormInputField(
                       controller: _optionsCtrl,
                       label: 'Options (comma separated)',
-                      hintText: 'A+, B+, O-',
-                      prefixIcon: Icons.list_rounded,
+                      hint: 'A+, B+, O-',
+                      icon: Icons.list_rounded,
                     ),
                   ],
                   const SizedBox(height: 12),

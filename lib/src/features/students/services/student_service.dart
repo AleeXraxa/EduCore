@@ -339,11 +339,32 @@ class StudentService {
     }
   }
 
-  Future<List<Student>> getStudents(String academyId) async {
-    final snap = await _studentsRef(academyId)
-        .where('status', isNotEqualTo: 'deleted')
-        .get();
-    return snap.docs.map((doc) => Student.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+  Future<List<Student>> getStudents(
+    String academyId, {
+    int? limit,
+    String? name,
+    String? rollNo,
+  }) async {
+    Query<Map<String, dynamic>> query =
+        _studentsRef(academyId).where('status', isNotEqualTo: 'deleted');
+
+    if (name != null && name.isNotEmpty) {
+      query = query
+          .where('name', isGreaterThanOrEqualTo: name)
+          .where('name', isLessThanOrEqualTo: '$name\uf8ff');
+    }
+    if (rollNo != null && rollNo.isNotEmpty) {
+      query = query.where('rollNo', isEqualTo: rollNo);
+    }
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    final snap = await query.get();
+    return snap.docs
+        .map((doc) => Student.fromMap(doc.id, doc.data()))
+        .toList();
   }
 
   Future<void> assignFeePlan({

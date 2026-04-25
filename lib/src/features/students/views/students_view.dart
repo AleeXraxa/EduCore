@@ -17,6 +17,7 @@ import 'package:educore/src/features/students/views/bulk_import_dialog.dart';
 import 'package:educore/src/features/students/views/update_status_dialog.dart';
 import 'package:educore/src/features/students/views/assign_fee_plan_dialog.dart';
 import 'package:educore/src/core/ui/views/no_internet_view.dart';
+import 'package:educore/src/core/ui/widgets/app_data_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
@@ -238,17 +239,17 @@ class _StudentsViewState extends State<StudentsView> {
                                               : null,
                                         )
                                       : _StudentTable(
-                                  students: controller.students,
-                                  scrollController: _scrollController,
-                                  onView: _showStudentProfile,
-                                  onEdit: canCreate ? _showStudentForm : null,
-                                  onDelete:
-                                      featureSvc.canAccess('student_delete')
-                                      ? _handleDelete
-                                      : null,
-                                  onUpdateStatus: _showUpdateStatus,
-                                  onAssignFeePlan: _showAssignFeePlan,
-                                ),
+                                          controller: controller,
+                                          students: controller.students,
+                                          onView: _showStudentProfile,
+                                          onEdit: canCreate ? _showStudentForm : null,
+                                          onDelete:
+                                              featureSvc.canAccess('student_delete')
+                                              ? _handleDelete
+                                              : null,
+                                          onUpdateStatus: _showUpdateStatus,
+                                          onAssignFeePlan: _showAssignFeePlan,
+                                        ),
                         ),
 
                         // Footer / Pagination
@@ -653,8 +654,8 @@ class _TableStatsBar extends StatelessWidget {
 
 class _StudentTable extends StatelessWidget {
   const _StudentTable({
+    required this.controller,
     required this.students,
-    required this.scrollController,
     required this.onView,
     this.onEdit,
     this.onDelete,
@@ -662,8 +663,8 @@ class _StudentTable extends StatelessWidget {
     this.onAssignFeePlan,
   });
 
+  final StudentController controller;
   final List<Student> students;
-  final ScrollController scrollController;
   final Function(Student) onView;
   final Function(Student)? onEdit;
   final Function(Student)? onDelete;
@@ -674,194 +675,131 @@ class _StudentTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Scrollbar(
-      controller: scrollController,
-      child: SingleChildScrollView(
-        controller: scrollController,
-        scrollDirection: Axis.vertical,
-        child: Column(
+    return AppDataGrid<Student>(
+      items: students,
+      columns: const [
+        AppDataGridColumn(label: 'Roll No', width: 100),
+        AppDataGridColumn(label: 'Student', flex: 3),
+        AppDataGridColumn(label: 'Class', flex: 2),
+        AppDataGridColumn(label: 'Fee Plan', flex: 2),
+        AppDataGridColumn(label: 'Status', width: 140, center: true),
+        AppDataGridColumn(label: 'Last Updated', width: 150),
+        AppDataGridColumn(label: '', width: 60),
+      ],
+      onSelectionChanged: (selected) {
+        // Sync with controller if needed
+        controller.clearSelection();
+        for (final s in selected) {
+          controller.toggleSelection(s.id);
+        }
+      },
+      actions: [
+        IconButton(
+          onPressed: () {
+            // Bulk update status
+          },
+          icon: const Icon(Icons.published_with_changes_rounded, color: Colors.white),
+          tooltip: 'Update Status',
+        ),
+        IconButton(
+          onPressed: () {
+            // Bulk delete
+          },
+          icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+          tooltip: 'Delete Selected',
+        ),
+      ],
+      onRowTap: onView,
+      rowBuilder: (context, student) => [
+        Text(
+          student.rollNo ?? '-',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: cs.primary,
+            fontSize: 13,
+          ),
+        ),
+        Row(
           children: [
-            Table(
-              columnWidths: const {
-                0: FixedColumnWidth(100), // Roll No
-                1: FlexColumnWidth(3), // Student Profile
-                2: FlexColumnWidth(1.5), // Class
-                3: FlexColumnWidth(1.5), // Fee Plan
-                4: FixedColumnWidth(120), // Status
-                5: FixedColumnWidth(150), // Last Updated
-                6: FixedColumnWidth(60), // Actions
-              },
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              children: [
-                // Header
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest.withValues(alpha: 0.15),
-                    border: Border(
-                      bottom: BorderSide(color: cs.outlineVariant),
-                    ),
-                  ),
-                  children: [
-                    _headerCell('Roll No'),
-                    _headerCell('Student'),
-                    _headerCell('Class'),
-                    _headerCell('Fee Plan'),
-                    _headerCell('Status', center: true),
-                    _headerCell('Last Updated'),
-                    _headerCell(''),
-                  ],
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: cs.primary.withValues(alpha: 0.1),
+              child: Text(
+                student.name[0].toUpperCase(),
+                style: TextStyle(
+                  color: cs.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
                 ),
-                // Rows
-                ...students.map(
-                  (student) => TableRow(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: cs.outlineVariant.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ),
-                    children: [
-                      _rollNoCell(context, student),
-                      _studentProfileCell(context, student),
-                      _classCell(context, student),
-                      _feePlanCell(context, student),
-                      _statusCell(context, student),
-                      _lastUpdatedCell(context, student),
-                      _actionCell(student),
-                    ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    student.name,
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                   ),
-                ),
-              ],
+                  Text(
+                    student.fatherName,
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _headerCell(String label, {bool center = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Text(
-        label.toUpperCase(),
-        textAlign: center ? TextAlign.center : TextAlign.start,
-        style: const TextStyle(
-          fontWeight: FontWeight.w900,
-          fontSize: 11,
-          letterSpacing: 1.0,
-          color: Colors.black54,
-        ),
-      ),
-    );
-  }
-
-  Widget _rollNoCell(BuildContext context, Student student) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20),
-      child: Text(
-        student.rollNo ?? '-',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
-
-  Widget _studentProfileCell(BuildContext context, Student student) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: cs.primary.withValues(alpha: 0.1),
-            child: Text(
-              student.name[0].toUpperCase(),
-              style: TextStyle(
-                color: cs.primary,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: cs.secondaryContainer.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(20),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  student.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  student.fatherName,
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-                ),
-              ],
+          child: Text(
+            student.className,
+            style: TextStyle(
+              color: cs.onSecondaryContainer,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
             ),
+            textAlign: TextAlign.center,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _classCell(BuildContext context, Student student) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(
-          student.className,
+        Text(
+          student.feePlanName ?? '-',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+        AppStatusPill(
+          label: student.status,
+          color: _getStatusColor(student.status, cs),
+        ),
+        Text(
+          DateFormat('MMM dd, yyyy').format(student.updatedAt),
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSecondaryContainer,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+            color: cs.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
           ),
-          textAlign: TextAlign.center,
         ),
-      ),
+        _actionCell(student),
+      ],
     );
   }
 
-  Widget _feePlanCell(BuildContext context, Student student) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(
-        student.feePlanName ?? '-',
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
-
-  Widget _statusCell(BuildContext context, Student student) {
-    return Center(child: _StatusBadge(status: student.status));
-  }
-
-  Widget _lastUpdatedCell(BuildContext context, Student student) {
-    final date = student.updatedAt;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Text(
-        DateFormat('MMM dd, yyyy').format(date),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontSize: 12,
-        ),
-      ),
-    );
+  Color _getStatusColor(String status, ColorScheme cs) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return const Color(0xFF10B981);
+      case 'dropped':
+        return cs.error;
+      case 'passout':
+        return cs.primary;
+      default:
+        return cs.outline;
+    }
   }
 
   Widget _actionCell(Student student) {
@@ -869,46 +807,38 @@ class _StudentTable extends StatelessWidget {
     final canTransfer =
         featureSvc != null && featureSvc.canAccess('student_transfer');
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: AppActionMenu(
-        actions: [
+    return AppActionMenu(
+      actions: [
+        AppActionItem(
+          label: 'View',
+          icon: Icons.visibility_outlined,
+          onTap: () => onView(student),
+        ),
+        if (onEdit != null)
           AppActionItem(
-            label: 'View',
-            icon: Icons.visibility_outlined,
-            onTap: () => onView(student),
+            label: 'Edit',
+            icon: Icons.edit_outlined,
+            onTap: () => onEdit!(student),
           ),
-          if (onEdit != null)
-            AppActionItem(
-              label: 'Edit',
-              icon: Icons.edit_outlined,
-              onTap: () => onEdit!(student),
-            ),
-          if (canTransfer)
-            AppActionItem(
-              label: 'Update Status',
-              icon: Icons.published_with_changes_rounded,
-              onTap: () => onUpdateStatus?.call(student),
-            ),
+        if (canTransfer)
           AppActionItem(
-            label: 'Assign Fee Plan',
-            icon: Icons.payments_outlined,
-            onTap: () => onAssignFeePlan?.call(student),
+            label: 'Update Status',
+            icon: Icons.published_with_changes_rounded,
+            onTap: () => onUpdateStatus?.call(student),
           ),
+        AppActionItem(
+          label: 'Assign Fee Plan',
+          icon: Icons.payments_outlined,
+          onTap: () => onAssignFeePlan?.call(student),
+        ),
+        if (onDelete != null)
           AppActionItem(
-            label: 'Transfer Class',
-            icon: Icons.swap_horiz_rounded,
-            onTap: () {},
+            label: 'Delete',
+            icon: Icons.delete_outline_rounded,
+            type: AppActionType.delete,
+            onTap: () => onDelete!(student),
           ),
-          if (onDelete != null)
-            AppActionItem(
-              label: 'Delete',
-              icon: Icons.delete_outline_rounded,
-              type: AppActionType.delete,
-              onTap: () => onDelete!(student),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }

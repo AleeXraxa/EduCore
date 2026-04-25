@@ -13,6 +13,7 @@ import 'package:educore/src/features/exams/widgets/add_edit_exam_dialog.dart';
 import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 import 'package:educore/src/core/ui/widgets/app_action_menu.dart';
 import 'package:educore/src/features/exams/views/exam_details_view.dart';
+import 'package:educore/src/core/ui/widgets/app_data_grid.dart';
 import 'package:intl/intl.dart';
 
 class ExamsView extends StatefulWidget {
@@ -174,25 +175,11 @@ class _ExamsViewState extends State<ExamsView> {
               else
                 AppAnimatedSlide(
                   delayIndex: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: cs.surface,
-                      borderRadius: AppRadii.r24,
-                      border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: cs.shadow.withValues(alpha: 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: AppRadii.r24,
-                      child: _ExamsTable(
-                        exams: filteredExams,
-                        controller: controller,
-                      ),
+                  child: SizedBox(
+                    height: 500, // Fixed height for grid container
+                    child: _ExamsTable(
+                      exams: filteredExams,
+                      controller: controller,
                     ),
                   ),
                 ),
@@ -224,147 +211,153 @@ class _ExamsTable extends StatelessWidget {
       );
     }
     final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: WidgetStatePropertyAll(cs.surfaceContainerHighest.withValues(alpha: 0.3)),
-        dataRowMaxHeight: 64,
-        dataRowMinHeight: 64,
-        horizontalMargin: 24,
-        columnSpacing: 24,
-        columns: [
-          DataColumn(label: Text('Exam Name', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-          DataColumn(label: Text('Class', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-          DataColumn(label: Text('Type', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-          DataColumn(label: Text('Timeline', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-          DataColumn(label: Text('Status', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-          DataColumn(label: Text('Actions', style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary))),
-        ],
-        rows: exams.map((e) {
-          final df = DateFormat('MMM d, yyyy');
-
-          return DataRow(
-            cells: [
-              DataCell(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(e.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                    if (e.description.isNotEmpty)
-                      Text(e.description, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
+    return AppDataGrid<Exam>(
+      items: exams,
+      columns: const [
+        AppDataGridColumn(label: 'Exam Name', flex: 3),
+        AppDataGridColumn(label: 'Class', flex: 2),
+        AppDataGridColumn(label: 'Type', flex: 2),
+        AppDataGridColumn(label: 'Timeline', width: 200),
+        AppDataGridColumn(label: 'Status', width: 140, center: true),
+        AppDataGridColumn(label: '', width: 60),
+      ],
+      onSelectionChanged: (selected) {
+        controller.clearBulkSelection();
+        for (final e in selected) {
+          controller.toggleExamSelection(e.id);
+        }
+      },
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.print_rounded, color: Colors.white),
+          tooltip: 'Bulk Print Date Sheets',
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.notification_add_rounded, color: Colors.white),
+          tooltip: 'Bulk Notification',
+        ),
+      ],
+      onRowTap: (exam) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ExamDetailsView(exam: exam, controller: controller),
+        ));
+      },
+      rowBuilder: (context, exam) {
+        final df = DateFormat('MMM d, yyyy');
+        return [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(exam.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+              if (exam.description.isNotEmpty)
+                Text(
+                  exam.description,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: cs.primaryContainer.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(e.className ?? 'Unknown', style: TextStyle(color: cs.onPrimaryContainer, fontWeight: FontWeight.bold, fontSize: 12)),
-                )
-              ),
-              DataCell(Text(e.type, style: const TextStyle(fontWeight: FontWeight.w600))),
-              DataCell(Text('${df.format(e.startDate)} - ${df.format(e.endDate)}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12))),
-              DataCell(_StatusBadge(status: e.status)),
-              DataCell(
-                AppActionMenu(
-                  actions: [
-                    AppActionItem(
-                      label: 'Manage & Details',
-                      icon: Icons.visibility_rounded,
-                      onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => ExamDetailsView(exam: e, controller: controller),
-                        ));
-                      },
-                    ),
-                    if (AppServices.instance.featureAccessService?.canAccess('exam_edit') ?? false)
-                      AppActionItem(
-                        label: 'Edit Exam',
-                        icon: Icons.edit_rounded,
-                        type: AppActionType.edit,
-                        onTap: () {
-                           showDialog(
-                             context: context,
-                             builder: (_) => AddEditExamDialog(controller: controller, exam: e),
-                           );
-                        },
-                      ),
-                    if (AppServices.instance.featureAccessService?.canAccess('exam_delete') ?? false)
-                      AppActionItem(
-                        label: 'Delete',
-                        icon: Icons.delete_rounded,
-                        type: AppActionType.delete,
-                        onTap: () async {
-                        final confirm = await AppDialogs.showConfirm(
-                          context,
-                          title: 'Delete Exam?',
-                          message: 'Are you sure you want to delete ${e.name}? This will delete all schedules, marks, and results associated with it.',
-                          confirmLabel: 'Delete',
-                          cancelLabel: 'Cancel',
-                          isDanger: true,
-                        );
-                        if (confirm == true) {
-                           if (!context.mounted) return;
-                           AppDialogs.showLoading(context, message: 'Deleting...');
-                           final success = await controller.deleteExam(e.id);
-                           if (!context.mounted) return;
-                           AppDialogs.hide(context);
-                           if (success) {
-                             AppDialogs.showInfo(context, title: 'Success', message: 'Exam deleted.');
-                           } else {
-                             AppDialogs.showError(context, title: 'Error', message: controller.error ?? 'Deletion failed.');
-                           }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
             ],
-          );
-        }).toList(),
-      ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              exam.className ?? 'Unknown',
+              style: TextStyle(color: cs.onPrimaryContainer, fontWeight: FontWeight.bold, fontSize: 11),
+            ),
+          ),
+          Text(exam.type, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(
+            '${df.format(exam.startDate)} - ${df.format(exam.endDate)}',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+          AppStatusPill(
+            label: exam.status,
+            color: _getStatusColor(exam.status, cs),
+          ),
+          _actionCell(context, exam),
+        ];
+      },
     );
   }
-}
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final String status;
+  Color _getStatusColor(String status, ColorScheme cs) {
+    switch (status.toLowerCase()) {
+      case 'upcoming':
+        return Colors.blue;
+      case 'active':
+        return Colors.orange;
+      case 'completed':
+        return Colors.purple;
+      case 'published':
+        return Colors.green;
+      default:
+        return cs.outline;
+    }
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, MaterialColor> colors = {
-      'upcoming': Colors.blue,
-      'active': Colors.orange,
-      'completed': Colors.purple,
-      'published': Colors.green,
-    };
+  Widget _actionCell(BuildContext context, Exam exam) {
+    final featureSvc = AppServices.instance.featureAccessService;
 
-    final color = colors[status.toLowerCase()] ?? Colors.grey;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.shade50.withValues(alpha: 0.5),
-        border: Border.all(color: color.shade200),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color.shade700,
-          fontWeight: FontWeight.w900,
-          fontSize: 10,
-          letterSpacing: 0.5,
+    return AppActionMenu(
+      actions: [
+        AppActionItem(
+          label: 'Manage & Details',
+          icon: Icons.visibility_rounded,
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => ExamDetailsView(exam: exam, controller: controller),
+            ));
+          },
         ),
-      ),
+        if (featureSvc?.canAccess('exam_edit') ?? false)
+          AppActionItem(
+            label: 'Edit Exam',
+            icon: Icons.edit_rounded,
+            type: AppActionType.edit,
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => AddEditExamDialog(controller: controller, exam: exam),
+              );
+            },
+          ),
+        if (featureSvc?.canAccess('exam_delete') ?? false)
+          AppActionItem(
+            label: 'Delete',
+            icon: Icons.delete_rounded,
+            type: AppActionType.delete,
+            onTap: () async {
+              final confirm = await AppDialogs.showConfirm(
+                context,
+                title: 'Delete Exam?',
+                message: 'Are you sure you want to delete ${exam.name}? This will delete all schedules, marks, and results associated with it.',
+                confirmLabel: 'Delete',
+                cancelLabel: 'Cancel',
+                isDanger: true,
+              );
+              if (confirm == true) {
+                if (!context.mounted) return;
+                AppDialogs.showLoading(context, message: 'Deleting...');
+                final success = await controller.deleteExam(exam.id);
+                if (!context.mounted) return;
+                AppDialogs.hide(context);
+                if (success) {
+                  AppDialogs.showInfo(context, title: 'Success', message: 'Exam deleted.');
+                } else {
+                  AppDialogs.showError(context, title: 'Error', message: controller.error ?? 'Deletion failed.');
+                }
+              }
+            },
+          ),
+      ],
     );
   }
 }

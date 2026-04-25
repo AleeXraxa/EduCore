@@ -19,6 +19,11 @@ class FeesController extends BaseController {
   List<Fee> _filteredFees = [];
   List<Fee> get fees => _filteredFees;
 
+  final Set<String> _selectedFeeIds = {};
+  Set<String> get selectedFeeIds => _selectedFeeIds;
+  List<Fee> get selectedFees => 
+      _filteredFees.where((f) => _selectedFeeIds.contains(f.id)).toList();
+
   Map<String, dynamic> _stats = {
     'totalRevenue': 0.0,
     'totalPending': 0.0,
@@ -48,6 +53,7 @@ class FeesController extends BaseController {
     _hasMore = true;
     _allFees.clear();
     _filteredFees.clear();
+    _selectedFeeIds.clear();
 
     await runBusy(() async {
       await Future.wait([
@@ -162,6 +168,25 @@ class FeesController extends BaseController {
     if (_currentStatus == status) return;
     _currentStatus = status;
     _applyFilters();
+  }
+
+  void toggleSelection(String id) {
+    if (_selectedFeeIds.contains(id)) {
+      _selectedFeeIds.remove(id);
+    } else {
+      _selectedFeeIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedFeeIds.clear();
+    notifyListeners();
+  }
+
+  void selectAll() {
+    _selectedFeeIds.addAll(_filteredFees.map((f) => f.id));
+    notifyListeners();
   }
 
   /// Legacy fetch - wrapper around batch for compatibility

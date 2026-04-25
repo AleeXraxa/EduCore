@@ -36,6 +36,25 @@ class ExamController extends BaseController {
   List<InstituteClass> _classes = [];
   List<InstituteClass> get classes => _classes;
 
+  final Set<String> _selectedExamIds = {};
+  Set<String> get selectedExamIds => _selectedExamIds;
+  List<Exam> get selectedExamsList =>
+      _filteredExams.where((e) => _selectedExamIds.contains(e.id)).toList();
+
+  void toggleExamSelection(String id) {
+    if (_selectedExamIds.contains(id)) {
+      _selectedExamIds.remove(id);
+    } else {
+      _selectedExamIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void clearBulkSelection() {
+    _selectedExamIds.clear();
+    notifyListeners();
+  }
+
   String _searchQuery = '';
   Timer? _searchDebounce;
 
@@ -56,6 +75,7 @@ class ExamController extends BaseController {
 
         _allExams = results[0] as List<Exam>;
         _classes = results[1] as List<InstituteClass>;
+        _selectedExamIds.clear();
 
         _applyFilters();
       } catch (e) {

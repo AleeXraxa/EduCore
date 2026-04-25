@@ -1,4 +1,4 @@
-import 'package:educore/src/app/theme/app_tokens.dart';
+import 'package:educore/src/core/ui/widgets/app_form_wizard.dart';
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/features/fees/controllers/fee_plans_controller.dart';
@@ -34,6 +34,8 @@ class CreateEditFeePlanDialog extends StatefulWidget {
 }
 
 class _CreateEditFeePlanDialogState extends State<CreateEditFeePlanDialog> {
+  int _currentStep = 0;
+  final _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
   
   late final TextEditingController _nameController;
@@ -84,7 +86,19 @@ class _CreateEditFeePlanDialogState extends State<CreateEditFeePlanDialog> {
     _durationController.dispose();
     _installmentsController.dispose();
     _lateFeeController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _next() {
+    if (_currentStep < 2) {
+      if (_formKey.currentState?.validate() ?? false) {
+        setState(() => _currentStep++);
+        _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOutCubic);
+      }
+    } else {
+      _submit();
+    }
   }
 
   @override
@@ -92,301 +106,347 @@ class _CreateEditFeePlanDialogState extends State<CreateEditFeePlanDialog> {
     final cs = Theme.of(context).colorScheme;
 
     return Dialog(
-      backgroundColor: cs.surface,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadii.r24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 900),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Form(
-            key: _formKey,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 60,
+              offset: const Offset(0, 30),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildHeader(cs),
+            
+            AppFormWizard(
+              currentStep: _currentStep,
+              steps: const ['Definition', 'Financials', 'Policies'],
+              onStepTapped: (idx) {
+                if (idx < _currentStep) {
+                  setState(() => _currentStep = idx);
+                  _pageController.animateToPage(idx, duration: const Duration(milliseconds: 400), curve: Curves.easeInOutCubic);
+                }
+              },
+            ),
+            
+            const Divider(height: 1),
+            
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildStep1(cs),
+                    _buildStep2(cs),
+                    _buildStep3(cs),
+                  ],
+                ),
+              ),
+            ),
+            
+            const Divider(height: 1),
+            
+            _buildFooter(cs),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 32, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.receipt_long_rounded, color: cs.primary),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      widget.plan == null ? 'Create Fee Plan' : 'Edit Fee Plan',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
+                Text(
+                  widget.plan == null ? 'New Fee Plan' : 'Edit Fee Plan',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Plan Type Toggle
-                        _buildFieldLabel('Billing Model'),
-                        Container(
-                          height: 50,
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                            borderRadius: AppRadii.r12,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(child: _buildTypeToggle(FeePlanType.monthly, 'Monthly')),
-                              Expanded(child: _buildTypeToggle(FeePlanType.package, 'Package (Course)')),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        _buildFieldLabel('Plan Name'),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: _inputDecoration('e.g. Standard Grade 10 Plan'),
-                          validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        _buildFieldLabel('Description'),
-                        TextFormField(
-                          controller: _descController,
-                          maxLines: 2,
-                          decoration: _inputDecoration('Briefly describe this plan...'),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Scope'),
-                                  AppDropdown<String>(
-                                    label: 'Plan Scope',
-                                    items: const ['class', 'custom'],
-                                    value: _scope,
-                                    onChanged: (v) => setState(() => _scope = v!),
-                                    itemLabel: (v) => v.toUpperCase(),
-                                    prefixIcon: Icons.category_rounded,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel(_planType == FeePlanType.monthly ? 'Monthly Due Day' : 'Package Duration'),
-                                  if (_planType == FeePlanType.monthly)
-                                    TextFormField(
-                                      controller: _dueDayController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: _inputDecoration('e.g. 5'),
-                                      validator: (v) {
-                                        final val = int.tryParse(v ?? '');
-                                        if (val == null || val < 1 || val > 31) return '1-31 required';
-                                        return null;
-                                      },
-                                    )
-                                  else
-                                    TextFormField(
-                                      controller: _durationController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: _inputDecoration('Months (e.g. 12)'),
-                                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                            borderRadius: AppRadii.r16,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'FINANCIAL RULES',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1,
-                                  color: cs.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildFieldLabel('Admission Fee'),
-                                        TextFormField(
-                                          controller: _admissionController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: _inputDecoration('PKR'),
-                                          validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildFieldLabel(_planType == FeePlanType.monthly ? 'Monthly Fee' : 'Total Course Fee'),
-                                        TextFormField(
-                                          controller: _planType == FeePlanType.monthly ? _monthlyController : _totalFeeController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: _inputDecoration('PKR'),
-                                          validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (_planType == FeePlanType.package) ...[
-                                const SizedBox(height: 20),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SwitchListTile.adaptive(
-                                        contentPadding: EdgeInsets.zero,
-                                        title: const Text('Allow Installments', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                        value: _allowInstallments,
-                                        onChanged: (v) => setState(() => _allowInstallments = v),
-                                      ),
-                                    ),
-                                    if (_allowInstallments) ...[
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            _buildFieldLabel('No. of Installments'),
-                                            TextFormField(
-                                              controller: _installmentsController,
-                                              keyboardType: TextInputType.number,
-                                              decoration: _inputDecoration('e.g. 3'),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                              const SizedBox(height: 20),
-                              _buildFieldLabel('Late Fee Per Day (Optional)'),
-                              TextFormField(
-                                controller: _lateFeeController,
-                                keyboardType: TextInputType.number,
-                                decoration: _inputDecoration('PKR per day overdue'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        SwitchListTile.adaptive(
-                          title: const Text('Allow Partial Payments', style: TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Inst Admins can collect installment cash.', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                          value: _allowPartial,
-                          onChanged: (v) => setState(() => _allowPartial = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 16),
-                    AppPrimaryButton(
-                      onPressed: _saving ? () {} : _submit,
-                      label: widget.plan == null ? 'Create Plan' : 'Update Plan',
-                      busy: _saving,
-                    ),
-                  ],
-                ),
+                Text('Configure pricing and billing logic', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
               ],
             ),
           ),
-        ),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+        ],
       ),
     );
   }
 
-  Widget _buildTypeToggle(FeePlanType type, String label) {
-    final cs = Theme.of(context).colorScheme;
-    final isSelected = _planType == type;
+  Widget _buildStep1(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionLabel('BILLING ARCHITECTURE'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                _buildModelOption(FeePlanType.monthly, 'Monthly', Icons.calendar_month_rounded, cs),
+                _buildModelOption(FeePlanType.package, 'Package', Icons.inventory_2_rounded, cs),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          AppFormInputField(
+            controller: _nameController,
+            label: 'Plan Name',
+            hint: 'e.g. Standard Grade 10 Plan',
+            icon: Icons.label_important_rounded,
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+          ),
+          const SizedBox(height: 24),
+          AppDropdown<String>(
+            label: 'Plan Scope',
+            prefixIcon: Icons.category_rounded,
+            items: const ['class', 'custom'],
+            value: _scope,
+            onChanged: (v) => setState(() => _scope = v!),
+            itemLabel: (v) => v.toUpperCase(),
+          ),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _descController,
+            label: 'Internal Description',
+            hint: 'Briefly describe this plan...',
+            icon: Icons.notes_rounded,
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
 
-    return GestureDetector(
-      onTap: () => setState(() => _planType = type),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-            fontSize: 13,
+  Widget _buildStep2(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionLabel('CORE FEES'),
+          const SizedBox(height: 16),
+          AppFormInputField(
+            controller: _admissionController,
+            label: 'Admission Fee',
+            hint: '0',
+            icon: Icons.login_rounded,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 24),
+          AppFormInputField(
+            controller: _planType == FeePlanType.monthly ? _monthlyController : _totalFeeController,
+            label: _planType == FeePlanType.monthly ? 'Monthly Subscription' : 'Full Package Price',
+            hint: '0',
+            icon: Icons.payments_rounded,
+            keyboardType: TextInputType.number,
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+          ),
+          const SizedBox(height: 32),
+          _buildSectionLabel('TIME CONSTRAINTS'),
+          const SizedBox(height: 16),
+          if (_planType == FeePlanType.monthly)
+            AppFormInputField(
+              controller: _dueDayController,
+              label: 'Monthly Due Day',
+              hint: '5',
+              icon: Icons.event_note_rounded,
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final d = int.tryParse(v ?? '');
+                if (d == null || d < 1 || d > 31) return '1-31 required';
+                return null;
+              },
+            )
+          else
+            AppFormInputField(
+              controller: _durationController,
+              label: 'Course Duration (Months)',
+              hint: '12',
+              icon: Icons.timer_rounded,
+              keyboardType: TextInputType.number,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3(ColorScheme cs) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionLabel('REVENUE POLICIES'),
+          const SizedBox(height: 12),
+          _buildPolicySwitch(
+            'Partial Payments',
+            'Allow admins to collect flexible amounts',
+            _allowPartial,
+            (v) => setState(() => _allowPartial = v),
+            cs,
+          ),
+          const SizedBox(height: 12),
+          AppFormInputField(
+            controller: _lateFeeController,
+            label: 'Late Fee (Per Day)',
+            hint: 'Optional surcharge',
+            icon: Icons.warning_amber_rounded,
+            keyboardType: TextInputType.number,
+          ),
+          if (_planType == FeePlanType.package) ...[
+            const SizedBox(height: 32),
+            _buildSectionLabel('INSTALLMENT LOGIC'),
+            const SizedBox(height: 12),
+            _buildPolicySwitch(
+              'Installment Plan',
+              'Break down total cost into parts',
+              _allowInstallments,
+              (v) => setState(() => _allowInstallments = v),
+              cs,
+            ),
+            if (_allowInstallments) ...[
+              const SizedBox(height: 24),
+              AppFormInputField(
+                controller: _installmentsController,
+                label: 'Total Parts',
+                hint: 'e.g. 3',
+                icon: Icons.pie_chart_rounded,
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter(ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() => _currentStep--);
+                  _pageController.previousPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOutCubic);
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('Back'),
+              ),
+            ),
+          if (_currentStep > 0) const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: AppPrimaryButton(
+              onPressed: _next,
+              busy: _saving,
+              label: _currentStep < 2 ? 'Next Phase' : (widget.plan == null ? 'Create Architecture' : 'Commit Changes'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelOption(FeePlanType type, String label, IconData icon, ColorScheme cs) {
+    final isSelected = _planType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _planType = type),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: isSelected ? cs.onPrimary : cs.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.5,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
-    final cs = Theme.of(context).colorScheme;
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-      border: const OutlineInputBorder(
-        borderRadius: AppRadii.r12,
-        borderSide: BorderSide.none,
+  Widget _buildPolicySwitch(String title, String sub, bool val, Function(bool) onChanged, ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                Text(sub, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          Switch.adaptive(value: val, onChanged: onChanged),
+        ],
+      ),
     );
   }
 

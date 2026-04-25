@@ -19,6 +19,11 @@ class StudentController extends BaseController {
   List<Student> _filteredStudents = [];
   List<Student> get students => _filteredStudents;
 
+  final Set<String> _selectedStudentIds = {};
+  Set<String> get selectedStudentIds => _selectedStudentIds;
+  List<Student> get selectedStudents => 
+      _filteredStudents.where((s) => _selectedStudentIds.contains(s.id)).toList();
+
   DocumentSnapshot? _lastDoc;
   bool _hasMore = true;
   bool get hasMore => _hasMore;
@@ -61,6 +66,7 @@ class StudentController extends BaseController {
     _filteredStudents.clear();
     _lastDoc = null;
     _hasMore = true;
+    _selectedStudentIds.clear();
     // Temporarily reset before loading
     totalCount = 0;
     activeCount = 0;
@@ -88,6 +94,25 @@ class StudentController extends BaseController {
     passoutCount = stats['passout'] ?? 0;
     droppedCount = stats['dropped'] ?? 0;
     newAdmissionsCount = stats['newAdmissions'] ?? 0;
+    notifyListeners();
+  }
+
+  void toggleSelection(String id) {
+    if (_selectedStudentIds.contains(id)) {
+      _selectedStudentIds.remove(id);
+    } else {
+      _selectedStudentIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedStudentIds.clear();
+    notifyListeners();
+  }
+
+  void selectAll() {
+    _selectedStudentIds.addAll(_filteredStudents.map((s) => s.id));
     notifyListeners();
   }
 

@@ -2,7 +2,9 @@ import 'package:educore/src/app/shell/sidebar.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/app/shell/topbar.dart';
 import 'package:educore/src/core/responsive/breakpoints.dart';
+import 'package:educore/src/core/ui/widgets/app_spotlight_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -28,6 +30,13 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool _collapsed = false;
+  final FocusNode _keyboardFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +51,17 @@ class _AppShellState extends State<AppShell> {
         final isNarrow = screen != ScreenSize.expanded;
         final effectiveCollapsed = isNarrow || _collapsed;
 
-        return Scaffold(
+        return CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+                AppSpotlightSearch.show(context),
+            const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
+                AppSpotlightSearch.show(context),
+          },
+          child: Focus(
+            autofocus: true,
+            focusNode: _keyboardFocusNode,
+            child: Scaffold(
           body: Row(
             children: [
               Sidebar(
@@ -65,10 +84,12 @@ class _AppShellState extends State<AppShell> {
                   ],
                 ),
               ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }

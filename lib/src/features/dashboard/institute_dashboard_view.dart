@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:ui';
+import 'package:educore/src/app/theme/app_tokens.dart';
 import 'package:educore/src/app/shell/app_shell.dart';
 import 'package:educore/src/app/shell/sidebar_item.dart';
 import 'package:educore/src/core/mvc/controller_builder.dart';
@@ -644,7 +644,7 @@ class _HeaderRowState extends State<_HeaderRow> with SingleTickerProviderStateMi
   }
 
   Widget _buildHeroGraphic(ColorScheme cs) {
-    return Container(
+    return SizedBox(
       width: 200,
       height: 200,
       child: Stack(
@@ -982,48 +982,73 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0.0, _isHovered ? -2.0 : 0.0, 0.0),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0.0, _isHovered ? -8.0 : 0.0, 0.0)
+          ..scale(_isHovered ? 1.05 : 1.0),
         child: Container(
+          width: 180,
+          height: 110,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.r24,
             gradient: LinearGradient(
-              colors: widget.gradient,
+              colors: [
+                widget.gradient.first,
+                widget.gradient.last.withValues(alpha: 0.8),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             boxShadow: [
-              if (_isHovered)
-                BoxShadow(
-                  color: widget.gradient.first.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                )
-              else
-                BoxShadow(
-                  color: widget.gradient.first.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
+              BoxShadow(
+                color: widget.gradient.first.withValues(alpha: _isHovered ? 0.4 : 0.2),
+                blurRadius: _isHovered ? 32 : 16,
+                offset: Offset(0, _isHovered ? 16 : 8),
+              ),
             ],
           ),
-          child: FilledButton.icon(
-            onPressed: widget.onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            icon: Icon(widget.icon, size: 22, color: Colors.white),
-            label: Text(
-              widget.label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: Colors.white,
-                fontSize: 15,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              borderRadius: AppRadii.r24,
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -10,
+                    top: -10,
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: Icon(widget.icon, size: 80, color: Colors.white),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: AppRadii.r12,
+                          ),
+                          child: Icon(widget.icon, size: 20, color: Colors.white),
+                        ),
+                        Text(
+                          widget.label,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1060,12 +1085,11 @@ class _RecentList extends StatelessWidget {
 
   Color _getAvatarColor(String name) {
     final colors = [
-      const Color(0xFF2563EB), // Blue
-      const Color(0xFF0D9488), // Teal
-      const Color(0xFFE11D48), // Rose
-      const Color(0xFF7C3AED), // Violet
-      const Color(0xFFEA580C), // Orange
-      const Color(0xFF0F172A), // Slate
+      const Color(0xFF2563EB),
+      const Color(0xFF10B981),
+      const Color(0xFFF43F5E),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFF59E0B),
     ];
     if (name.isEmpty) return colors[0];
     return colors[name.length % colors.length];
@@ -1084,62 +1108,81 @@ class _RecentList extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: cs.shadow.withValues(alpha: 0.04),
             blurRadius: 32,
-            offset: const Offset(0, 12),
+            offset: const Offset(0, 16),
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title.toUpperCase(),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                    ),
-              ),
-              Icon(icon, size: 16, color: cs.primary.withValues(alpha: 0.5)),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3))),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withValues(alpha: 0.1),
+                    borderRadius: AppRadii.r12,
+                  ),
+                  child: Icon(icon, size: 18, color: cs.primary),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  title.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.0,
+                      ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
           if (items.isEmpty)
-            _EmptyState(message: emptyMessage)
+            Padding(
+              padding: const EdgeInsets.all(40),
+              child: _EmptyState(message: emptyMessage),
+            )
           else
-             ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final name = (item[titleKey] ?? 'Unknown').toString();
-                final subtitleRaw = item[subtitleKey] ?? '';
-                final subtitle = isCurrency && subtitleRaw != null
-                  ? 'PKR ${NumberFormat("#,##0").format(double.tryParse(subtitleRaw.toString()) ?? 0)}'
-                  : subtitleRaw.toString();
-                final badge = badgeKey != null ? item[badgeKey]?.toString() : null;
-                
-                return _ListItem(
-                  title: name,
-                  subtitle: subtitle,
-                  avatarInitials: _getInitials(name),
-                  avatarColor: _getAvatarColor(name),
-                  badge: badge,
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: List.generate(items.length, (index) {
+                  final item = items[index];
+                  final name = (item[titleKey] ?? 'Unknown').toString();
+                  final subtitleRaw = item[subtitleKey] ?? '';
+                  final subtitle = isCurrency && subtitleRaw != null
+                    ? 'PKR ${NumberFormat("#,##0").format(double.tryParse(subtitleRaw.toString()) ?? 0)}'
+                    : subtitleRaw.toString();
+                  final badge = badgeKey != null ? item[badgeKey]?.toString() : null;
+                  
+                  return _ListItem(
+                    title: name,
+                    subtitle: subtitle,
+                    avatarInitials: _getInitials(name),
+                    avatarColor: _getAvatarColor(name),
+                    badge: badge,
+                  );
+                }),
+              ),
             ),
         ],
       ),
@@ -1172,31 +1215,33 @@ class _ListItemState extends State<_ListItem> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: _isHovered ? cs.primary.withValues(alpha: 0.04) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadii.r20,
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: widget.avatarColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadii.r16,
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.avatarInitials,
                 style: TextStyle(
                   color: widget.avatarColor,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
                   fontSize: 14,
                 ),
               ),
@@ -1208,16 +1253,22 @@ class _ListItemState extends State<_ListItem> {
                 children: [
                   Text(
                     widget.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: -0.2,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     widget.subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1226,17 +1277,17 @@ class _ListItemState extends State<_ListItem> {
             ),
             if (widget.badge != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(6),
+                  color: cs.secondaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   widget.badge!.toUpperCase(),
                   style: TextStyle(
-                    color: cs.onPrimaryContainer,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    color: cs.onSecondaryContainer,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
