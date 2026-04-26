@@ -784,7 +784,7 @@ class _StudentTable extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        _actionCell(student),
+        _actionCell(context, student),
       ],
     );
   }
@@ -802,7 +802,7 @@ class _StudentTable extends StatelessWidget {
     }
   }
 
-  Widget _actionCell(Student student) {
+  Widget _actionCell(BuildContext context, Student student) {
     final featureSvc = AppServices.instance.featureAccessService;
     final canTransfer =
         featureSvc != null && featureSvc.canAccess('student_transfer');
@@ -826,6 +826,21 @@ class _StudentTable extends StatelessWidget {
             icon: Icons.published_with_changes_rounded,
             onTap: () => onUpdateStatus?.call(student),
           ),
+        AppActionItem(
+          label: 'WhatsApp Message',
+          icon: Icons.chat_bubble_outline_rounded,
+          onTap: () async {
+            final msg = await AppDialogs.showInput(
+              context,
+              title: 'Send WhatsApp to ${student.name}',
+              hintText: 'Type your message here...',
+              multiline: true,
+            );
+            if (msg != null && msg.trim().isNotEmpty) {
+              await controller.sendWhatsAppMessage(context, student, msg.trim());
+            }
+          },
+        ),
         AppActionItem(
           label: 'Assign Fee Plan',
           icon: Icons.payments_outlined,

@@ -209,12 +209,16 @@ class _AnimatedCountText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final numericPart = value.replaceAll(RegExp(r'[^0-9.]'), '');
-    final numericValue = double.tryParse(numericPart);
-    final prefix = value.substring(0, value.indexOf(numericPart));
-    final suffix = value.substring(
-      value.indexOf(numericPart) + numericPart.length,
-    );
+    final match = RegExp(r'[0-9.,]+').firstMatch(value);
+
+    if (match == null) {
+      return Text(value, style: style);
+    }
+
+    final numericPart = match.group(0)!;
+    final numericValue = double.tryParse(numericPart.replaceAll(',', ''));
+    final prefix = value.substring(0, match.start);
+    final suffix = value.substring(match.end);
 
     if (numericValue == null) {
       return Text(

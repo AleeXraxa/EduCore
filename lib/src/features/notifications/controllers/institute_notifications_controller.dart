@@ -42,6 +42,8 @@ class InstituteNotificationsController extends BaseController {
   List<StaffMember> get staff => _staff;
 
   StreamSubscription? _logsSub;
+  StreamSubscription? _studentsSub;
+  StreamSubscription? _staffSub;
 
   void _init() {
     _academyId = AppServices.instance.authService?.session?.academyId;
@@ -49,6 +51,8 @@ class InstituteNotificationsController extends BaseController {
       _checkStatus();
       _loadData();
       _listenToLogs();
+      _listenToStudents();
+      _listenToStaff();
     }
   }
 
@@ -125,6 +129,40 @@ class InstituteNotificationsController extends BaseController {
               .where((m) => m.status == WhatsAppMessageStatus.failed)
               .length;
 
+          notifyListeners();
+        });
+  }
+
+  void _listenToStudents() {
+    if (_academyId == null) return;
+    _studentsSub?.cancel();
+    _studentsSub = _firestore
+        .collection('academies')
+        .doc(_academyId)
+        .collection('students')
+        .snapshots()
+        .listen((snap) {
+          _students = snap.docs
+              .map((d) => Student.fromMap(d.id, d.data()))
+              .where((s) => s.status != 'deleted')
+              .toList();
+          notifyListeners();
+        });
+  }
+
+  void _listenToStaff() {
+    if (_academyId == null) return;
+    _staffSub?.cancel();
+    _staffSub = _firestore
+        .collection('academies')
+        .doc(_academyId)
+        .collection('staff')
+        .snapshots()
+        .listen((snap) {
+          _staff = snap.docs
+              .map((d) => StaffMember.fromFirestore(d))
+              .where((s) => s.status != 'deleted')
+              .toList();
           notifyListeners();
         });
   }
@@ -309,6 +347,8 @@ class InstituteNotificationsController extends BaseController {
   @override
   void dispose() {
     _logsSub?.cancel();
+    _studentsSub?.cancel();
+    _staffSub?.cancel();
     _whatsappService?.disconnectLiveUpdates();
     super.dispose();
   }

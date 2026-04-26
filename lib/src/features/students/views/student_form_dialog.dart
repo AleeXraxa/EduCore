@@ -162,12 +162,12 @@ class _StudentFormDialogState extends State<StudentFormDialog> {
     final isEditing = widget.student != null;
 
     // STEP 1: Confirmation
-    if (!mounted) return;
+    if (!context.mounted) return;
     final confirmed = isEditing
         ? await AppDialogs.showEditConfirmation(context)
         : await AppDialogs.showAddConfirmation(context);
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     debugPrint('StudentFormDialog: Validation passed, starting save...');
 

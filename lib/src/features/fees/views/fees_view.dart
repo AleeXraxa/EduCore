@@ -491,6 +491,30 @@ class _FeesList extends StatelessWidget {
               },
             ),
             if (!isPaid) ...[
+              AppActionItem(
+                label: 'Send WhatsApp Reminder',
+                icon: Icons.send_rounded,
+                onTap: () => controller.sendWhatsAppReminder(context, fee),
+              ),
+              AppActionItem(
+                label: 'WhatsApp Message',
+                icon: Icons.chat_bubble_outline_rounded,
+                onTap: () async {
+                  final msg = await AppDialogs.showInput(
+                    context,
+                    title: 'Message to ${fee.studentName}',
+                    hintText: 'Type your message here...',
+                    multiline: true,
+                  );
+                  if (msg != null && msg.trim().isNotEmpty) {
+                    await controller.sendWhatsAppMessage(
+                      context,
+                      fee,
+                      msg.trim(),
+                    );
+                  }
+                },
+              ),
               if (featureSvc.canAccess('challan_generate'))
                 AppActionItem(
                   label: 'Generate Challan',

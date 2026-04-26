@@ -1,19 +1,23 @@
-const {
-    default: makeWASocket,
+import {
+    default as makeWASocket,
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     delay
-} = require('@whiskeysockets/baileys');
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const qrcode = require('qrcode');
-const pino = require('pino');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+} from '@whiskeysockets/baileys';
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import qrcode from 'qrcode';
+import pino from 'pino';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);

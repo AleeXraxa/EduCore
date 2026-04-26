@@ -128,4 +128,7 @@ class Student {
       customFields: Map<String, dynamic>.from(map['customFields'] ?? {}),
     );
   }
+
+  @override
+  String toString() => '$name ${rollNo ?? ''} $phone';
 }

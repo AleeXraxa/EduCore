@@ -1,19 +1,21 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/core/mvc/base_controller.dart';
 import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 import 'package:educore/src/features/fees/models/fee_transaction.dart';
 import 'package:educore/src/core/services/fee_service.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 
 class FeesController extends BaseController {
   final FeeService _feeService;
   final String _academyId;
 
   FeesController({FeeService? feeService})
-      : _feeService = feeService ?? AppServices.instance.feeService!,
-        _academyId = AppServices.instance.authService!.session!.academyId;
+    : _feeService = feeService ?? AppServices.instance.feeService!,
+      _academyId = AppServices.instance.authService!.session!.academyId;
 
   final List<Fee> _allFees = [];
   List<Fee> _filteredFees = [];
@@ -21,7 +23,7 @@ class FeesController extends BaseController {
 
   final Set<String> _selectedFeeIds = {};
   Set<String> get selectedFeeIds => _selectedFeeIds;
-  List<Fee> get selectedFees => 
+  List<Fee> get selectedFees =>
       _filteredFees.where((f) => _selectedFeeIds.contains(f.id)).toList();
 
   Map<String, dynamic> _stats = {
@@ -56,10 +58,7 @@ class FeesController extends BaseController {
     _selectedFeeIds.clear();
 
     await runBusy(() async {
-      await Future.wait([
-        _fetchFeesBatch(),
-        fetchStats(),
-      ]);
+      await Future.wait([_fetchFeesBatch(), fetchStats()]);
     });
   }
 
@@ -125,7 +124,8 @@ class FeesController extends BaseController {
   void _applyFilters() {
     _filteredFees = _allFees.where((f) {
       // Search Filter (Student Name or Title)
-      final matchesSearch = _searchQuery.isEmpty ||
+      final matchesSearch =
+          _searchQuery.isEmpty ||
           (f.studentName?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
               false) ||
           f.title.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -258,7 +258,7 @@ class FeesController extends BaseController {
       context: context,
       loadingMessage: 'Recording Payment...',
     );
-    
+
     return success != null;
   }
 
@@ -304,7 +304,7 @@ class FeesController extends BaseController {
       context: context,
       loadingMessage: 'Generating Fees...',
     );
-    
+
     return result ?? -1;
   }
 
@@ -321,7 +321,148 @@ class FeesController extends BaseController {
       context: context,
       loadingMessage: 'Creating Fee Record...',
     );
-    
+
     return success != null;
+  }
+
+  Future<bool> sendWhatsAppReminder(BuildContext context, Fee fee) async {
+    final whatsappSvc = AppServices.instance.whatsappService;
+    if (whatsappSvc == null) return false;
+
+    final success = await runGuarded<bool>(
+      () async {
+        // 1. Get Student Phone
+        final studentDoc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('students')
+            .doc(fee.studentId)
+            .get();
+
+        if (!studentDoc.exists) throw 'Student record not found';
+        final phone = studentDoc.data()?['phone'] as String?;
+        if (phone == null || phone.isEmpty) throw 'Student has no phone number';
+
+        // 2. Fetch Institute Name from Settings
+        final settingsDoc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('settings')
+            .doc('institute')
+            .get();
+
+        final instituteName =
+            settingsDoc.data()?['appName'] ??
+            AppServices.instance.authService?.session?.academyName ??
+            'Academy';
+
+        // 3. Formulate Message (Removing Due Date as requested)
+        final message =
+            'Dear ${fee.studentName ?? 'Student'},\n\n'
+            'This is a reminder regarding your pending fee for "${fee.title}".\n'
+            'Pending Amount: Rs. ${fee.remainingAmount.toStringAsFixed(0)}\n\n'
+            'Please clear your dues at the earliest. Thank you!\n'
+            '- $instituteName';
+
+        // 4. Send
+        final sent = await whatsappSvc.sendMessage(
+          academyId: _academyId,
+          to: phone,
+          message: message,
+        );
+
+        // 4. Log to whatsappLogs
+        await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('whatsappLogs')
+            .add({
+              'recipient': phone,
+              'message': message,
+              'status': sent ? 'sent' : 'failed',
+              'studentId': fee.studentId,
+              'studentName': fee.studentName,
+              'type': 'fee_reminder',
+              'createdAt': FieldValue.serverTimestamp(),
+              'sentAt': sent ? FieldValue.serverTimestamp() : null,
+            });
+
+        return sent;
+      },
+      context: context,
+      loadingMessage: 'Sending Reminder...',
+    );
+
+    if (success == true && context.mounted) {
+      AppDialogs.showSuccess(
+        context,
+        title: 'Reminder Sent',
+        message: 'WhatsApp reminder sent successfully to ${fee.studentName}.',
+      );
+    }
+
+    return success ?? false;
+  }
+
+  Future<bool> sendWhatsAppMessage(
+    BuildContext context,
+    Fee fee,
+    String message,
+  ) async {
+    final whatsappSvc = AppServices.instance.whatsappService;
+    if (whatsappSvc == null) return false;
+
+    final success = await runGuarded<bool>(
+      () async {
+        // Fetch student phone
+        final studentDoc = await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('students')
+            .doc(fee.studentId)
+            .get();
+
+        if (!studentDoc.exists) throw 'Student record not found';
+        final phone = studentDoc.data()?['phone'] ?? '';
+        if (phone.isEmpty) throw 'Student has no phone number';
+
+        final sent = await whatsappSvc.sendMessage(
+          academyId: _academyId,
+          to: phone,
+          message: message,
+        );
+
+        // Log to whatsappLogs
+        await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('whatsappLogs')
+            .add({
+              'recipient': phone,
+              'message': message,
+              'status': sent ? 'sent' : 'failed',
+              'studentId': fee.studentId,
+              'studentName': fee.studentName,
+              'feeId': fee.id,
+              'type': 'direct_message_fees',
+              'createdAt': FieldValue.serverTimestamp(),
+              'sentAt': sent ? FieldValue.serverTimestamp() : null,
+            });
+
+        return sent;
+      },
+      context: context,
+      loadingMessage: 'Sending Message...',
+    );
+
+    if (success == true && context.mounted) {
+      AppDialogs.showSuccess(
+        context,
+        title: 'Message Sent',
+        message: 'WhatsApp message sent successfully to ${fee.studentName}.',
+      );
+    }
+
+    return success ?? false;
   }
 }

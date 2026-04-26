@@ -107,4 +107,7 @@ class StaffMember {
       createdAt: createdAt,
     );
   }
+
+  @override
+  String toString() => '$name $email $phone';
 }

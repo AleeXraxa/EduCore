@@ -24,6 +24,10 @@ import 'package:educore/src/features/notifications/notifications_view.dart';
 import 'package:educore/src/features/reports/views/reports_view.dart';
 import 'package:educore/src/features/settings/settings_view.dart';
 import 'package:educore/src/core/ui/widgets/access_denied_view.dart';
+import 'package:educore/src/core/ui/widgets/app_shimmer.dart';
+import 'package:educore/src/features/dashboard/widgets/app_pulse_feed.dart';
+import 'package:educore/src/features/dashboard/widgets/attendance_heatmap.dart';
+import 'package:educore/src/features/dashboard/models/dashboard_view_models.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -320,41 +324,43 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
                   
                   AppAnimatedSlide(
                     delayIndex: 2,
-                    child: AppKpiGrid(
-                      columns: columns,
-                      items: [
-                        KpiCardData(
-                          label: 'Total Students',
-                          value: NumberFormat.compact().format(controller.totalStudents),
-                          icon: Icons.people_rounded,
-                          gradient: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                          trendText: '+12% YTD',
-                          trendUp: true,
-                        ),
-                        KpiCardData(
-                          label: 'Today\'s Attendance',
-                          value: NumberFormat.compact().format(controller.todaysAttendance),
-                          icon: Icons.fact_check_rounded,
-                          gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
-                          trendText: 'Stable',
-                          trendUp: true,
-                        ),
-                        KpiCardData(
-                          label: 'Pending Fees',
-                          value: NumberFormat.compact().format(controller.pendingFeesCount),
-                          icon: Icons.money_off_rounded,
-                          gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
-                          trendText: '-5% This Mo',
-                          trendUp: false, // Down is good for pending fees but trendUp visually means "positive sentiment" for red/green pill. We'll set it to true so it shows green for less pending fees!
-                        ),
-                        KpiCardData(
-                          label: 'Total Staff',
-                          value: NumberFormat.compact().format(controller.totalStaff),
-                          icon: Icons.badge_rounded,
-                          gradient: const [Color(0xFF0F172A), Color(0xFF1E293B)],
-                        ),
-                      ],
-                    ),
+                    child: controller.busy
+                        ? const AppSkeletonCard(height: 120)
+                        : AppKpiGrid(
+                            columns: columns,
+                            items: [
+                              KpiCardData(
+                                label: 'Total Students',
+                                value: NumberFormat.compact().format(controller.totalStudents),
+                                icon: Icons.people_rounded,
+                                gradient: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                trendText: '+12% YTD',
+                                trendUp: true,
+                              ),
+                              KpiCardData(
+                                label: 'Today\'s Attendance',
+                                value: NumberFormat.compact().format(controller.todaysAttendance),
+                                icon: Icons.fact_check_rounded,
+                                gradient: const [Color(0xFF0D9488), Color(0xFF0F766E)],
+                                trendText: 'Stable',
+                                trendUp: true,
+                              ),
+                              KpiCardData(
+                                label: 'Pending Fees',
+                                value: NumberFormat.compact().format(controller.pendingFeesCount),
+                                icon: Icons.money_off_rounded,
+                                gradient: const [Color(0xFFE11D48), Color(0xFFBE123C)],
+                                trendText: '-5% This Mo',
+                                trendUp: false,
+                              ),
+                              KpiCardData(
+                                label: 'Total Staff',
+                                value: NumberFormat.compact().format(controller.totalStaff),
+                                icon: Icons.badge_rounded,
+                                gradient: const [Color(0xFF0F172A), Color(0xFF1E293B)],
+                              ),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 32),
 
@@ -372,43 +378,22 @@ class _InstituteDashboardHomeState extends State<_InstituteDashboardHome> {
 
                   AppAnimatedSlide(
                     delayIndex: 5,
-                    child: Flex(
-                      direction: size == ScreenSize.compact ? Axis.vertical : Axis.horizontal,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (AppServices.instance.featureAccessService?.canAccess('student_view') ?? true)
-                          Expanded(
-                            flex: 1,
-                            child: _RecentList(
-                              title: 'Recent Students',
-                              items: controller.recentStudents,
-                              icon: Icons.person_add_alt_1_rounded,
-                              emptyMessage: 'No students enrolled yet.',
-                              titleKey: 'name',
-                              subtitleKey: 'className',
+                    child: controller.busy
+                        ? const AppSkeletonCard(height: 300)
+                        : AppAttendanceHeatmap(data: controller.attendanceHeatmapData),
+                  ),
+                  const SizedBox(height: 32),
+
+                  AppAnimatedSlide(
+                    delayIndex: 6,
+                    child: controller.busy
+                        ? const AppSkeletonCard(height: 400)
+                        : AppPulseFeed(
+                            items: DashboardPulseData.fromRaw(
+                              controller.recentStudents,
+                              controller.recentPayments,
                             ),
                           ),
-                        if ((AppServices.instance.featureAccessService?.canAccess('student_view') ?? true) &&
-                            (AppServices.instance.featureAccessService?.canAccess('fee_view') ?? true))
-                          SizedBox(
-                            width: size == ScreenSize.compact ? 0 : 24,
-                            height: size == ScreenSize.compact ? 24 : 0,
-                          ),
-                        if (AppServices.instance.featureAccessService?.canAccess('fee_view') ?? true)
-                          Expanded(
-                            child: _RecentList(
-                              title: 'Recent Payments',
-                              items: controller.recentPayments,
-                              icon: Icons.receipt_long_rounded,
-                              emptyMessage: 'No recent fees collected.',
-                              titleKey: 'studentName',
-                              subtitleKey: 'amount',
-                              badgeKey: 'type',
-                              isCurrency: true,
-                            ),
-                          ),
-                      ],
-                    ),
                   ),
                 ],
               ),

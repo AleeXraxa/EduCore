@@ -6,6 +6,7 @@ import 'package:educore/src/core/services/app_services.dart';
 import 'package:educore/src/features/students/models/student.dart';
 import 'package:educore/src/features/students/models/custom_field.dart';
 import 'package:educore/src/features/students/services/student_service.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 
 class StudentController extends BaseController {
   final StudentService _studentService;
@@ -313,5 +314,57 @@ class StudentController extends BaseController {
   void dispose() {
     _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  Future<bool> sendWhatsAppMessage(
+    BuildContext context,
+    Student student,
+    String message,
+  ) async {
+    final whatsappSvc = AppServices.instance.whatsappService;
+    if (whatsappSvc == null) return false;
+
+    final success = await runGuarded<bool>(
+      () async {
+        final phone = student.phone;
+        if (phone.isEmpty) throw 'Student has no phone number';
+
+        final sent = await whatsappSvc.sendMessage(
+          academyId: _academyId,
+          to: phone,
+          message: message,
+        );
+
+        // Log to whatsappLogs
+        await FirebaseFirestore.instance
+            .collection('academies')
+            .doc(_academyId)
+            .collection('whatsappLogs')
+            .add({
+          'recipient': phone,
+          'message': message,
+          'status': sent ? 'sent' : 'failed',
+          'studentId': student.id,
+          'studentName': student.name,
+          'type': 'direct_message',
+          'createdAt': FieldValue.serverTimestamp(),
+          'sentAt': sent ? FieldValue.serverTimestamp() : null,
+        });
+
+        return sent;
+      },
+      context: context,
+      loadingMessage: 'Sending Message...',
+    );
+
+    if (success == true && context.mounted) {
+      AppDialogs.showSuccess(
+        context,
+        title: 'Message Sent',
+        message: 'WhatsApp message sent successfully to ${student.name}.',
+      );
+    }
+
+    return success ?? false;
   }
 }

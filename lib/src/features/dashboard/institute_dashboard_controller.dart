@@ -18,6 +18,7 @@ class InstituteDashboardController extends BaseController {
 
   List<Map<String, dynamic>> recentStudents = [];
   List<Map<String, dynamic>> recentPayments = [];
+  Map<DateTime, int> attendanceHeatmapData = {};
 
   List<double> studentGrowth = [0, 0, 0, 0, 0, 0];
   List<String> studentGrowthLabels = ['', '', '', '', '', ''];
@@ -119,6 +120,12 @@ class InstituteDashboardController extends BaseController {
           .limit(5)
           .get();
 
+      final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+      final heatmapFuture = attendanceRef
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(sixMonthsAgo))
+          .where('status', isEqualTo: 'present')
+          .get();
+
       final results = await Future.wait([
         subFuture,
         academyFuture,
@@ -134,6 +141,7 @@ class InstituteDashboardController extends BaseController {
         recentPaymentsFuture,
         allStudentsFuture,
         paidFeesCountFuture,
+        heatmapFuture,
       ]);
 
       final subDoc = results[0] as DocumentSnapshot;
@@ -203,6 +211,16 @@ class InstituteDashboardController extends BaseController {
         final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return monthNames[m.month - 1];
       });
+      
+      final heatmapSnap = results[14] as QuerySnapshot;
+      final heatmapData = <DateTime, int>{};
+      for (var doc in heatmapSnap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final date = (data['date'] as Timestamp).toDate();
+        final day = DateTime(date.year, date.month, date.day);
+        heatmapData[day] = (heatmapData[day] ?? 0) + 1;
+      }
+      attendanceHeatmapData = heatmapData;
     });
   }
 }

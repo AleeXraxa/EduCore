@@ -235,6 +235,35 @@ class AppDialogs {
     );
   }
 
+  /// Unified text input dialog
+  static Future<String?> showInput(
+    BuildContext context, {
+    required String title,
+    required String hintText,
+    String? initialValue,
+    String confirmLabel = 'Submit',
+    String cancelLabel = 'Cancel',
+    bool multiline = false,
+  }) {
+    return showGeneralDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, _, __) {
+        return _InputDialog(
+          title: title,
+          hintText: hintText,
+          initialValue: initialValue,
+          confirmLabel: confirmLabel,
+          cancelLabel: cancelLabel,
+          multiline: multiline,
+        );
+      },
+    );
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // PRIVATE HELPERS
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -585,7 +614,7 @@ class _ConfirmDialog extends StatelessWidget {
                       onPressed: () => Navigator.pop(context, false),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadii.r16,
                         ),
                       ),
@@ -607,6 +636,135 @@ class _ConfirmDialog extends StatelessWidget {
                           ? AppButtonVariant.danger
                           : AppButtonVariant.primary,
                       onPressed: () => Navigator.pop(context, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputDialog extends StatefulWidget {
+  const _InputDialog({
+    required this.title,
+    required this.hintText,
+    this.initialValue,
+    required this.confirmLabel,
+    required this.cancelLabel,
+    this.multiline = false,
+  });
+
+  final String title;
+  final String hintText;
+  final String? initialValue;
+  final String confirmLabel;
+  final String cancelLabel;
+  final bool multiline;
+
+  @override
+  State<_InputDialog> createState() => _InputDialogState();
+}
+
+class _InputDialogState extends State<_InputDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 450,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadii.r24,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 40,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                textAlign: TextAlign.left,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.text,
+                      letterSpacing: -0.8,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _controller,
+                maxLines: widget.multiline ? 5 : 1,
+                minLines: widget.multiline ? 3 : 1,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  filled: true,
+                  fillColor: AppColors.surfaceAlt,
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadii.r16,
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                ),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: AppRadii.r16,
+                        ),
+                      ),
+                      child: Text(
+                        widget.cancelLabel,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: AppPrimaryButton(
+                      label: widget.confirmLabel,
+                      onPressed: () => Navigator.pop(context, _controller.text),
                     ),
                   ),
                 ],
