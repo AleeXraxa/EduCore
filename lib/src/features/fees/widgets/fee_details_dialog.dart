@@ -6,6 +6,8 @@ import 'package:educore/src/features/fees/controllers/fees_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:educore/src/core/ui/widgets/app_primary_button.dart';
 import 'package:educore/src/features/fees/widgets/collect_payment_dialog.dart';
+import 'package:educore/src/features/fees/widgets/fee_document_dialog.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 
 class FeeDetailsDialog extends StatefulWidget {
   const FeeDetailsDialog({
@@ -17,7 +19,7 @@ class FeeDetailsDialog extends StatefulWidget {
 
   final Fee fee;
   final FeesController controller;
-  final Future<void> Function({required double amount, required PaymentMethod method, String? note})? onCollectPayment;
+  final Future<bool> Function({required double amount, required PaymentMethod method, String? note})? onCollectPayment;
 
   @override
   State<FeeDetailsDialog> createState() => _FeeDetailsDialogState();
@@ -124,19 +126,19 @@ class _FeeDetailsDialogState extends State<FeeDetailsDialog> {
                 children: [
                   _SummaryRow(
                     label: 'Total Amount',
-                    value: NumberFormat.currency(symbol: 'Rs. ').format(widget.fee.amount),
+                    value: NumberFormat.currency(symbol: 'PKR ').format(widget.fee.amount),
                     isHighlight: true,
                   ),
                   const Divider(height: 24),
                   _SummaryRow(
                     label: 'Amount Paid',
-                    value: NumberFormat.currency(symbol: 'Rs. ').format(widget.fee.paidAmount),
+                    value: NumberFormat.currency(symbol: 'PKR ').format(widget.fee.paidAmount),
                     valueColor: Colors.green,
                   ),
                   const SizedBox(height: 12),
                   _SummaryRow(
                     label: 'Remaining Balance',
-                    value: NumberFormat.currency(symbol: 'Rs. ').format(remaining),
+                    value: NumberFormat.currency(symbol: 'PKR ').format(remaining),
                     valueColor: isPaid ? cs.onSurface : Colors.red,
                   ),
                   const SizedBox(height: 32),
@@ -234,13 +236,41 @@ class _FeeDetailsDialogState extends State<FeeDetailsDialog> {
                             icon: Icons.payments_rounded,
                             onPressed: () {
                               Navigator.pop(context);
-                              showDialog(
+                              showDialog<bool>(
                                 context: context,
                                 builder: (_) => CollectPaymentDialog(
                                   fee: widget.fee,
                                   onCollect: widget.onCollectPayment!,
                                 ),
-                              );
+                              ).then((success) {
+                                if (success == true && context.mounted) {
+                                  AppDialogs.showSuccess(
+                                    context,
+                                    title: 'Payment Successful',
+                                    message: 'The payment has been recorded successfully.',
+                                  ).then((_) {
+                                    if (context.mounted) {
+                                      _fetchTransactions(); // Refresh the list in the dialog
+                                      
+                                      // Ask for receipt
+                                      AppDialogs.showConfirm(
+                                        context,
+                                        title: 'Generate Receipt?',
+                                        message: 'Would you like to generate a receipt for this transaction now?',
+                                        confirmLabel: 'Generate Receipt',
+                                        cancelLabel: 'Later',
+                                      ).then((gen) {
+                                        if (gen == true && context.mounted) {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) => FeeDocumentDialog(fee: widget.fee, mode: 'receipt'),
+                                          );
+                                        }
+                                      });
+                                    }
+                                  });
+                                }
+                              });
                             },
                           ),
                         ),
@@ -280,7 +310,7 @@ class _TransactionTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Rs. ${txn.amount}',
+                'PKR ${txn.amount}',
                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.green),
               ),
               Text(

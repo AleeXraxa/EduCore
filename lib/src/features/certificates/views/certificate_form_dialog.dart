@@ -304,45 +304,23 @@ class _CertificateFormDialogState extends State<CertificateFormDialog> {
                             ),
 
                       const SizedBox(height: 24),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: _loadingTemplates
-                                ? const Center(child: LinearProgressIndicator())
-                                : AppDropdown<CertificateTemplate>(
-                                    label: 'Certificate Template',
-                                    hintText: 'Select a layout...',
-                                    items: _templates,
-                                    value: _selectedTemplate,
-                                    onChanged: (v) => setState(() => _selectedTemplate = v),
-                                    itemLabel: (t) => t.name,
-                                    prefixIcon: Icons.layers_rounded,
-                                  ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: AppDropdown<CertificateType>(
-                              label: 'Type',
-                              items: CertificateType.values,
-                              value: _type,
-                              onChanged: (v) {
-                                if (v != null) {
-                                  setState(() {
-                                    _type = v;
-                                    if (_bodyController.text == _getDefaultBody(_type) || _bodyController.text.isEmpty) {
-                                      _bodyController.text = _getDefaultBody(_type);
-                                    }
-                                  });
-                                }
-                              },
-                              itemLabel: (t) => t.label,
-                              prefixIcon: Icons.badge_outlined,
-                            ),
-                          ),
-                        ],
+                      AppDropdown<CertificateType>(
+                        label: 'Certificate Type',
+                        items: CertificateType.values,
+                        value: _type,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() {
+                              _type = v;
+                              if (_bodyController.text == _getDefaultBody(_type) ||
+                                  _bodyController.text.isEmpty) {
+                                _bodyController.text = _getDefaultBody(_type);
+                              }
+                            });
+                          }
+                        },
+                        itemLabel: (t) => t.label,
+                        prefixIcon: Icons.badge_outlined,
                       ),
                       
                       const SizedBox(height: 24),
@@ -371,41 +349,18 @@ class _CertificateFormDialogState extends State<CertificateFormDialog> {
                       _sectionTitle('DATES & AUTHORIZATION'),
                       const SizedBox(height: 16),
                       
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDateField(
-                              label: 'Issue Date',
-                              value: _issueDate,
-                              onTap: () async {
-                                final d = await showDatePicker(
-                                  context: context,
-                                  initialDate: _issueDate,
-                                  firstDate: DateTime(2000),
-                                  lastDate: DateTime(2100),
-                                );
-                                if (d != null) setState(() => _issueDate = d);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildDateField(
-                              label: 'Valid Until (Optional)',
-                              value: _validUntil,
-                              isOptional: true,
-                              onTap: () async {
-                                final d = await showDatePicker(
-                                  context: context,
-                                  initialDate: _validUntil ?? DateTime.now(),
-                                  firstDate: DateTime(2000),
-                                  lastDate: DateTime(2100),
-                                );
-                                setState(() => _validUntil = d);
-                              },
-                            ),
-                          ),
-                        ],
+                      _buildDateField(
+                        label: 'Issue Date',
+                        value: _issueDate,
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            initialDate: _issueDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (d != null) setState(() => _issueDate = d);
+                        },
                       ),
                       
                       const SizedBox(height: 20),

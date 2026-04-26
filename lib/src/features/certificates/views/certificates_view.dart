@@ -400,17 +400,6 @@ class _CertificatesViewState extends State<CertificatesView>
 
     return AppActionMenu(
       actions: [
-        AppActionItem(
-          label: 'View / Preview',
-          icon: Icons.visibility_rounded,
-          onTap: () => _handleDownload(context, cert, preview: true),
-        ),
-        if (canDownload)
-          AppActionItem(
-            label: 'Download PDF',
-            icon: Icons.download_rounded,
-            onTap: () => _handleDownload(context, cert),
-          ),
         if (canDownload)
           AppActionItem(
             label: 'Print',
@@ -442,9 +431,16 @@ class _CertificatesViewState extends State<CertificatesView>
     final academyId = AppServices.instance.authService?.currentAcademyId;
     if (academyId == null) return;
 
-    final instituteName =
-        AppServices.instance.authService?.currentAcademyName ?? 'Institute';
-    final logoUrl = AppServices.instance.authService?.currentAcademyLogo;
+    final settings = await AppServices.instance.settingsService?.getAcademySettings(academyId);
+    final fallbackAcademy = await AppServices.instance.getInstituteService.getAcademy(academyId);
+
+    final instituteName = (settings?.appName != null && settings!.appName.isNotEmpty)
+        ? settings.appName
+        : (fallbackAcademy?.name ?? 'Institute');
+        
+    final logoUrl = (settings?.appLogoUrl != null && settings!.appLogoUrl.isNotEmpty)
+        ? settings.appLogoUrl
+        : fallbackAcademy?.logoUrl;
 
     if (!preview) {
       await _controller.logDownload(academyId, cert);
@@ -459,9 +455,20 @@ class _CertificatesViewState extends State<CertificatesView>
   }
 
   Future<void> _handlePrint(BuildContext context, Certificate cert) async {
-    final instituteName =
-        AppServices.instance.authService?.currentAcademyName ?? 'Institute';
-    final logoUrl = AppServices.instance.authService?.currentAcademyLogo;
+    final academyId = AppServices.instance.authService?.currentAcademyId;
+    if (academyId == null) return;
+
+    final settings = await AppServices.instance.settingsService?.getAcademySettings(academyId);
+    final fallbackAcademy = await AppServices.instance.getInstituteService.getAcademy(academyId);
+
+    final instituteName = (settings?.appName != null && settings!.appName.isNotEmpty)
+        ? settings.appName
+        : (fallbackAcademy?.name ?? 'Institute');
+        
+    final logoUrl = (settings?.appLogoUrl != null && settings!.appLogoUrl.isNotEmpty)
+        ? settings.appLogoUrl
+        : fallbackAcademy?.logoUrl;
+
     await CertificatePdfGenerator.printPdf(
       cert,
       instituteName,

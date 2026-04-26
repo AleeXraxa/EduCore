@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:educore/src/features/fees/models/fee.dart';
 
 enum FeePlanScope {
-  className, // 'class' is a reserved keyword in Dart, using className or scope enum
-  custom,
+  className, // 'class' is a reserved keyword in Dart
 }
 
 enum FeePlanType { monthly, package }

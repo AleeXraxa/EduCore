@@ -121,7 +121,7 @@ class _MarksEntryViewState extends State<MarksEntryView> {
     }
 
     AppDialogs.showLoading(context, message: 'Saving Marks...');
-    final success = await widget.controller.saveMarks(updatedMarks);
+    final success = await widget.controller.saveMarks(widget.test.id, updatedMarks);
 
     if (!mounted) return;
     AppDialogs.hide(context);
@@ -256,6 +256,30 @@ class _MarksEntryViewState extends State<MarksEntryView> {
             ),
             const SizedBox(height: 24),
           ],
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  if (_selectedSubjectId != null) {
+                    setState(() {
+                      final subId = _selectedSubjectId!;
+                      for (var studentId in _statuses[subId]!.keys) {
+                        _statuses[subId]![studentId] = 'Present';
+                      }
+                    });
+                  }
+                },
+                icon: const Icon(Icons.done_all_rounded, size: 20),
+                label: const Text('Mark All Present'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
           // Table Header
           Container(

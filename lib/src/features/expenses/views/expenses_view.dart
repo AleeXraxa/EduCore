@@ -161,7 +161,7 @@ class _ExpensesViewState extends State<ExpensesView> {
   }
 
   Widget _buildKPIs(BuildContext context, ExpensesController controller, bool isCompact) {
-    final format = NumberFormat.currency(symbol: '\$');
+    final format = NumberFormat.currency(symbol: 'PKR ');
     final profitLossColor = controller.netProfitLoss >= 0 ? const Color(0xFF10B981) : const Color(0xFFE11D48);
     
     return AppKpiGrid(
@@ -301,7 +301,7 @@ class _ExpensesViewState extends State<ExpensesView> {
     }
 
     final cs = Theme.of(context).colorScheme;
-    final format = NumberFormat.currency(symbol: '\$');
+    final format = NumberFormat.currency(symbol: 'PKR ');
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return Container(

@@ -563,31 +563,43 @@ class FeeService {
     
     double totalRevenue = 0.0;
     double totalPending = 0.0;
-    double totalPackageRevenue = 0.0;
-    double totalPackagePending = 0.0;
+    
+    final now = DateTime.now();
+    final currentMonthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+    final prevMonth = now.month == 1 ? DateTime(now.year - 1, 12) : DateTime(now.year, now.month - 1);
+    final prevMonthStr = "${prevMonth.year}-${prevMonth.month.toString().padLeft(2, '0')}";
+
+    double currentMonthRevenue = 0.0;
+    double prevMonthRevenue = 0.0;
 
     final allFees = await rootQuery.get();
     for (final doc in allFees.docs) {
       final data = doc.data();
       final finalAmt = (data['finalAmount'] ?? 0.0).toDouble();
       final paidAmt = (data['paidAmount'] ?? 0.0).toDouble();
-      final status = data['status'] as String?;
-      final type = data['type'] as String?;
+      final month = data['month'] as String?;
 
       totalRevenue += paidAmt;
       totalPending += (finalAmt - paidAmt);
 
-      if (type == FeeType.package.name) {
-        totalPackageRevenue += paidAmt;
-        totalPackagePending += (finalAmt - paidAmt);
+      if (month == currentMonthStr) {
+        currentMonthRevenue += paidAmt;
+      } else if (month == prevMonthStr) {
+        prevMonthRevenue += paidAmt;
       }
+    }
+
+    double growth = 0.0;
+    if (prevMonthRevenue > 0) {
+      growth = ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100;
     }
 
     final result = {
       'totalRevenue': totalRevenue,
       'totalPending': totalPending,
-      'totalPackageRevenue': totalPackageRevenue,
-      'totalPackagePending': totalPackagePending,
+      'currentMonthRevenue': currentMonthRevenue,
+      'prevMonthRevenue': prevMonthRevenue,
+      'monthlyGrowth': growth,
       'lastUpdated': FieldValue.serverTimestamp(),
     };
 

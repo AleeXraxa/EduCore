@@ -76,6 +76,7 @@ class _InstituteChartsSectionState extends State<InstituteChartsSection> with Si
                   child: _ChartBox(
                     title: 'Student Growth',
                     subtitle: 'Enrollment performance over last 6 months',
+                    pillText: 'Last 6 Months',
                     child: _PremiumLineChart(values: growthSeries, labels: growthLabels, animation: _revealAnimation),
                   ),
                 ),
@@ -106,6 +107,7 @@ class _InstituteChartsSectionState extends State<InstituteChartsSection> with Si
                         child: _ChartBox(
                           title: 'Live Attendance',
                           subtitle: 'Today\'s check-in metrics',
+                          pillText: 'Today',
                           child: _PremiumDonutChart(
                             values: [present, absent],
                             labels: const ['Present', 'Absent'],
@@ -169,11 +171,13 @@ class _ChartBox extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
+    this.pillText = 'Last 30 Days',
   });
 
   final String title;
   final String subtitle;
   final Widget child;
+  final String pillText;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +222,7 @@ class _ChartBox extends StatelessWidget {
                   Icon(Icons.calendar_today, size: 14, color: cs.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Last 30 Days',
+                    pillText,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

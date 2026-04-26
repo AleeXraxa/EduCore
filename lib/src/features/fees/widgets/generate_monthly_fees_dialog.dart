@@ -300,7 +300,7 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
               Expanded(
                 child: AppFormInputField(
                   controller: _amountCtrl,
-                  label: 'Amount (Rs.)',
+                  label: 'Amount (PKR)',
                   hint: 'Enter amount',
                   icon: Icons.payments_rounded,
                   readOnly: !_isOverrideEnabled || !_canOverride,

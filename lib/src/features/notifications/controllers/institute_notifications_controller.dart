@@ -21,6 +21,9 @@ class InstituteNotificationsController extends BaseController {
   String _whatsappStatus = 'checking';
   String get whatsappStatus => _whatsappStatus;
 
+  /// Exposed backend startup error (null = no error / not yet started)
+  String? get backendError => AppServices.instance.whatsappProcessService?.lastError;
+
   String? _qrCode;
   String? get qrCode => _qrCode;
 
@@ -180,6 +183,20 @@ class InstituteNotificationsController extends BaseController {
 
     await runBusy(() async {
       try {
+        // Ensure the backend process is running before connecting
+        final processService = AppServices.instance.whatsappProcessService;
+        if (processService != null && !processService.isRunning) {
+          await processService.init();
+          // If still not running after init, surface the error
+          if (!processService.isRunning) {
+            _whatsappStatus = 'error';
+            notifyListeners();
+            return;
+          }
+          // Give the backend a moment to fully start
+          await Future.delayed(const Duration(milliseconds: 1500));
+        }
+
         await _whatsappService?.connect(_academyId!);
         _whatsappStatus = 'qr_ready';
 
@@ -198,6 +215,8 @@ class InstituteNotificationsController extends BaseController {
         );
       } catch (e) {
         debugPrint('Error connecting WhatsApp: $e');
+        _whatsappStatus = 'error';
+        notifyListeners();
       }
     });
   }

@@ -177,11 +177,18 @@ class _LoginViewState extends State<LoginView>
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil(targetRoute, (route) => false);
+    } on InstitutePendingException catch (e) {
+      if (!mounted) return;
+      AppDialogs.showInfo(
+        context,
+        title: '⏳ Account Pending Approval',
+        message: e.message,
+      );
     } on AuthException catch (e) {
       if (!mounted) return;
       AppDialogs.showError(
         context,
-        title: 'Security Access Denied',
+        title: 'Access Denied',
         message: e.message,
       );
     } on FirebaseAuthException catch (e) {

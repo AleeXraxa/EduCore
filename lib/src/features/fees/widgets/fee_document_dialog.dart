@@ -414,17 +414,17 @@ class _FeeDocumentDialogState extends State<FeeDocumentDialog> {
                     ),
                     _SummaryTile(
                       label: 'Total Amount',
-                      value: 'Rs. ${widget.fee.finalAmount.toStringAsFixed(0)}',
+                      value: 'PKR ${widget.fee.finalAmount.toStringAsFixed(0)}',
                     ),
                     _SummaryTile(
                       label: 'Amount Paid',
-                      value: 'Rs. ${widget.fee.paidAmount.toStringAsFixed(0)}',
+                      value: 'PKR ${widget.fee.paidAmount.toStringAsFixed(0)}',
                       valueColor: Colors.green,
                     ),
                     _SummaryTile(
                       label: 'Balance Due',
                       value:
-                          'Rs. ${widget.fee.remainingAmount.toStringAsFixed(0)}',
+                          'PKR ${widget.fee.remainingAmount.toStringAsFixed(0)}',
                       valueColor: widget.fee.remainingAmount > 0
                           ? cs.error
                           : Colors.green,

@@ -112,7 +112,7 @@ class RevenueExpenseChart extends StatelessWidget {
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               final label = rodIndex == 0 ? 'Revenue' : 'Expenses';
               return BarTooltipItem(
-                '$label\nRs. ${NumberFormat('#,##0').format(rod.toY)}',
+                '$label\nPKR ${NumberFormat('#,##0').format(rod.toY)}',
                 TextStyle(
                   color: rod.color,
                   fontWeight: FontWeight.bold,
@@ -245,7 +245,7 @@ class _ExpenseCategoryDonutState extends State<ExpenseCategoryDonut> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Rs. ${NumberFormat.compact().format(e.value.value)}',
+                    'PKR ${NumberFormat.compact().format(e.value.value)}',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,

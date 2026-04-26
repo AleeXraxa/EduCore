@@ -226,8 +226,9 @@ class _CreateEditFeePlanDialogState extends State<CreateEditFeePlanDialog> {
           AppDropdown<String>(
             label: 'Plan Scope',
             prefixIcon: Icons.category_rounded,
-            items: const ['class', 'custom'],
+            items: const ['class'],
             value: _scope,
+            enabled: false, // Locked to CLASS
             onChanged: (v) => setState(() => _scope = v!),
             itemLabel: (v) => v.toUpperCase(),
           ),

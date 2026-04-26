@@ -232,10 +232,9 @@ class MonthlyTestController extends BaseController {
     })) ?? false;
   }
 
-  Future<bool> saveMarks(List<TestMarks> marks) async {
-    if (selectedTest == null) return false;
+  Future<bool> saveMarks(String testId, List<TestMarks> marks) async {
     return (await runBusy(() async {
-      await _testService.submitMarks(_academyId, selectedTest!.id, marks);
+      await _testService.submitMarks(_academyId, testId, marks);
       return true;
     })) ?? false;
   }

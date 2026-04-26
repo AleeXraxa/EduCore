@@ -286,7 +286,7 @@ class _AppSpotlightSearchState extends State<AppSpotlightSearch> {
           const _ResultSectionHeader(label: 'FEES'),
           ..._fees.map((f) => _ResultTile(
                 title: f.title,
-                subtitle: '${f.studentName} • Rs. ${f.amount}',
+                subtitle: '${f.studentName} • PKR ${f.amount}',
                 icon: Icons.payments_rounded,
                 onTap: () => Navigator.pop(context),
               )),

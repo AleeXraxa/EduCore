@@ -8,7 +8,7 @@ import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 
 class CollectPaymentDialog extends StatefulWidget {
   final Fee fee;
-  final Future<void> Function({required double amount, required PaymentMethod method, String? note}) onCollect;
+  final Future<bool> Function({required double amount, required PaymentMethod method, String? note}) onCollect;
 
   const CollectPaymentDialog({
     super.key,
@@ -72,12 +72,12 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
               ),
               child: Column(
                 children: [
-                  _SummaryRow(label: 'Total Fee', value: 'Rs. ${widget.fee.amount}'),
-                  _SummaryRow(label: 'Already Paid', value: 'Rs. ${widget.fee.paidAmount}', color: Colors.green),
+                  _SummaryRow(label: 'Total Fee', value: 'PKR ${widget.fee.amount}'),
+                  _SummaryRow(label: 'Already Paid', value: 'PKR ${widget.fee.paidAmount}', color: Colors.green),
                   const Divider(),
                   _SummaryRow(
                     label: 'Remaining', 
-                    value: 'Rs. ${widget.fee.remainingAmount}', 
+                    value: 'PKR ${widget.fee.remainingAmount}', 
                     fontWeight: FontWeight.w900,
                   ),
                 ],
@@ -87,7 +87,7 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
             const SizedBox(height: 24),
             AppTextField(
               controller: _amountCtrl,
-              label: 'Received Amount (Rs.)',
+              label: 'Received Amount (PKR)',
               hintText: 'Enter amount',
               prefixIcon: Icons.payments_outlined,
               keyboardType: TextInputType.number,
@@ -140,13 +140,17 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
                 
                 setState(() => _isLoading = true);
                 try {
-                  await widget.onCollect(
+                  final success = await widget.onCollect(
                     amount: amount,
                     method: _method,
                     note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
                   );
                   if (!context.mounted) return;
-                  Navigator.pop(context, true);
+                  if (success) {
+                    Navigator.pop(context, true);
+                  } else {
+                    setState(() => _isLoading = false);
+                  }
                 } catch (e) {
                   debugPrint('CollectPaymentDialog: Error: $e');
                   if (context.mounted) {

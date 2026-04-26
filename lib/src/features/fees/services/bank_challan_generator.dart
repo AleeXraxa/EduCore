@@ -581,7 +581,7 @@ class BankChallanPdfGenerator {
             style: pw.TextStyle(font: font, fontSize: isTotal ? 8 : 7),
           ),
           pw.Text(
-            'Rs. ${_currencyFmt.format(amount)}',
+            'PKR ${_currencyFmt.format(amount)}',
             style: pw.TextStyle(font: font, fontSize: isTotal ? 8.5 : 7),
           ),
         ],

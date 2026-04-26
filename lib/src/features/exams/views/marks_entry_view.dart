@@ -152,6 +152,18 @@ class _MarksEntryViewState extends State<MarksEntryView> {
                 },
               ),
               const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    for (var studentId in _statusMap.keys) {
+                      _statusMap[studentId] = 'present';
+                    }
+                  });
+                },
+                icon: const Icon(Icons.done_all_rounded),
+                label: const Text('Mark All Present'),
+              ),
+              const SizedBox(width: 16),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,

@@ -728,32 +728,33 @@ class _BulkActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        OutlinedButton.icon(
-          onPressed: () => controller.markAll(AttendanceStatus.absent),
-          icon: const Icon(Icons.close_rounded, size: 18),
-          label: const Text('Mark Absent'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => controller.markAll(AttendanceStatus.absent),
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: const Text('Mark Absent'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: () => controller.markAll(AttendanceStatus.leave),
-          icon: const Icon(Icons.beach_access_rounded, size: 18),
-          label: const Text('Mark Leave'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.orange,
-            side: const BorderSide(color: Colors.orange),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: () => controller.markAll(AttendanceStatus.leave),
+            icon: const Icon(Icons.beach_access_rounded, size: 18),
+            label: const Text('Mark Leave'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.orange,
+              side: const BorderSide(color: Colors.orange),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: FilledButton.icon(
+          const SizedBox(width: 8),
+          FilledButton.icon(
             onPressed: () => controller.markAll(AttendanceStatus.present),
             icon: const Icon(Icons.done_all_rounded, size: 18),
             label: const Text('Mark All Present'),
@@ -762,8 +763,8 @@ class _BulkActionButtons extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

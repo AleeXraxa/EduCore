@@ -135,7 +135,12 @@ class AuthService extends ChangeNotifier {
     }
 
     final academy = Academy.fromDoc(doc);
+    if (academy.status == AcademyStatus.pending) {
+      await _auth.signOut();
+      throw InstitutePendingException();
+    }
     if (academy.status != AcademyStatus.active) {
+      await _auth.signOut();
       throw InstituteBlockedException();
     }
   }

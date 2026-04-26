@@ -355,7 +355,7 @@ class _ReportsViewState extends State<ReportsView>
     List<double> expenses,
     List<double> pl,
   ) {
-    final fmt = NumberFormat.currency(symbol: 'Rs. ', decimalDigits: 0);
+    final fmt = NumberFormat.currency(symbol: 'PKR ', decimalDigits: 0);
     final totalRev = revenue.fold(0.0, (a, b) => a + b);
     final totalExp = expenses.fold(0.0, (a, b) => a + b);
     final netPL = totalRev - totalExp;

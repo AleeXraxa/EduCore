@@ -24,9 +24,18 @@ class CertificatePdfGenerator {
 
     pw.ImageProvider? background;
     if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
-      try { background = await networkImage(backgroundUrl); } catch (_) {}
+      try {
+        background = await networkImage(backgroundUrl);
+      } catch (_) {}
     }
-    
+
+    pw.ImageProvider? logoImage;
+    if (instituteLogoUrl != null && instituteLogoUrl.isNotEmpty) {
+      try {
+        logoImage = await networkImage(instituteLogoUrl);
+      } catch (_) {}
+    }
+
     // Create jagged seal (starburst)
     pw.Widget buildSeal() {
       return pw.Container(
@@ -44,7 +53,9 @@ class CertificatePdfGenerator {
                   height: 76,
                   decoration: pw.BoxDecoration(
                     color: primaryColor,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                    borderRadius: const pw.BorderRadius.all(
+                      pw.Radius.circular(4),
+                    ),
                   ),
                 ),
               ),
@@ -54,18 +65,42 @@ class CertificatePdfGenerator {
               height: 64,
               decoration: pw.BoxDecoration(
                 shape: pw.BoxShape.circle,
-                border: pw.Border.all(color: PdfColors.white, width: 1, style: pw.BorderStyle.dashed),
+                border: pw.Border.all(
+                  color: PdfColors.white,
+                  width: 1,
+                  style: pw.BorderStyle.dashed,
+                ),
               ),
               alignment: pw.Alignment.center,
               child: pw.Column(
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
-                  pw.Text('★ ★ ★', style: pw.TextStyle(color: PdfColors.white, fontSize: 6)),
+                  pw.Text(
+                    '★ ★ ★',
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 6),
+                  ),
                   pw.SizedBox(height: 2),
-                  pw.Text('Awarded', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, font: fontSansRegular)),
-                  pw.Text('${certificate.issueDate.year}', style: pw.TextStyle(color: PdfColors.white, fontSize: 8, font: fontSansBold)),
+                  pw.Text(
+                    'Awarded',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                      font: fontSansRegular,
+                    ),
+                  ),
+                  pw.Text(
+                    '${certificate.issueDate.year}',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                      font: fontSansBold,
+                    ),
+                  ),
                   pw.SizedBox(height: 2),
-                  pw.Text('★ ★ ★', style: pw.TextStyle(color: PdfColors.white, fontSize: 6)),
+                  pw.Text(
+                    '★ ★ ★',
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 6),
+                  ),
                 ],
               ),
             ),
@@ -77,31 +112,49 @@ class CertificatePdfGenerator {
     // Border corner decorations
     pw.Widget cornerDeco({bool top = true, bool left = true}) {
       return pw.Container(
-        width: 30, height: 30,
+        width: 30,
+        height: 30,
         child: pw.Stack(
           children: [
             pw.Positioned(
-              top: top ? 0 : null, bottom: top ? null : 0,
-              left: left ? 0 : null, right: left ? null : 0,
+              top: top ? 0 : null,
+              bottom: top ? null : 0,
+              left: left ? 0 : null,
+              right: left ? null : 0,
               child: pw.Container(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 decoration: pw.BoxDecoration(
                   border: pw.Border(
-                    top: top ? pw.BorderSide(color: primaryColor, width: 1) : pw.BorderSide.none,
-                    bottom: !top ? pw.BorderSide(color: primaryColor, width: 1) : pw.BorderSide.none,
-                    left: left ? pw.BorderSide(color: primaryColor, width: 1) : pw.BorderSide.none,
-                    right: !left ? pw.BorderSide(color: primaryColor, width: 1) : pw.BorderSide.none,
+                    top: top
+                        ? pw.BorderSide(color: primaryColor, width: 1)
+                        : pw.BorderSide.none,
+                    bottom: !top
+                        ? pw.BorderSide(color: primaryColor, width: 1)
+                        : pw.BorderSide.none,
+                    left: left
+                        ? pw.BorderSide(color: primaryColor, width: 1)
+                        : pw.BorderSide.none,
+                    right: !left
+                        ? pw.BorderSide(color: primaryColor, width: 1)
+                        : pw.BorderSide.none,
                   ),
                 ),
-              )
+              ),
             ),
             pw.Positioned(
-              top: top ? 18 : null, bottom: top ? null : 18,
-              left: left ? 18 : null, right: left ? null : 18,
+              top: top ? 18 : null,
+              bottom: top ? null : 18,
+              left: left ? 18 : null,
+              right: left ? null : 18,
               child: pw.Container(
-                width: 4, height: 4,
-                decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, color: primaryColor),
-              )
+                width: 4,
+                height: 4,
+                decoration: pw.BoxDecoration(
+                  shape: pw.BoxShape.circle,
+                  color: primaryColor,
+                ),
+              ),
             ),
           ],
         ),
@@ -118,12 +171,10 @@ class CertificatePdfGenerator {
             child: pw.Stack(
               children: [
                 // Background
-                pw.Positioned.fill(
-                  child: pw.Container(color: bgColor),
-                ),
+                pw.Positioned.fill(child: pw.Container(color: bgColor)),
                 if (background != null) ...[
                   pw.Positioned.fill(
-                    child: pw.Image(background, fit: pw.BoxFit.cover),
+                    child: pw.Image(background!, fit: pw.BoxFit.cover),
                   ),
                   pw.Positioned.fill(
                     child: pw.Container(color: const PdfColor(1, 1, 1, 0.9)),
@@ -132,7 +183,10 @@ class CertificatePdfGenerator {
 
                 // Outer thick patterned border (simulated with multiple nested borders)
                 pw.Positioned(
-                  top: 15, bottom: 15, left: 15, right: 15,
+                  top: 15,
+                  bottom: 15,
+                  left: 15,
+                  right: 15,
                   child: pw.Container(
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: primaryColor, width: 12),
@@ -140,7 +194,10 @@ class CertificatePdfGenerator {
                   ),
                 ),
                 pw.Positioned(
-                  top: 17, bottom: 17, left: 17, right: 17,
+                  top: 17,
+                  bottom: 17,
+                  left: 17,
+                  right: 17,
                   child: pw.Container(
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: PdfColors.white, width: 2),
@@ -148,7 +205,10 @@ class CertificatePdfGenerator {
                   ),
                 ),
                 pw.Positioned(
-                  top: 25, bottom: 25, left: 25, right: 25,
+                  top: 25,
+                  bottom: 25,
+                  left: 25,
+                  right: 25,
                   child: pw.Container(
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: primaryColor, width: 1),
@@ -157,19 +217,38 @@ class CertificatePdfGenerator {
                 ),
                 // Inner border
                 pw.Positioned(
-                  top: 35, bottom: 35, left: 35, right: 35,
+                  top: 35,
+                  bottom: 35,
+                  left: 35,
+                  right: 35,
                   child: pw.Container(
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: primaryColor, width: 0.5),
                     ),
                   ),
                 ),
-                
+
                 // Corner ornaments for inner border
-                pw.Positioned(top: 35, left: 35, child: cornerDeco(top: true, left: true)),
-                pw.Positioned(top: 35, right: 35, child: cornerDeco(top: true, left: false)),
-                pw.Positioned(bottom: 35, left: 35, child: cornerDeco(top: false, left: true)),
-                pw.Positioned(bottom: 35, right: 35, child: cornerDeco(top: false, left: false)),
+                pw.Positioned(
+                  top: 35,
+                  left: 35,
+                  child: cornerDeco(top: true, left: true),
+                ),
+                pw.Positioned(
+                  top: 35,
+                  right: 35,
+                  child: cornerDeco(top: true, left: false),
+                ),
+                pw.Positioned(
+                  bottom: 35,
+                  left: 35,
+                  child: cornerDeco(top: false, left: true),
+                ),
+                pw.Positioned(
+                  bottom: 35,
+                  right: 35,
+                  child: cornerDeco(top: false, left: false),
+                ),
 
                 // Content
                 pw.Positioned.fill(
@@ -180,7 +259,7 @@ class CertificatePdfGenerator {
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
                         pw.SizedBox(height: 10),
-                        
+
                         // Title
                         pw.Text(
                           'CERTIFICATE OF ${certificate.type.name.toUpperCase()}',
@@ -191,27 +270,65 @@ class CertificatePdfGenerator {
                             letterSpacing: 2,
                           ),
                         ),
-                        
+
                         pw.SizedBox(height: 15),
-                        
+
                         // Ornate Divider
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.center,
                           children: [
-                            pw.Container(width: 80, height: 0.5, color: primaryColor),
+                            pw.Container(
+                              width: 80,
+                              height: 0.5,
+                              color: primaryColor,
+                            ),
                             pw.SizedBox(width: 5),
-                            pw.Container(width: 4, height: 4, decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, border: pw.Border.all(color: primaryColor, width: 0.5))),
+                            pw.Container(
+                              width: 4,
+                              height: 4,
+                              decoration: pw.BoxDecoration(
+                                shape: pw.BoxShape.circle,
+                                border: pw.Border.all(
+                                  color: primaryColor,
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
                             pw.SizedBox(width: 5),
-                            pw.Container(width: 6, height: 6, decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, border: pw.Border.all(color: primaryColor, width: 0.5))),
+                            pw.Container(
+                              width: 6,
+                              height: 6,
+                              decoration: pw.BoxDecoration(
+                                shape: pw.BoxShape.circle,
+                                border: pw.Border.all(
+                                  color: primaryColor,
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
                             pw.SizedBox(width: 5),
-                            pw.Container(width: 4, height: 4, decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, border: pw.Border.all(color: primaryColor, width: 0.5))),
+                            pw.Container(
+                              width: 4,
+                              height: 4,
+                              decoration: pw.BoxDecoration(
+                                shape: pw.BoxShape.circle,
+                                border: pw.Border.all(
+                                  color: primaryColor,
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
                             pw.SizedBox(width: 5),
-                            pw.Container(width: 80, height: 0.5, color: primaryColor),
+                            pw.Container(
+                              width: 80,
+                              height: 0.5,
+                              color: primaryColor,
+                            ),
                           ],
                         ),
 
                         pw.SizedBox(height: 35),
-                        
+
                         pw.Text(
                           'This is to certify that',
                           style: pw.TextStyle(
@@ -220,9 +337,9 @@ class CertificatePdfGenerator {
                             color: primaryColor,
                           ),
                         ),
-                        
+
                         pw.SizedBox(height: 15),
-                        
+
                         pw.Text(
                           certificate.studentName,
                           style: pw.TextStyle(
@@ -231,11 +348,13 @@ class CertificatePdfGenerator {
                             color: primaryColor,
                           ),
                         ),
-                        
+
                         pw.SizedBox(height: 20),
-                        
+
                         pw.Padding(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 80),
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 80,
+                          ),
                           child: pw.Text(
                             _processBody(certificate),
                             textAlign: pw.TextAlign.center,
@@ -247,9 +366,9 @@ class CertificatePdfGenerator {
                             ),
                           ),
                         ),
-                        
+
                         pw.Spacer(),
-                        
+
                         // 3-Column Footer
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -261,53 +380,92 @@ class CertificatePdfGenerator {
                                 children: [
                                   pw.Text(
                                     certificate.authorizedSignatory,
-                                    style: pw.TextStyle(font: fontSansBold, fontSize: 14, color: primaryColor),
+                                    style: pw.TextStyle(
+                                      font: fontSansBold,
+                                      fontSize: 14,
+                                      color: primaryColor,
+                                    ),
                                   ),
                                   pw.SizedBox(height: 4),
                                   pw.Text(
                                     'Authorized Signatory',
-                                    style: pw.TextStyle(font: fontSansRegular, fontSize: 12, color: secondaryColor),
+                                    style: pw.TextStyle(
+                                      font: fontSansRegular,
+                                      fontSize: 12,
+                                      color: secondaryColor,
+                                    ),
                                   ),
                                   pw.SizedBox(height: 20),
                                   pw.Text(
-                                    'Certificate ID: ${certificate.id.length > 8 ? certificate.id.substring(0,8) : certificate.id}',
-                                    style: pw.TextStyle(font: fontSansBold, fontSize: 11, color: primaryColor),
+                                    'Certificate ID: ${certificate.id.length > 8 ? certificate.id.substring(0, 8) : certificate.id}',
+                                    style: pw.TextStyle(
+                                      font: fontSansBold,
+                                      fontSize: 11,
+                                      color: primaryColor,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            
-                            // Center Seal
+
+                            // Center Seal / Logo
                             pw.Expanded(
                               child: pw.Column(
                                 children: [
-                                  buildSeal(),
+                                  logoImage != null
+                                      ? pw.Container(
+                                          width: 80,
+                                          height: 80,
+                                          child: pw.Image(
+                                            logoImage!,
+                                            fit: pw.BoxFit.contain,
+                                          ),
+                                        )
+                                      : buildSeal(),
                                   pw.SizedBox(height: 10),
                                   pw.Text(
                                     instituteName,
-                                    style: pw.TextStyle(font: fontSansBold, fontSize: 12, color: primaryColor),
+                                    style: pw.TextStyle(
+                                      font: fontSansBold,
+                                      fontSize: 12,
+                                      color: primaryColor,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            
+
                             // Right Date
                             pw.Expanded(
                               child: pw.Column(
                                 children: [
                                   pw.Text(
-                                    DateFormat('dd.MM.yyyy').format(certificate.issueDate),
-                                    style: pw.TextStyle(font: fontSansBold, fontSize: 14, color: primaryColor),
+                                    DateFormat(
+                                      'dd.MM.yyyy',
+                                    ).format(certificate.issueDate),
+                                    style: pw.TextStyle(
+                                      font: fontSansBold,
+                                      fontSize: 14,
+                                      color: primaryColor,
+                                    ),
                                   ),
                                   pw.SizedBox(height: 4),
                                   pw.Text(
                                     'Date of Issue',
-                                    style: pw.TextStyle(font: fontSansRegular, fontSize: 12, color: secondaryColor),
+                                    style: pw.TextStyle(
+                                      font: fontSansRegular,
+                                      fontSize: 12,
+                                      color: secondaryColor,
+                                    ),
                                   ),
                                   pw.SizedBox(height: 20),
                                   pw.Text(
                                     'Awarded on: ${DateFormat('dd.MM.yyyy').format(certificate.issueDate)}',
-                                    style: pw.TextStyle(font: fontSansBold, fontSize: 11, color: primaryColor),
+                                    style: pw.TextStyle(
+                                      font: fontSansBold,
+                                      fontSize: 11,
+                                      color: primaryColor,
+                                    ),
                                   ),
                                 ],
                               ),

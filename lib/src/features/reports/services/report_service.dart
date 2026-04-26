@@ -376,9 +376,9 @@ class ReportService {
         'Class': data['className'] ?? '',
         'Type': data['type'] ?? '',
         'Title': data['title'] ?? '',
-        'Total (Rs.)': final_.toStringAsFixed(2),
-        'Paid (Rs.)': paid.toStringAsFixed(2),
-        'Balance (Rs.)': (final_ - paid).toStringAsFixed(2),
+        'Total (PKR)': final_.toStringAsFixed(2),
+        'Paid (PKR)': paid.toStringAsFixed(2),
+        'Balance (PKR)': (final_ - paid).toStringAsFixed(2),
         'Status': data['status'] ?? '',
         'Month': data['month'] ?? '',
         'Due Date': _fmtTs(data['dueDate']),
@@ -428,7 +428,7 @@ class ReportService {
       return {
         'Title': data['title'] ?? '',
         'Category': data['category'] ?? '',
-        'Amount (Rs.)': (data['amount'] as num?)?.toStringAsFixed(2) ?? '0.00',
+        'Amount (PKR)': (data['amount'] as num?)?.toStringAsFixed(2) ?? '0.00',
         'Payment Method': data['paymentMethod'] ?? '',
         'Date': _fmtTs(data['date']),
         'Description': data['description'] ?? '',
@@ -445,15 +445,15 @@ class ReportService {
     for (final row in rows) {
       final cat = row['Category'] as String? ?? 'Misc';
       final amt =
-          double.tryParse(row['Amount (Rs.)'] as String? ?? '0') ?? 0.0;
+          double.tryParse(row['Amount (PKR)'] as String? ?? '0') ?? 0.0;
       totals[cat] = (totals[cat] ?? 0) + amt;
     }
     return totals.entries.map((e) => {
       'Category': e.key,
-      'Total (Rs.)': e.value.toStringAsFixed(2),
+      'Total (PKR)': e.value.toStringAsFixed(2),
     }).toList()
-      ..sort((a, b) => double.parse(b['Total (Rs.)'] as String)
-          .compareTo(double.parse(a['Total (Rs.)'] as String)));
+      ..sort((a, b) => double.parse(b['Total (PKR)'] as String)
+          .compareTo(double.parse(a['Total (PKR)'] as String)));
   }
 
   Future<List<ReportRow>> getProfitLossMonthly(
@@ -506,9 +506,9 @@ class ReportService {
       final pl = rev - exp;
       return {
         'Month': m,
-        'Revenue (Rs.)': rev.toStringAsFixed(2),
-        'Expenses (Rs.)': exp.toStringAsFixed(2),
-        'P&L (Rs.)': pl.toStringAsFixed(2),
+        'Revenue (PKR)': rev.toStringAsFixed(2),
+        'Expenses (PKR)': exp.toStringAsFixed(2),
+        'P&L (PKR)': pl.toStringAsFixed(2),
         'Status': pl >= 0 ? 'Profit' : 'Loss',
       };
     }).toList();

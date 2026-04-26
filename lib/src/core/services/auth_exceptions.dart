@@ -17,7 +17,19 @@ class UserBlockedException extends AuthException {
 }
 
 class InstituteBlockedException extends AuthException {
-  InstituteBlockedException() : super('Your institute is currently blocked.', 'institute-blocked');
+  InstituteBlockedException()
+      : super(
+          'Your institute account has been suspended. Please contact EduCore support to resolve this.',
+          'institute-blocked',
+        );
+}
+
+class InstitutePendingException extends AuthException {
+  InstitutePendingException()
+      : super(
+          'Your institute registration is pending approval. You will be able to log in once an administrator activates your account.',
+          'institute-pending',
+        );
 }
 
 class SubscriptionExpiredException extends AuthException {

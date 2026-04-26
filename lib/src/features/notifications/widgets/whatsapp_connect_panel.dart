@@ -67,7 +67,31 @@ class WhatsAppConnectPanel extends StatelessWidget {
                 _QrDisplay(qr: controller.qrCode!)
               else if (status == 'checking')
                 const CircularProgressIndicator()
-              else if (!isConnected)
+              else if (!isConnected) ...[
+                // Show backend error if present
+                if (controller.backendError != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.errorContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: cs.error, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            controller.backendError!,
+                            style: TextStyle(color: cs.onErrorContainer, fontSize: 13, height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -80,6 +104,7 @@ class WhatsAppConnectPanel extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
   
               if (isConnected)
                 SizedBox(

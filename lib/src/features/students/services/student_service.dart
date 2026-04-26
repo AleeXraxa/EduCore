@@ -327,12 +327,26 @@ class StudentService {
 
   Future<String> getNextRollNumber(String academyId) async {
     try {
+      // Fetch academy name to generate a custom prefix
+      final academyDoc = await _firestore.collection('academies').doc(academyId).get();
+      final academyName = academyDoc.data()?['name'] as String? ?? 'EDU';
+      
+      String prefix = 'EDU';
+      final parts = academyName.trim().split(RegExp(r'\s+'));
+      if (parts.length > 1) {
+        // Use initials for multi-word names (e.g. "Abc School" -> "AS")
+        prefix = parts.map((e) => e[0]).join().toUpperCase();
+      } else {
+        // Use first 3 letters for single-word names (e.g. "Educore" -> "EDU")
+        prefix = academyName.substring(0, academyName.length > 3 ? 3 : academyName.length).toUpperCase();
+      }
+
       final snapshot = await _studentsRef(academyId)
           .where('status', isNotEqualTo: 'deleted')
           .count()
           .get();
       final count = snapshot.count ?? 0;
-      return 'EDU - ${count + 1}';
+      return '$prefix - ${count + 1}';
     } catch (e) {
       debugPrint('Error getting next roll number: $e');
       return 'EDU - 1';

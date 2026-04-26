@@ -440,7 +440,7 @@ class FeePdfGenerator {
             children: [
               _tableCell(fee.className ?? '---', font),
               _tableCell(
-                'Rs. ${_currencyFmt.format(fee.originalAmount)}',
+                'PKR ${_currencyFmt.format(fee.originalAmount)}',
                 font,
                 align: pw.TextAlign.right,
               ),
@@ -457,7 +457,7 @@ class FeePdfGenerator {
                   color: _successColor,
                 ),
                 _tableCell(
-                  '- Rs. ${_currencyFmt.format(fee.discountAmount)}',
+                  '- PKR ${_currencyFmt.format(fee.discountAmount)}',
                   font,
                   align: pw.TextAlign.right,
                   color: _successColor,
@@ -540,7 +540,7 @@ class FeePdfGenerator {
                     ),
                     _tableCell(txn.methodLabel, font, fontSize: 9),
                     _tableCell(
-                      'Rs. ${_currencyFmt.format(txn.amount)}',
+                      'PKR ${_currencyFmt.format(txn.amount)}',
                       font,
                       fontSize: 9,
                       align: pw.TextAlign.right,
@@ -595,14 +595,14 @@ class FeePdfGenerator {
               children: [
                 _summaryRow(
                   'Original Amount',
-                  'Rs. ${_currencyFmt.format(fee.originalAmount)}',
+                  'PKR ${_currencyFmt.format(fee.originalAmount)}',
                   fontBold,
                   font,
                 ),
                 if (fee.discountAmount > 0)
                   _summaryRow(
                     'Discount Applied',
-                    '- Rs. ${_currencyFmt.format(fee.discountAmount)}',
+                    '- PKR ${_currencyFmt.format(fee.discountAmount)}',
                     fontBold,
                     font,
                     valueColor: _successColor,
@@ -610,7 +610,7 @@ class FeePdfGenerator {
                 if (fee.paidAmount > 0 && !isChallan && s.showPaymentDetails)
                   _summaryRow(
                     'Amount Paid',
-                    'Rs. ${_currencyFmt.format(fee.paidAmount)}',
+                    'PKR ${_currencyFmt.format(fee.paidAmount)}',
                     fontBold,
                     font,
                     valueColor: _successColor,
@@ -628,7 +628,7 @@ class FeePdfGenerator {
                       ),
                     ),
                     pw.Text(
-                      'Rs. ${_currencyFmt.format(fee.remainingAmount)}',
+                      'PKR ${_currencyFmt.format(fee.remainingAmount)}',
                       style: pw.TextStyle(
                         font: fontBlack,
                         fontSize: 16,

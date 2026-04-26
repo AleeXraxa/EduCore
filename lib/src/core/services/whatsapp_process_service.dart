@@ -6,20 +6,24 @@ class WhatsAppProcessService {
   Process? _process;
   bool _isStarting = false;
 
+  // Surfaces the last startup error so the UI can show it
+  String? _lastError;
+  String? get lastError => _lastError;
+
   bool get isRunning => _process != null;
 
   Future<void> init() async {
     if (isRunning || _isStarting) return;
     _isStarting = true;
+    _lastError = null;
 
     try {
       // 0. Cleanup existing process on port 3000 (Windows only)
       if (Platform.isWindows) {
         try {
-          // Find PID using port 3000
           final findPid = await Process.run('cmd', ['/c', 'netstat -ano | findstr :3000']);
           final output = findPid.stdout.toString().trim();
-          
+
           if (output.isNotEmpty) {
             final lines = output.split('\r\n');
             for (final line in lines) {
@@ -28,7 +32,6 @@ class WhatsAppProcessService {
                 final pid = parts.last;
                 debugPrint('Cleaning up stale WhatsApp process (PID: $pid) on port 3000');
                 await Process.run('taskkill', ['/F', '/T', '/PID', pid]);
-                // Give it a moment to release the port
                 await Future.delayed(const Duration(milliseconds: 500));
               }
             }
@@ -42,30 +45,46 @@ class WhatsAppProcessService {
       List<String> args = [];
       String? workingDir;
 
-      // 1. Check current directory (Release mode exe)
-      final releaseExe = p.join(p.dirname(Platform.resolvedExecutable), 'whatsapp_backend.exe');
-      
-      // 2. Check development path
+      final exeDir = p.dirname(Platform.resolvedExecutable);
+
+      // Candidate paths (checked in priority order):
+      // 1. Debug: whatsapp_service/index.js (node)
+      // 2. Release option A: whatsapp_backend.exe next to the Flutter exe
+      // 3. Release option B: whatsapp_service/whatsapp_backend.exe next to the Flutter exe
+      // 4. Dev fallback: whatsapp_service/whatsapp_backend.exe relative to CWD
       final devDir = p.absolute('whatsapp_service');
-      final devExe = p.join(devDir, 'whatsapp_backend.exe');
       final devJs = p.join(devDir, 'index.js');
+      final devExe = p.join(devDir, 'whatsapp_backend.exe');
+
+      final releaseExeFlat = p.join(exeDir, 'whatsapp_backend.exe');
+      final releaseExeSubfolder = p.join(exeDir, 'whatsapp_service', 'whatsapp_backend.exe');
 
       if (kDebugMode && await File(devJs).exists()) {
-        // In debug mode, prefer node index.js to support the new ESM structure
         command = 'node';
         args = ['index.js'];
         workingDir = devDir;
-        debugPrint('Starting WhatsApp Backend via Node from: $devJs');
-      } else if (await File(releaseExe).exists()) {
-        command = releaseExe;
-        debugPrint('Starting WhatsApp Backend from: $releaseExe');
+        debugPrint('[WhatsApp] Starting via Node from: $devJs');
+      } else if (await File(releaseExeFlat).exists()) {
+        command = releaseExeFlat;
+        workingDir = exeDir;
+        debugPrint('[WhatsApp] Starting from flat release: $releaseExeFlat');
+      } else if (await File(releaseExeSubfolder).exists()) {
+        command = releaseExeSubfolder;
+        workingDir = p.join(exeDir, 'whatsapp_service');
+        debugPrint('[WhatsApp] Starting from release subfolder: $releaseExeSubfolder');
       } else if (await File(devExe).exists()) {
         command = devExe;
-        debugPrint('Starting WhatsApp Backend from: $devExe');
+        workingDir = devDir;
+        debugPrint('[WhatsApp] Starting from dev exe: $devExe');
       }
 
       if (command == null) {
-        debugPrint('WhatsApp Backend (exe or js) not found.');
+        _lastError =
+            'WhatsApp backend not found.\n\nExpected at:\n• $releaseExeFlat\n• $releaseExeSubfolder';
+        debugPrint('[WhatsApp] Backend not found. Searched:\n'
+            '  1. $releaseExeFlat\n'
+            '  2. $releaseExeSubfolder\n'
+            '  3. $devExe');
         _isStarting = false;
         return;
       }
@@ -77,26 +96,28 @@ class WhatsAppProcessService {
         mode: ProcessStartMode.normal,
       );
 
-      // Log output for debugging
       _process!.stdout.listen((data) {
         final message = String.fromCharCodes(data);
-        if (kDebugMode) {
-          print('WA Backend: $message');
-        }
+        debugPrint('[WA Backend]: $message');
       });
 
       _process!.stderr.listen((data) {
-        print('WA Backend Error: ${String.fromCharCodes(data)}');
+        final message = String.fromCharCodes(data);
+        debugPrint('[WA Backend Error]: $message');
       });
 
       _process!.exitCode.then((code) {
-        debugPrint('WhatsApp Backend exited with code $code');
+        debugPrint('[WhatsApp] Backend exited with code $code');
+        if (code != 0) {
+          _lastError = 'WhatsApp backend crashed (exit code $code). Try restarting the app.';
+        }
         _process = null;
       });
 
-      debugPrint('WhatsApp Backend started with PID: ${_process!.pid}');
+      debugPrint('[WhatsApp] Backend started with PID: ${_process!.pid}');
     } catch (e) {
-      debugPrint('Failed to start WhatsApp Backend: $e');
+      _lastError = 'Failed to start WhatsApp backend: $e';
+      debugPrint('[WhatsApp] $e');
     } finally {
       _isStarting = false;
     }
