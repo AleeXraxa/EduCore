@@ -79,8 +79,8 @@ class WhatsAppService {
     }
   }
 
-  /// REST: Send bulk messages
-  Future<List<dynamic>> sendBulk({
+  /// REST: Send bulk messages (Queues them for background processing)
+  Future<(bool, int)> sendBulk({
     required String academyId,
     required List<Map<String, String>> messages,
   }) async {
@@ -89,9 +89,24 @@ class WhatsAppService {
         'academyId': academyId,
         'messages': messages,
       });
-      return response.data['results'] ?? [];
+      
+      final success = response.data['success'] == true;
+      final count = response.data['queuedCount'] as int? ?? 0;
+      
+      return (success, count);
     } catch (e) {
-      rethrow;
+      debugPrint('WhatsAppService: Bulk send failed: $e');
+      return (false, 0);
+    }
+  }
+
+  /// REST: Get queue information
+  Future<Map<String, dynamic>> getQueueInfo(String academyId) async {
+    try {
+      final response = await _dio.get('/queue-info/$academyId');
+      return response.data;
+    } catch (e) {
+      return {'queueSize': 0, 'isProcessing': false};
     }
   }
 

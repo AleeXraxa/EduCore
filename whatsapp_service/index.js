@@ -60,9 +60,51 @@ async function initSession(academyId) {
         sock,
         status: 'initializing',
         qr: null,
+        queue: [],
+        isProcessing: false,
     };
 
     sessions.set(academyId, sessionObj);
+
+    // Queue processing logic
+    const processQueue = async (aid) => {
+        const session = sessions.get(aid);
+        if (!session || session.isProcessing || session.queue.length === 0 || session.status !== 'connected') return;
+
+        session.isProcessing = true;
+        console.log(`[Queue-${aid}] Starting processing. Total items: ${session.queue.length}`);
+
+        while (session.queue.length > 0) {
+            const item = session.queue[0]; // Peek
+            const { to, message, resolve, reject } = item;
+
+            try {
+                let numericTo = to.replace(/[^0-9]/g, '');
+                if (numericTo.startsWith('0')) {
+                    numericTo = '92' + numericTo.substring(1);
+                }
+                const jid = numericTo + '@s.whatsapp.net';
+                
+                await session.sock.sendMessage(jid, { text: message });
+                console.log(`[Queue-${aid}] Sent to ${to}`);
+                
+                if (resolve) resolve({ success: true, to });
+            } catch (err) {
+                console.error(`[Queue-${aid}] Failed for ${to}:`, err.message);
+                if (reject) reject(err);
+            }
+
+            session.queue.shift(); // Remove processed item
+            
+            if (session.queue.length > 0) {
+                const waitTime = 1500 + Math.random() * 1000; // 1.5s - 2.5s variable delay
+                await delay(waitTime);
+            }
+        }
+
+        session.isProcessing = false;
+        console.log(`[Queue-${aid}] Finished processing all items.`);
+    };
 
     sock.ev.on('creds.update', saveCreds);
 
@@ -80,6 +122,7 @@ async function initSession(academyId) {
             console.log(`Connection closed for ${academyId}, reason: ${lastDisconnect.error}, reconnecting: ${shouldReconnect}`);
             
             sessionObj.status = 'disconnected';
+            sessionObj.isProcessing = false; // Stop queue worker
             io.emit(`status-${academyId}`, { status: 'disconnected' });
 
             if (shouldReconnect) {
@@ -97,8 +140,19 @@ async function initSession(academyId) {
             sessionObj.status = 'connected';
             sessionObj.qr = null;
             io.emit(`status-${academyId}`, { status: 'connected' });
+            
+            // Start processing if items were queued while disconnected
+            processQueue(academyId);
         }
     });
+
+    // Attach queue helper to session for easy access
+    sessionObj.enqueue = (to, message) => {
+        return new Promise((resolve, reject) => {
+            sessionObj.queue.push({ to, message, resolve, reject });
+            processQueue(academyId);
+        });
+    };
 
     return sessionObj;
 }
@@ -140,11 +194,10 @@ app.get('/status/:academyId', (req, res) => {
 });
 
 /**
- * Send a single message
+ * Send a single message (waits for queue turn)
  */
 app.post('/send-message', async (req, res) => {
     const { academyId, to, message } = req.body;
-    console.log(`[send-message] Request received for academy: ${academyId}, to: ${to}`);
     
     if (!academyId || !to || !message) {
         return res.status(400).json({ error: 'academyId, to, and message are required' });
@@ -152,34 +205,21 @@ app.post('/send-message', async (req, res) => {
 
     const session = sessions.get(academyId);
     if (!session || session.status !== 'connected') {
-        console.log(`[send-message] Session not connected. Status: ${session?.status}`);
         return res.status(400).json({ error: 'WhatsApp not connected' });
     }
 
     try {
-        let numericTo = to.replace(/[^0-9]/g, '');
-        if (numericTo.startsWith('0')) {
-            numericTo = '92' + numericTo.substring(1);
-        }
-        const jid = numericTo + '@s.whatsapp.net';
-        console.log(`[send-message] Sending message to JID: ${jid}`);
-        
-        // Add timeout to prevent hanging on invalid JIDs
-        const sendPromise = session.sock.sendMessage(jid, { text: message });
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout sending message")), 8000));
-        
-        await Promise.race([sendPromise, timeoutPromise]);
-        
-        console.log(`[send-message] Message sent successfully to ${jid}`);
-        res.json({ success: true });
+        // Enqueue and wait for result
+        const result = await session.enqueue(to, message);
+        res.json(result);
     } catch (err) {
-        console.error(`[send-message] Error sending message to ${to}:`, err);
+        console.error(`[API-Single] Error:`, err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
 /**
- * Send bulk messages
+ * Send bulk messages (Fire and forget into queue)
  */
 app.post('/send-bulk', async (req, res) => {
     const { academyId, messages } = req.body; // messages: [{ to, message }]
@@ -192,28 +232,30 @@ app.post('/send-bulk', async (req, res) => {
         return res.status(400).json({ error: 'WhatsApp not connected' });
     }
 
-    const results = [];
-    for (const msg of messages) {
-        try {
-            let numericTo = msg.to.replace(/[^0-9]/g, '');
-            if (numericTo.startsWith('0')) {
-                numericTo = '92' + numericTo.substring(1);
-            }
-            const jid = numericTo + '@s.whatsapp.net';
-            
-            const sendPromise = session.sock.sendMessage(jid, { text: msg.message });
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout sending message")), 8000));
-            
-            await Promise.race([sendPromise, timeoutPromise]);
-            
-            results.push({ to: msg.to, success: true });
-            await delay(1000); // 1s delay between bulk messages to avoid spam detection
-        } catch (err) {
-            results.push({ to: msg.to, success: false, error: err.message });
-        }
-    }
+    // Fire and forget: Add all to queue without awaiting
+    messages.forEach(msg => {
+        session.enqueue(msg.to, msg.message).catch(e => {
+            console.error(`[API-Bulk-Bg] Failed for ${msg.to}:`, e.message);
+        });
+    });
 
-    res.json({ results });
+    res.json({ success: true, queuedCount: messages.length });
+});
+
+/**
+ * Get queue information
+ */
+app.get('/queue-info/:academyId', (req, res) => {
+    const { academyId } = req.params;
+    const session = sessions.get(academyId);
+
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    res.json({
+        queueSize: session.queue.length,
+        isProcessing: session.isProcessing,
+        status: session.status
+    });
 });
 
 /**
@@ -236,6 +278,36 @@ app.post('/disconnect', async (req, res) => {
     }
 
     res.json({ success: true });
+});
+
+let isShuttingDown = false;
+
+/**
+ * Graceful Shutdown: Finish queue then exit
+ */
+app.post('/shutdown', (req, res) => {
+    console.log('[System] Shutdown request received. Waiting for queues to clear...');
+    isShuttingDown = true;
+    res.json({ success: true, message: 'Shutting down gracefully' });
+
+    const checkAndExit = () => {
+        let allEmpty = true;
+        for (const [aid, session] of sessions) {
+            if (session.queue.length > 0 || session.isProcessing) {
+                allEmpty = false;
+                break;
+            }
+        }
+
+        if (allEmpty) {
+            console.log('[System] All queues clear. Exiting.');
+            process.exit(0);
+        } else {
+            setTimeout(checkAndExit, 2000);
+        }
+    };
+
+    checkAndExit();
 });
 
 const PORT = process.env.PORT || 3000;

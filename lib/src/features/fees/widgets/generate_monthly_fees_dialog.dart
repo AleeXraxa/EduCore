@@ -130,7 +130,7 @@ class _GenerateMonthlyFeesDialogState extends State<GenerateMonthlyFeesDialog> {
           _blockMessage = error;
         }
       });
-      if (count >= 0) Navigator.pop(context);
+      if (count >= 0) Navigator.pop(context, count);
     }
   }
 

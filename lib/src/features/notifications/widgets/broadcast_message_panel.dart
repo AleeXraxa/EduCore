@@ -3,6 +3,7 @@ import 'package:educore/src/features/notifications/controllers/institute_notific
 import 'package:educore/src/core/ui/widgets/app_dropdown.dart';
 import 'package:educore/src/core/ui/widgets/app_multi_dropdown.dart';
 import 'package:educore/src/features/students/models/student.dart';
+import 'package:educore/src/core/ui/widgets/app_dialogs.dart';
 
 class BroadcastMessagePanel extends StatefulWidget {
   const BroadcastMessagePanel({super.key, required this.controller});
@@ -299,16 +300,23 @@ class _BroadcastMessagePanelState extends State<BroadcastMessagePanel> {
       };
     }).toList();
 
-    await widget.controller.sendBulkMessages(
+    final success = await widget.controller.sendBulkMessages(
       context,
       recipients: recipients,
       broadcastType: _selectedTemplate,
     );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Broadcast initiated successfully!')),
+    if (success && mounted) {
+      AppDialogs.showSuccess(
+        context,
+        title: 'Broadcast Initiated',
+        message: '${recipients.length} messages have been added to the background queue and will be sent shortly.',
       );
+      
+      setState(() {
+        _selectedStudents = [];
+        _messageController.clear();
+      });
     }
   }
 

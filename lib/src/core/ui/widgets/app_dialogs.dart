@@ -9,7 +9,7 @@ import 'dart:ui';
 class AppDialogs {
   AppDialogs._();
 
-  static bool _isLoadingVisible = false;
+  static int _loadingCount = 0;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 1. CONFIRMATION DIALOGS
@@ -76,8 +76,8 @@ class AppDialogs {
     BuildContext context, {
     String message = 'Processing...',
   }) {
-    if (_isLoadingVisible) return;
-    _isLoadingVisible = true;
+    _loadingCount++;
+    if (_loadingCount > 1) return;
 
     showGeneralDialog(
       context: context,
@@ -97,14 +97,18 @@ class AppDialogs {
           ),
         );
       },
-    ).then((_) => _isLoadingVisible = false);
+    ).then((_) {
+      if (_loadingCount > 0) _loadingCount = 0;
+    });
   }
 
   /// Hides the active loading overlay
   static void hideLoading(BuildContext context) {
-    if (_isLoadingVisible) {
+    if (_loadingCount <= 0) return;
+    
+    _loadingCount--;
+    if (_loadingCount == 0) {
       Navigator.of(context, rootNavigator: true).pop();
-      _isLoadingVisible = false;
     }
   }
 

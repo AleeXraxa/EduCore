@@ -102,8 +102,32 @@ class WhatsAppProcessService {
     }
   }
 
-  void stop() {
-    _process?.kill();
-    _process = null;
+  Future<void> stop() async {
+    if (_process == null) return;
+
+    try {
+      // 1. Try graceful shutdown first
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 2);
+      final request = await client.post('localhost', 3000, '/shutdown');
+      await request.close();
+      debugPrint('Graceful shutdown request sent to WhatsApp Backend.');
+      
+      // 2. Wait up to 5 seconds for it to exit on its own
+      int count = 0;
+      while (_process != null && count < 10) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        count++;
+      }
+    } catch (e) {
+      debugPrint('Graceful shutdown failed: $e');
+    } finally {
+      // 3. Force kill if still running after timeout or error
+      if (_process != null) {
+        debugPrint('Force killing WhatsApp Backend (PID: ${_process!.pid})');
+        _process!.kill();
+        _process = null;
+      }
+    }
   }
 }

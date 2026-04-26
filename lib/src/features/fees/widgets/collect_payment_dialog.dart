@@ -146,7 +146,7 @@ class _CollectPaymentDialogState extends State<CollectPaymentDialog> {
                     note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
                   );
                   if (!context.mounted) return;
-                  Navigator.pop(context);
+                  Navigator.pop(context, true);
                 } catch (e) {
                   debugPrint('CollectPaymentDialog: Error: $e');
                   if (context.mounted) {

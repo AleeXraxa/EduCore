@@ -34,6 +34,9 @@ class InstituteNotificationsController extends BaseController {
   int _failedCount = 0;
   int get failedCount => _failedCount;
 
+  int _queuedCount = 0;
+  int get queuedCount => _queuedCount;
+
   // Data for selection
   List<Student> _students = [];
   List<Student> get students => _students;
@@ -127,6 +130,10 @@ class InstituteNotificationsController extends BaseController {
 
           _failedCount = _messages
               .where((m) => m.status == WhatsAppMessageStatus.failed)
+              .length;
+
+          _queuedCount = _messages
+              .where((m) => m.status == WhatsAppMessageStatus.pending)
               .length;
 
           notifyListeners();
@@ -270,48 +277,43 @@ class InstituteNotificationsController extends BaseController {
   }
 
   /// Send Bulk Messages
-  Future<void> sendBulkMessages(
+  Future<bool> sendBulkMessages(
     BuildContext context, {
     required List<Map<String, String>>
     recipients, // [{to, message, studentId, studentName}]
     required String broadcastType,
   }) async {
-    if (_academyId == null) return;
+    if (_academyId == null) return false;
 
-    await runGuarded(
+    final result = await runGuarded<bool>(
       () async {
         final List<Map<String, String>> payload = recipients
             .map((r) => {'to': r['to']!, 'message': r['message']!})
             .toList();
 
-        // 1. Send via Backend
-        final results =
-            await _whatsappService?.sendBulk(
-              academyId: _academyId!,
-              messages: payload,
-            ) ??
-            [];
+        // 1. Send via Backend (Now returns success + queued count)
+        final result = await _whatsappService?.sendBulk(
+          academyId: _academyId!,
+          messages: payload,
+        ) ?? (false, 0);
 
-        // 2. Log all results to Firestore
+        final success = result.$1;
+        final queuedCount = result.$2;
+
+        // 2. Log all to Firestore
+        // If success is true, we mark as pending because they are in the Node.js queue.
         final batch = _firestore.batch();
-        for (var i = 0; i < recipients.length; i++) {
-          final r = recipients[i];
-          final res = results.firstWhere(
-            (element) => element['to'] == r['to'],
-            orElse: () => {'success': false},
-          );
-
-          final success = res['success'] == true;
+        for (final r in recipients) {
           final log = WhatsAppMessage(
             id: '',
             recipient: r['to']!,
             message: r['message']!,
-            status: success
-                ? WhatsAppMessageStatus.sent
+            status: success 
+                ? WhatsAppMessageStatus.sent 
                 : WhatsAppMessageStatus.failed,
             createdAt: DateTime.now(),
             sentAt: success ? DateTime.now() : null,
-            error: success ? null : res['error']?.toString(),
+            error: success ? null : 'Failed to queue messages',
             studentId: r['studentId'],
             studentName: r['studentName'],
             type: 'broadcast',
@@ -342,6 +344,8 @@ class InstituteNotificationsController extends BaseController {
       context: context,
       loadingMessage: 'Sending Bulk Messages...',
     );
+
+    return result ?? false;
   }
 
   @override

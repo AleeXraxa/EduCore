@@ -277,9 +277,6 @@ class _FeesHeader extends StatelessWidget {
           required title,
           dueDate,
         }) async {
-          // STEP 1: Confirmation (Internal to dialog usually, but we handle feedback here)
-          AppDialogs.showLoading(context, message: 'Generating records...');
-          
           final count = await controller.generateMonthlyFees(
             context: context,
             classId: classId,
@@ -289,33 +286,32 @@ class _FeesHeader extends StatelessWidget {
             title: title,
             dueDate: dueDate,
           );
-
-          if (context.mounted) {
-            AppDialogs.hideLoading(context);
-            if (count > 0) {
-              AppDialogs.showSuccess(
-                context,
-                title: 'Generation Complete',
-                message: 'Successfully generated $count monthly fee records.',
-              );
-            } else if (count == 0) {
-              AppDialogs.showInfo(
-                context,
-                title: 'No New Records',
-                message: 'All students in this class already have a fee record for $month.',
-              );
-            } else {
-              AppDialogs.showError(
-                context,
-                title: 'Process Failed',
-                message: controller.error ?? 'Failed to generate monthly fees.',
-              );
-            }
-          }
           return (count, controller.error);
         },
       ),
-    );
+    ).then((count) {
+      if (count == null || !context.mounted) return;
+
+      if (count > 0) {
+        AppDialogs.showSuccess(
+          context,
+          title: 'Generation Complete',
+          message: 'Successfully generated $count monthly fee records.',
+        );
+      } else if (count == 0) {
+        AppDialogs.showInfo(
+          context,
+          title: 'No New Records',
+          message: 'All students in this class already have a fee record for the selected month.',
+        );
+      } else {
+        AppDialogs.showError(
+          context,
+          title: 'Process Failed',
+          message: controller.error ?? 'Failed to generate monthly fees.',
+        );
+      }
+    });
   }
 
   void _showCreateOtherFeeDialog(BuildContext context) {
@@ -541,7 +537,7 @@ class _FeesList extends StatelessWidget {
   }
 
   void _collectPayment(BuildContext context, Fee fee) {
-    showDialog<double>(
+    showDialog<bool>(
       context: context,
       builder: (_) => CollectPaymentDialog(
         fee: fee,
@@ -549,12 +545,21 @@ class _FeesList extends StatelessWidget {
           await controller.collectPayment(context, fee.id, amount, method: method, note: note);
         },
       ),
-    ).then((paidAmount) async {
-      if (!context.mounted) return;
-      final genReceipt = await AppDialogs.showConfirm(
+    ).then((success) async {
+      if (success != true || !context.mounted) return;
+
+      await AppDialogs.showSuccess(
         context,
         title: 'Payment Successful',
-        message: 'Payment has been recorded. Would you like to generate a receipt now?',
+        message: 'The payment has been recorded successfully.',
+      );
+
+      if (!context.mounted) return;
+
+      final genReceipt = await AppDialogs.showConfirm(
+        context,
+        title: 'Generate Receipt?',
+        message: 'Would you like to generate a receipt for this transaction now?',
         confirmLabel: 'Generate Receipt',
         cancelLabel: 'Later',
       );

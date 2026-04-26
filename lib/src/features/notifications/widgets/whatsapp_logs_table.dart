@@ -66,19 +66,22 @@ class WhatsAppLogsTable extends StatelessWidget {
               AppTableColumn(
                 label: 'Status',
                 builder: (m) {
-                  final isSuccess = m.status == WhatsAppMessageStatus.sent;
+                  final color = switch (m.status) {
+                    WhatsAppMessageStatus.sent => Colors.green,
+                    WhatsAppMessageStatus.pending => Colors.blue,
+                    WhatsAppMessageStatus.failed => cs.error,
+                  };
+                  
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isSuccess 
-                        ? Colors.green.withValues(alpha: 0.1) 
-                        : cs.error.withValues(alpha: 0.1),
+                      color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      m.status.name.toUpperCase(),
+                      m.status == WhatsAppMessageStatus.pending ? 'QUEUED' : m.status.name.toUpperCase(),
                       style: TextStyle(
-                        color: isSuccess ? Colors.green : cs.error,
+                        color: color,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -108,16 +111,16 @@ class WhatsAppLogsTable extends StatelessWidget {
         gradient: [cs.primary, cs.primaryContainer],
       ),
       KpiCardData(
+        label: 'In Queue',
+        value: controller.queuedCount.toString(),
+        icon: Icons.pending_actions_rounded,
+        gradient: [Colors.blue, Colors.blue.shade300],
+      ),
+      KpiCardData(
         label: 'Failed',
         value: controller.failedCount.toString(),
         icon: Icons.error_outline_rounded,
         gradient: [cs.error, cs.errorContainer],
-      ),
-      KpiCardData(
-        label: 'Total History',
-        value: controller.messages.length.toString(),
-        icon: Icons.history_rounded,
-        gradient: [cs.secondary, cs.secondaryContainer],
       ),
     ];
 

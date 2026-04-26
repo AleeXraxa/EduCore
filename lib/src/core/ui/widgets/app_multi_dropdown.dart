@@ -42,7 +42,13 @@ class _AppMultiDropdownState<T> extends State<AppMultiDropdown<T>> {
   void didUpdateWidget(covariant AppMultiDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.values != widget.values) {
-      _controller.value = widget.values;
+      // Defer to next frame to avoid "setState during build" exception
+      // if the parent clears values after an action.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _controller.value = widget.values;
+        }
+      });
     }
   }
 

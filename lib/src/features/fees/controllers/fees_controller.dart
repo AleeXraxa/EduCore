@@ -254,12 +254,13 @@ class FeesController extends BaseController {
           note: note,
         );
         await loadInitialData(); // Refresh everything
+        return true;
       },
       context: context,
       loadingMessage: 'Recording Payment...',
     );
 
-    return success != null;
+    return success == true;
   }
 
   Future<List<FeeTransaction>> getFeeTransactions(String feeId) async {
@@ -317,12 +318,13 @@ class FeesController extends BaseController {
       () async {
         await _feeService.createFee(_academyId, fee);
         await loadInitialData();
+        return true;
       },
       context: context,
       loadingMessage: 'Creating Fee Record...',
     );
 
-    return success != null;
+    return success == true;
   }
 
   Future<bool> sendWhatsAppReminder(BuildContext context, Fee fee) async {

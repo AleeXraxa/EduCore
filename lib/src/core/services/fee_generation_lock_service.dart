@@ -64,10 +64,9 @@ class FeeGenerationLockService {
           if (age.inMinutes < 10) {
             return LockBlocked(status: 'processing', startedAt: startedAt);
           }
-          // Stale lock — fall through to overwrite below.
-        } else if (status == 'completed') {
-          return LockBlocked(status: 'completed', startedAt: startedAt);
         }
+        // If status is 'completed', we fall through and allow re-acquisition
+        // to support incremental generation for new students.
       }
 
       // 2. Set the lock (Atomic set for Windows stability)
